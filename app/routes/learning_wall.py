@@ -105,3 +105,43 @@ def clear_wall():
     clear_all_wall_posts()
     flash("All events have been removed from the Learning Wall.", "success")
     return redirect(url_for('learning_wall.index'))
+
+
+@learning_wall_bp.route('/create_post', methods=['POST'])
+def create_post():
+    """Admin: Create a custom announcement post on the Learning Wall."""
+    if not session.get('admin_logged_in'):
+        flash("Only L&D Administrators can create posts.", "danger")
+        return redirect(url_for('learning_wall.index'))
+
+    title = request.form.get('title', '').strip()
+    content = request.form.get('content', '').strip()
+    if not title or not content:
+        flash("Post title and content are required.", "danger")
+        return redirect(url_for('learning_wall.index'))
+
+    post = LearningWallPost(
+        post_type='ADMIN_ANNOUNCEMENT',
+        title=title,
+        content=content,
+        icon='fa-bullhorn',
+        badge_color='bg-teal-subtle text-teal'
+    )
+    db.session.add(post)
+    db.session.commit()
+    flash(f"Announcement '{title}' posted to the Learning Wall.", "success")
+    return redirect(url_for('learning_wall.index'))
+
+
+@learning_wall_bp.route('/delete/<int:post_id>', methods=['POST'])
+def delete_post(post_id):
+    """Admin: Delete a specific Learning Wall post."""
+    if not session.get('admin_logged_in'):
+        flash("Only L&D Administrators can delete posts.", "danger")
+        return redirect(url_for('learning_wall.index'))
+
+    post = LearningWallPost.query.get_or_404(post_id)
+    db.session.delete(post)
+    db.session.commit()
+    flash("Learning Wall post deleted.", "success")
+    return redirect(url_for('learning_wall.index'))

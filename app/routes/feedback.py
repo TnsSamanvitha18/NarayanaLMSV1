@@ -1,19 +1,17 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, send_file
 import pandas as pd
 import json
+from io import BytesIO
 from app.models import db
 from app.models.feedback import FeedbackRepository, FeedbackQuestion, FeedbackResponse
+from app.models.user import Learner
+from app.utils.decorators import admin_required
 
 feedback_bp = Blueprint('feedback', __name__)
 
-def check_admin():
-    return session.get('admin_logged_in')
-
 @feedback_bp.route('/')
+@admin_required
 def list_repositories():
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
-
     search_query = request.args.get('search', '').strip()
     query = FeedbackRepository.query
 
@@ -25,10 +23,8 @@ def list_repositories():
 
 
 @feedback_bp.route('/create', methods=['GET', 'POST'])
+@admin_required
 def create_repository():
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
-
     if request.method == 'POST':
         title = request.form.get('title', '').strip()
         description = request.form.get('description', '').strip()
@@ -76,10 +72,8 @@ def create_repository():
 
 
 @feedback_bp.route('/<int:repo_id>')
+@admin_required
 def view_repository(repo_id):
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
-
     repo = FeedbackRepository.query.get_or_404(repo_id)
     questions = FeedbackQuestion.query.filter_by(repo_id=repo.id).all()
     responses = FeedbackResponse.query.filter_by(repo_id=repo.id).all()
@@ -88,10 +82,8 @@ def view_repository(repo_id):
 
 
 @feedback_bp.route('/<int:repo_id>/add_question', methods=['POST'])
+@admin_required
 def add_question(repo_id):
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
-
     repo = FeedbackRepository.query.get_or_404(repo_id)
     question_text = request.form.get('question_text', '').strip()
     question_type = request.form.get('question_type', 'MCQ').strip()
@@ -117,12 +109,43 @@ def add_question(repo_id):
 
 
 @feedback_bp.route('/<int:repo_id>/delete', methods=['POST'])
+@admin_required
 def delete_repository(repo_id):
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
-
     repo = FeedbackRepository.query.get_or_404(repo_id)
     db.session.delete(repo)
     db.session.commit()
     flash(f"Feedback Repository '{repo.title}' deleted.", "success")
     return redirect(url_for('feedback.list_repositories'))
+
+
+@feedback_bp.route('/<int:repo_id>/export_csv')
+@admin_required
+def export_csv(repo_id):
+    """Export all responses for a feedback repository as a CSV file."""
+    repo = FeedbackRepository.query.get_or_404(repo_id)
+    questions = FeedbackQuestion.query.filter_by(repo_id=repo.id).all()
+    responses = FeedbackResponse.query.filter_by(repo_id=repo.id).all()
+
+    rows = []
+    for resp in responses:
+        try:
+            resp_dict = json.loads(resp.responses_json or '{}')
+        except Exception:
+            resp_dict = {}
+        learner = Learner.query.get(resp.learner_id)
+        row = {
+            'Learner ID': learner.global_id if learner else resp.learner_id,
+            'Learner Name': learner.name if learner else '—',
+            'Submitted At': resp.submitted_at.strftime('%d-%b-%Y %H:%M') if resp.submitted_at else '—',
+        }
+        for q in questions:
+            key = f"q_{q.id}"
+            row[q.question_text[:60]] = resp_dict.get(key, '')
+        rows.append(row)
+
+    df = pd.DataFrame(rows)
+    buf = BytesIO()
+    df.to_csv(buf, index=False)
+    buf.seek(0)
+    safe_title = "".join(c if c.isalnum() or c in ' _-' else '_' for c in repo.title)
+    return send_file(buf, mimetype='text/csv', as_attachment=True, download_name=f"Feedback_{safe_title}.csv")

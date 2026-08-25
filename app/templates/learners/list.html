@@ -89,10 +89,11 @@
                         </td>
                         <td data-label="Registered Date" class="text-muted">{{ l.created_at.strftime('%d-%b-%Y') }}</td>
                         <td data-label="Actions" class="text-end">
-                            <a href="{{ url_for('learners.my_portal') }}" class="btn-action-profile me-1" title="View Learner Profile & Portal">
+                            <a href="{{ url_for('learners.learner_detail', learner_id=l.id) }}" class="btn-action-profile me-1" title="View Learner Details">
                                 <i class="fa-solid fa-user-gear me-1"></i> Profile
                             </a>
                             <form action="{{ url_for('learners.reset_learner_attempts', learner_id=l.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Reset assessment attempts to 0 for learner {{ l.global_id }}?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn-action-edit" title="Reset Assessment Attempts">
                                     <i class="fa-solid fa-rotate-left me-1"></i> Reset Attempts
                                 </button>

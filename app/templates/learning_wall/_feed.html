@@ -14,6 +14,7 @@
             <div class="d-flex align-items-center gap-2">
                 {% if session.get('admin_logged_in') and posts_data|length > 0 %}
                 <form action="{{ url_for('learning_wall.clear_wall') }}" method="POST" onsubmit="return confirm('Are you sure you want to remove all events from the Learning Wall?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-sm btn-outline-danger fw-bold px-3 py-1.5 rounded-pill shadow-xs">
                         <i class="fa-solid fa-trash-can me-1"></i> Clear All Events
                     </button>
@@ -31,6 +32,24 @@
             </div>
         </div>
     </div>
+
+    {% if session.get('admin_logged_in') %}
+    <div class="card border-0 shadow-sm p-3 mb-4 rounded-4">
+        <h6 class="fw-bold text-teal mb-3"><i class="fa-solid fa-bullhorn me-2"></i> Post New Announcement</h6>
+        <form action="{{ url_for('learning_wall.create_post') }}" method="POST" class="row g-2 align-items-end">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="col-12 col-md-4">
+                <input type="text" name="title" class="form-control" placeholder="Announcement title..." required maxlength="200">
+            </div>
+            <div class="col-12 col-md-6">
+                <input type="text" name="content" class="form-control" placeholder="Announcement message..." required maxlength="500">
+            </div>
+            <div class="col-12 col-md-2">
+                <button type="submit" class="btn btn-teal fw-bold w-100"><i class="fa-solid fa-paper-plane me-1"></i> Post</button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
 
     <div class="row g-4">
         <!-- Main News Feed Column -->
@@ -52,11 +71,17 @@
                                 <h6 class="fw-bold text-dark mb-0 fs-6">{{ post.title }}</h6>
                                 <small class="text-muted text-xs d-flex align-items-center gap-1">
                                     <i class="fa-regular fa-clock text-teal"></i> {{ post.created_at.strftime('%d-%b-%Y %H:%M') }}
-                                    <span class="mx-1">•</span>
-                                    <span class="badge bg-secondary-subtle text-secondary py-0.5 px-2">Automated Bulletin</span>
+                                    <span class="mx-1">&bull;</span>
+                                    <span class="badge bg-secondary-subtle text-secondary py-0.5 px-2">{% if post.post_type == 'ADMIN_ANNOUNCEMENT' %}📢 Admin{% else %}Automated{% endif %}</span>
                                 </small>
                             </div>
                         </div>
+                        {% if session.get('admin_logged_in') %}
+                        <form action="{{ url_for('learning_wall.delete_post', post_id=post.id) }}" method="POST" onsubmit="return confirm('Delete this post?');" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-2 py-0" title="Delete post"><i class="fa-solid fa-trash-can"></i></button>
+                        </form>
+                        {% endif %}
 
                         <span class="badge bg-teal-subtle text-teal font-monospace text-xs">
                             <i class="fa-solid fa-robot me-1"></i> System Event
@@ -186,6 +211,7 @@ function submitReaction(postId, rxnType) {
 
     fetch("{{ url_for('learning_wall.react') }}", {
         method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token() }}' },
         body: formData
     })
     .then(response => response.json())

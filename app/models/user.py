@@ -1,4 +1,5 @@
 from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
 from app.models import db
 
 class AdminUser(db.Model):
@@ -10,8 +11,11 @@ class AdminUser(db.Model):
     name = db.Column(db.String(120), default='L&D Administrator')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
     def check_password(self, password):
-        return self.password_hash == password  # Temporary password verification for POC
+        return check_password_hash(self.password_hash, password)
 
 
 class Learner(db.Model):
@@ -23,8 +27,10 @@ class Learner(db.Model):
     email = db.Column(db.String(120), nullable=True)
     department = db.Column(db.String(100), nullable=True, default='L&D')
     date_of_birth = db.Column(db.Date, nullable=True)
+    manager_id = db.Column(db.Integer, db.ForeignKey('learners.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    subordinates = db.relationship('Learner', backref=db.backref('manager', remote_side=[id]), lazy=True)
     enrollments = db.relationship('LearnerEnrollment', backref='learner', lazy=True, cascade='all, delete-orphan')
     attendances = db.relationship('Attendance', backref='learner', lazy=True, cascade='all, delete-orphan')
     certificates = db.relationship('Certificate', backref='learner', lazy=True, cascade='all, delete-orphan')

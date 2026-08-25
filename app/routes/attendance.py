@@ -4,17 +4,13 @@ from app.models import db
 from app.models.attendance import Attendance
 from app.models.live_class import LiveClass, AuditLog
 from app.models.user import Learner
+from app.utils.decorators import admin_required
 
 attendance_bp = Blueprint('attendance', __name__)
 
-def check_admin():
-    return session.get('admin_logged_in')
-
 @attendance_bp.route('/')
+@admin_required
 def list_attendance():
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
-
     search_query = request.args.get('search', '').strip()
     class_filter = request.args.get('class_id', '').strip()
 
@@ -46,14 +42,12 @@ def list_attendance():
 
 
 @attendance_bp.route('/manual_override', methods=['GET', 'POST'])
+@admin_required
 def manual_override():
     """
     Exception Flow: Add Manual Attendance if QR or SSO fails.
     Fields: Global ID, Class, Reason, Attendance Status (Present/Absent/Late).
     """
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
-
     live_classes = LiveClass.query.order_by(LiveClass.class_date.desc()).all()
 
     if request.method == 'POST':
@@ -108,13 +102,11 @@ def manual_override():
 
 
 @attendance_bp.route('/bulk_upload', methods=['POST'])
+@admin_required
 def bulk_upload():
     """
     Bulk Attendance Entry via CSV Upload or Global ID Text Box for Live In Person and Live Online classes.
     """
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
-
     class_id = request.form.get('class_id')
     if not class_id:
         flash("Please select a Live Class.", "danger")

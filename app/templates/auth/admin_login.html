@@ -19,6 +19,7 @@
             {% endif %}
 
             <form method="POST" action="{{ url_for('auth.admin_login') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="login-field mb-3">
                     <label for="username" class="login-label">
                         <i class="fa-solid fa-user text-teal"></i> Username

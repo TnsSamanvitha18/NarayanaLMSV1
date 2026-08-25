@@ -17,6 +17,7 @@
 <div class="card border-0 shadow-sm">
     <div class="card-body p-4">
         <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="row g-3">
                 <div class="col-md-3">
                     <label class="form-label fw-bold">Class ID</label>
@@ -79,13 +80,27 @@
 
                 <!-- Common Facilitator Fields -->
                 <div class="col-md-4">
-                    <label for="facilitator_name" class="form-label fw-bold">Lead Facilitator Name <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="facilitator_name" name="facilitator_name" required placeholder="e.g. Dr. K. Sharma" value="{{ live_class.facilitator_name if live_class else '' }}">
+                    <label for="facilitator_id" class="form-label fw-bold">Lead Facilitator <span class="text-danger">*</span></label>
+                    <select class="form-select" id="facilitator_id" name="facilitator_id" required>
+                        <option value="">-- Select Facilitator --</option>
+                        {% for l in learners %}
+                        <option value="{{ l.id }}" {% if live_class and live_class.facilitator_id == l.id %}selected{% endif %}>
+                            {{ l.name }} ({{ l.global_id }})
+                        </option>
+                        {% endfor %}
+                    </select>
                 </div>
 
                 <div class="col-md-4">
-                    <label for="co_facilitator_name" class="form-label fw-bold">Co-Facilitator Name</label>
-                    <input type="text" class="form-control" id="co_facilitator_name" name="co_facilitator_name" placeholder="e.g. Rahul Verma" value="{{ live_class.co_facilitator_name if live_class else '' }}">
+                    <label for="co_facilitator_id" class="form-label fw-bold">Co-Facilitator</label>
+                    <select class="form-select" id="co_facilitator_id" name="co_facilitator_id">
+                        <option value="">-- Select Co-Facilitator (Optional) --</option>
+                        {% for l in learners %}
+                        <option value="{{ l.id }}" {% if live_class and live_class.co_facilitator_id == l.id %}selected{% endif %}>
+                            {{ l.name }} ({{ l.global_id }})
+                        </option>
+                        {% endfor %}
+                    </select>
                 </div>
 
                 <div class="col-md-4">

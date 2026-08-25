@@ -1,0 +1,136 @@
+{% extends 'super_admin/base.html' %}
+
+{% block title %}Inspect Table {{ table_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('super_admin.index') }}">Dashboard</a></li>
+                <li class="breadcrumb-item active">{{ table_name }}</li>
+            </ol>
+        </nav>
+        <h3 class="fw-bold text-white mb-0"><i class="fa-solid fa-table text-info me-2"></i> Inspect Table: <span class="code-font text-info">{{ table_name }}</span></h3>
+    </div>
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-outline-info rounded-3 btn-sm px-3" data-bs-toggle="collapse" data-bs-target="#addRowCollapse">
+            <i class="fa-solid fa-plus me-1"></i> Add Record
+        </button>
+        <a href="{{ url_for('super_admin.index') }}" class="btn btn-outline-light rounded-3 btn-sm px-3">Back to List</a>
+    </div>
+</div>
+
+<!-- Add Row Collapse Form -->
+<div class="collapse mb-4" id="addRowCollapse">
+    <div class="card card-custom p-4 shadow-sm">
+        <h6 class="fw-bold text-white mb-3"><i class="fa-solid fa-plus-circle text-info me-2"></i> Insert New Row into '{{ table_name }}'</h6>
+        <form action="{{ url_for('super_admin.add_row', table_name=table_name) }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row g-3">
+                {% for col in columns if col != 'id' %}
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted mb-1">{{ col }}</label>
+                    <input type="text" name="{{ col }}" class="form-control bg-dark border-secondary text-white form-control-sm" placeholder="NULL / Value">
+                </div>
+                {% endfor %}
+            </div>
+            <div class="d-flex justify-content-end gap-2 mt-3 pt-3 border-top border-secondary border-opacity-25">
+                <button type="button" class="btn btn-light btn-sm" data-bs-toggle="collapse" data-bs-target="#addRowCollapse">Cancel</button>
+                <button type="submit" class="btn btn-accent btn-sm px-4">Insert Record</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Records Card -->
+<div class="card card-custom shadow-sm mb-4">
+    <div class="card-header bg-transparent border-bottom p-3 d-flex justify-content-between align-items-center">
+        <span class="text-muted small"><i class="fa-solid fa-info-circle me-1"></i> Double-click on any cell to edit inline and press <kbd class="bg-dark text-white border-0">Enter</kbd> or click outside to save.</span>
+        <span class="badge bg-secondary">{{ rows|length }} total records</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive" style="max-height: 580px;">
+            <table class="table table-hover table-dark align-middle mb-0 code-font" style="--bs-table-bg: transparent; --bs-table-border-color: rgba(255,255,255,0.06); font-size: 0.85rem;">
+                <thead class="text-muted text-uppercase small sticky-top" style="background-color: var(--surface-color); z-index: 1;">
+                    <tr>
+                        {% for col in columns %}
+                        <th class="py-3 px-3">{{ col }}</th>
+                        {% endfor %}
+                        <th class="py-3 px-3 text-end">Operations</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    {% set outer_loop = loop %}
+                    <tr data-row-id="{{ row[0] }}">
+                        {% for val in row %}
+                        {% set col_idx = loop.index0 %}
+                        {% set col_name = columns[col_idx] %}
+                        <td class="px-3 py-2 {% if col_name == 'id' %}fw-bold text-info{% endif %}" 
+                            {% if col_name != 'id' %}
+                            contenteditable="true" 
+                            data-col-name="{{ col_name }}"
+                            onblur="saveCell(this, '{{ table_name }}', '{{ row[0] }}', '{{ col_name }}')"
+                            onkeydown="checkKey(event, this)"
+                            {% endif %}>{{ val if val is not none else '' }}</td>
+                        {% endfor %}
+                        <td class="px-3 py-2 text-end">
+                            <form action="{{ url_for('super_admin.delete_row', table_name=table_name) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete record ID {{ row[0] }}?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="id" value="{{ row[0] }}">
+                                <button type="submit" class="btn btn-outline-danger btn-sm rounded-3 py-1 px-2 border-0" title="Delete Row">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+function checkKey(event, element) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        element.blur();
+    }
+}
+
+function saveCell(element, tableName, rowId, columnName) {
+    const newValue = element.innerText.strip ? element.innerText.strip() : element.innerText.trim();
+    
+    // Call API endpoint to update value
+    fetch("{{ url_for('super_admin.update_cell') }}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": "{{ csrf_token() }}"
+        },
+        body: JSON.stringify({
+            table_name: tableName,
+            row_id: rowId,
+            column_name: columnName,
+            value: newValue
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            element.classList.add('bg-success', 'bg-opacity-10');
+            setTimeout(() => element.classList.remove('bg-success', 'bg-opacity-10'), 1500);
+        } else {
+            alert("Error saving cell: " + data.message);
+            location.reload();
+        }
+    })
+    .catch(err => {
+        alert("Failed to save cell: network error.");
+        location.reload();
+    });
+}
+</script>
+{% endblock %}

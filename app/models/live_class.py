@@ -21,8 +21,13 @@ class LiveClass(db.Model):
     meet_link = db.Column(db.String(255), nullable=True)
     
     # Common fields
-    facilitator_name = db.Column(db.String(120), nullable=False)
-    co_facilitator_name = db.Column(db.String(120), nullable=True)
+    # Relational facilitator fields
+    facilitator_id = db.Column(db.Integer, db.ForeignKey('learners.id'), nullable=False)
+    co_facilitator_id = db.Column(db.Integer, db.ForeignKey('learners.id'), nullable=True)
+    
+    # Legacy columns with defaults to satisfy database-level NOT NULL constraints
+    facilitator_name = db.Column(db.String(120), nullable=True, default='')
+    co_facilitator_name = db.Column(db.String(120), nullable=True, default='')
     duration_hours = db.Column(db.Float, nullable=False, default=1.0)
     expected_attendance = db.Column(db.Integer, nullable=False, default=30)
     feedback_repo_id = db.Column(db.Integer, db.ForeignKey('feedback_repositories.id'), nullable=True)
@@ -35,6 +40,8 @@ class LiveClass(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships
+    facilitator = db.relationship('Learner', foreign_keys=[facilitator_id], backref='facilitated_classes')
+    co_facilitator = db.relationship('Learner', foreign_keys=[co_facilitator_id], backref='co_facilitated_classes')
     attendances = db.relationship('Attendance', backref='live_class', lazy=True, cascade='all, delete-orphan')
     enrollments = db.relationship('LearnerEnrollment', backref='live_class', lazy=True)
 

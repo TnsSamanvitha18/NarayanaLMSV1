@@ -11,20 +11,27 @@
             <li class="breadcrumb-item active">{{ repo.title }}</li>
         </ol>
     </nav>
-    <div class="d-flex justify-content-between align-items-center">
+    <div class="d-flex justify-content-between align-items-start align-items-sm-center flex-column flex-sm-row gap-3">
         <div>
-            <h3 class="fw-bold text-navy mb-1">{{ repo.title }}</h3>
+            <h3 class="fw-bold text-gradient-primary mb-1"><i class="fa-solid fa-comments me-2 text-teal"></i> {{ repo.title }}</h3>
             <p class="text-muted mb-0">{{ repo.description }}</p>
         </div>
-        <a href="{{ url_for('feedback.list_repositories') }}" class="btn btn-outline-secondary btn-sm px-3">Back to List</a>
+        <div class="d-flex gap-2 flex-wrap">
+            {% if responses %}
+            <a href="{{ url_for('feedback.export_csv', repo_id=repo.id) }}" class="btn btn-success fw-bold btn-sm px-3">
+                <i class="fa-solid fa-file-csv me-1"></i> Export CSV
+            </a>
+            {% endif %}
+            <a href="{{ url_for('feedback.list_repositories') }}" class="btn btn-light border btn-sm px-3">Back to List</a>
+        </div>
     </div>
 </div>
 
 <div class="row g-4">
     <div class="col-md-7">
         <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white py-3">
-                <h5 class="fw-bold text-navy mb-0"><i class="fa-solid fa-list-check me-2 text-primary"></i> Question Bank ({{ questions|length }})</h5>
+            <div class="card-header py-3 border-0">
+                <h5 class="fw-bold text-teal mb-0"><i class="fa-solid fa-list-check me-2 text-teal"></i> Question Bank ({{ questions|length }})</h5>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -67,19 +74,18 @@
         </div>
     </div>
 
-    <!-- Add Question Form -->
     <div class="col-md-5">
         <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white py-3">
-                <h5 class="fw-bold text-navy mb-0"><i class="fa-solid fa-plus me-2 text-success"></i> Add Single Question</h5>
+            <div class="card-header py-3 border-0">
+                <h5 class="fw-bold text-teal mb-0"><i class="fa-solid fa-plus me-2 text-success"></i> Add Single Question</h5>
             </div>
             <div class="card-body p-4">
                 <form method="POST" action="{{ url_for('feedback.add_question', repo_id=repo.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="mb-3">
                         <label for="question_text" class="form-label fw-bold">Question Text <span class="text-danger">*</span></label>
                         <textarea class="form-control" id="question_text" name="question_text" required rows="2" placeholder="e.g. How effective was the course content?"></textarea>
                     </div>
-
                     <div class="mb-3">
                         <label for="question_type" class="form-label fw-bold">Question Type</label>
                         <select class="form-select" id="question_type" name="question_type">
@@ -87,12 +93,10 @@
                             <option value="TEXT">Open Text Comment</option>
                         </select>
                     </div>
-
                     <div class="mb-4">
                         <label for="options" class="form-label fw-bold">Options (Comma separated for MCQ)</label>
                         <input type="text" class="form-control" id="options" name="options" placeholder="Excellent, Good, Average, Poor">
                     </div>
-
                     <button type="submit" class="btn btn-success w-100 fw-bold shadow-sm">
                         <i class="fa-solid fa-plus me-1"></i> Add Question to Form
                     </button>
@@ -101,6 +105,68 @@
         </div>
     </div>
 </div>
+
+<!-- MCQ Analytics Charts -->
+{% if responses %}
+<div class="card border-0 shadow-sm mt-4 p-2">
+    <div class="card-header py-3 border-0 d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold text-teal mb-0"><i class="fa-solid fa-chart-bar me-2"></i> Response Analytics ({{ responses|length }} submissions)</h5>
+        <a href="{{ url_for('feedback.export_csv', repo_id=repo.id) }}" class="btn btn-sm btn-success fw-bold"><i class="fa-solid fa-file-csv me-1"></i> Export CSV</a>
+    </div>
+    <div class="card-body">
+        <div class="row g-4">
+            {% for q in questions if q.question_type == 'MCQ' %}
+            {% set opts = q.get_options() %}
+            {% set q_key = 'q_' ~ q.id %}
+            <div class="col-12 col-md-6">
+                <h6 class="fw-semibold text-dark mb-2 small">Q{{ loop.index }}. {{ q.question_text }}</h6>
+                <canvas id="chart_{{ q.id }}" height="180"></canvas>
+                <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    (function() {
+                        var counts = {};
+                        {% for opt in opts %}counts[{{ opt|tojson }}] = 0;{% endfor %}
+                        {% for r in responses %}
+                        {% set resp_map = {} %}
+                        {# Parse inline for Chart.js — pass pre-aggregated data from the route instead for production #}
+                        {% endfor %}
+                        // Pre-aggregated counts passed from Jinja
+                        var labels = {{ opts | tojson }};
+                        var data = [
+                            {% for opt in opts %}
+                            {% set ns = namespace(count=0) %}
+                            {% for r in responses %}
+                            {% if r.responses_json %}
+                            {% set rmap = r.responses_json | from_json %}
+                            {% if rmap.get(q_key) == opt %}{% set ns.count = ns.count + 1 %}{% endif %}
+                            {% endif %}
+                            {% endfor %}
+                            {{ ns.count }}{% if not loop.last %},{% endif %}
+                            {% endfor %}
+                        ];
+                        var ctx = document.getElementById('chart_{{ q.id }}');
+                        if (ctx) {
+                            new Chart(ctx, {
+                                type: 'bar',
+                                data: {
+                                    labels: labels,
+                                    datasets: [{ label: 'Responses', data: data,
+                                        backgroundColor: ['rgba(13,148,136,0.7)','rgba(6,182,212,0.7)','rgba(168,85,247,0.7)','rgba(245,158,11,0.7)'],
+                                        borderRadius: 6
+                                    }]
+                                },
+                                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+                            });
+                        }
+                    })();
+                });
+                </script>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <!-- Learner Submitted Responses Table -->
 <div class="card border-0 shadow-sm mt-4">

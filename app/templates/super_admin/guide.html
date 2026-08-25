@@ -1,0 +1,163 @@
+{% extends 'super_admin/base.html' %}
+
+{% block title %}IT Portal User Guide{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{{ url_for('super_admin.index') }}">Dashboard</a></li>
+            <li class="breadcrumb-item active">User Guide &amp; Docs</li>
+        </ol>
+    </nav>
+    <h3 class="fw-bold text-white mb-0"><i class="fa-solid fa-book text-info me-2"></i> IT Super Admin Portal Documentation</h3>
+    <p class="text-muted">A comprehensive reference guide for managing the Narayana LMS application state, database records, and authentication mappings.</p>
+</div>
+
+<div class="row g-4">
+    <!-- Left Navigation Menu -->
+    <div class="col-xl-3">
+        <div class="card card-custom p-3 sticky-xl-top" style="top: 100px; z-index: 10;">
+            <h6 class="fw-bold text-white mb-3"><i class="fa-solid fa-list text-info me-2"></i> Table of Contents</h6>
+            <nav class="nav flex-column gap-2 small">
+                <a href="#overview" class="nav-link text-white-50 p-1"><i class="fa-solid fa-circle-chevron-right me-1"></i> Overview &amp; Scope</a>
+                <a href="#authentication" class="nav-link text-white-50 p-1"><i class="fa-solid fa-circle-chevron-right me-1"></i> Secure IT Login</a>
+                <a href="#ld-bypass" class="nav-link text-white-50 p-1"><i class="fa-solid fa-circle-chevron-right me-1"></i> L&amp;D Route Bypass</a>
+                <a href="#users" class="nav-link text-white-50 p-1"><i class="fa-solid fa-circle-chevron-right me-1"></i> User Roles &amp; Manager Mapping</a>
+                <a href="#csv-import" class="nav-link text-white-50 p-1"><i class="fa-solid fa-circle-chevron-right me-1"></i> CSV Bulk Imports</a>
+                <a href="#sql-runner" class="nav-link text-white-50 p-1"><i class="fa-solid fa-circle-chevron-right me-1"></i> SQL Query Runner</a>
+                <a href="#backups" class="nav-link text-white-50 p-1"><i class="fa-solid fa-circle-chevron-right me-1"></i> Database Backups &amp; Restores</a>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Main Content Section -->
+    <div class="col-xl-9">
+        <!-- Overview -->
+        <section id="overview" class="card card-custom p-4 mb-4">
+            <h5 class="fw-bold text-white mb-3"><i class="fa-solid fa-info-circle text-info me-2"></i> 1. Overview &amp; Scope</h5>
+            <p>The IT Super Admin Portal is designed strictly for system administrators, IT staff, and database debuggers. Unlike standard Business L&amp;D Admins who handle learning material uploads, batch allocations, or scheduling details, Super Admins have direct read/write access to the database engine and the capability to restructure user roles globally.</p>
+        </section>
+
+        <!-- Authentication -->
+        <section id="authentication" class="card card-custom p-4 mb-4">
+            <h5 class="fw-bold text-white mb-3"><i class="fa-solid fa-shield-halved text-info me-2"></i> 2. Secure IT Login</h5>
+            <p>Super Admin access is controlled separately from standard database user models:</p>
+            <ul>
+                <li><strong>Isolated Credentials</strong>: Handled out-of-band via environment variables (<code>SUPER_ADMIN_USERNAME</code> and <code>SUPER_ADMIN_PASSWORD</code>) located inside the server’s <code>.env</code> file.</li>
+                <li><strong>Default Credentials</strong>: Fallback login defaults to username: <code>superadmin</code> and password: <code>superpassword</code> if env variables are empty.</li>
+                <li><strong>Session Flags</strong>: Sets <code>session['super_admin_logged_in'] = True</code> upon successful login, separate from standard admin flags.</li>
+            </ul>
+        </section>
+
+        <!-- L&D Bypass -->
+        <section id="ld-bypass" class="card card-custom p-4 mb-4">
+            <h5 class="fw-bold text-white mb-3"><i class="fa-solid fa-arrow-up-right-from-square text-info me-2"></i> 3. L&amp;D Route Bypass</h5>
+            <p>IT Super Admins hold bypass privileges allowing them to execute any business administrator operation:</p>
+            <ul>
+                <li><strong>Automatic Authentication</strong>: When logged into `/super-admin`, you do not need to enter standard admin credentials.</li>
+                <li><strong>Access L&amp;D Features</strong>: Simply navigate to <a href="/dashboard" target="_blank" class="text-info fw-bold">/dashboard</a> or any other business admin route (e.g. Courses, Scheduled Classes, Reports). The route-guard automatically lets you in.</li>
+                <li><strong>Scope</strong>: Allows you to manually override class locks, grant course extensions, change quiz questions, or edit attendance rosters.</li>
+            </ul>
+        </section>
+
+        <!-- User Roles -->
+        <section id="users" class="card card-custom p-4 mb-4">
+            <h5 class="fw-bold text-white mb-3"><i class="fa-solid fa-users-gear text-info me-2"></i> 4. User Roles &amp; Manager Mapping</h5>
+            <p>Under the <strong>User &amp; Role Management</strong> section, you can perform direct account transitions:</p>
+            <ul>
+                <li><strong>Promote to L&amp;D Admin</strong>: Creates an active record inside the <code>admin_users</code> credentials database table. The default password is set to the user’s Global ID.</li>
+                <li><strong>Demote to Learner</strong>: Deletes the corresponding L&amp;D Admin record, preventing them from logging in as an administrator.</li>
+                <li><strong>Configure Manager Mappings</strong>: Assign reports-to chains dynamically using the Reporting Manager dropdown on each row.</li>
+            </ul>
+        </section>
+
+        <!-- CSV Bulk Imports -->
+        <section id="csv-import" class="card card-custom p-4 mb-4">
+            <h5 class="fw-bold text-white mb-3"><i class="fa-solid fa-file-csv text-info me-2"></i> 5. CSV Bulk Imports</h5>
+            <p>You can bulk-import user mappings using standard comma-separated files. Click <strong>Download Template</strong> inside the upload tool to obtain a sample CSV.</p>
+            
+            <h6 class="fw-bold text-white small mb-2">CSV Column Definitions</h6>
+            <div class="table-responsive mb-3">
+                <table class="table table-bordered table-dark small align-middle" style="--bs-table-bg: rgba(255,255,255,0.02);">
+                    <thead class="text-muted">
+                        <tr>
+                            <th>Column Name</th>
+                            <th>Description</th>
+                            <th>Format/Options</th>
+                            <th>Mandatory?</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="font-monospace text-info">global_id</td>
+                            <td>Unique identifier for the user profile (e.g. employee ID)</td>
+                            <td>Alphanumeric / Numbers</td>
+                            <td class="text-danger fw-bold">Yes</td>
+                        </tr>
+                        <tr>
+                            <td class="font-monospace text-info">name</td>
+                            <td>Full display name of the user</td>
+                            <td>Text string</td>
+                            <td class="text-danger fw-bold">Yes</td>
+                        </tr>
+                        <tr>
+                            <td class="font-monospace text-info">email</td>
+                            <td>Contact email address</td>
+                            <td>Valid email format (or blank)</td>
+                            <td>No</td>
+                        </tr>
+                        <tr>
+                            <td class="font-monospace text-info">department</td>
+                            <td>Company branch or team assignment</td>
+                            <td>Text string</td>
+                            <td>No</td>
+                        </tr>
+                        <tr>
+                            <td class="font-monospace text-info">manager_global_id</td>
+                            <td>Global ID of the reporting manager</td>
+                            <td>Must match an existing or newly imported user’s global ID</td>
+                            <td>No</td>
+                        </tr>
+                        <tr>
+                            <td class="font-monospace text-info">is_admin</td>
+                            <td>Elevate the user to an L&amp;D Admin account automatically</td>
+                            <td><code>yes</code>, <code>1</code>, <code>true</code> (any other value defaults to learner)</td>
+                            <td>No</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h6 class="fw-bold text-white small mb-2">Sample Template Structure</h6>
+            <pre class="bg-dark p-3 rounded text-info font-monospace small mb-0">global_id,name,email,department,manager_global_id,is_admin
+10001,Amit Patel,amit.patel@narayana.com,Technology,,yes
+10002,Sunita Rao,sunita.rao@narayana.com,Technology,10001,no
+10003,Vikram Singh,vikram.singh@narayana.com,L&amp;D,10001,no</pre>
+        </section>
+
+        <!-- SQL Runner -->
+        <section id="sql-runner" class="card card-custom p-4 mb-4">
+            <h5 class="fw-bold text-white mb-3"><i class="fa-solid fa-terminal text-info me-2"></i> 6. SQL Query Runner Console</h5>
+            <p>The **SQL query Runner** enables executing raw SQL queries directly on the SQLite database:</p>
+            <ul>
+                <li><strong>SELECT Queries</strong>: Returns a formatted data table preview of matching records.</li>
+                <li><strong>Modifying Statements</strong>: Statements such as `UPDATE`, `INSERT`, `DELETE`, or structural changes like `ALTER TABLE` return the count of affected rows.</li>
+            </ul>
+            <div class="alert alert-warning bg-warning bg-opacity-10 border-warning text-warning small mb-0">
+                <i class="fa-solid fa-triangle-exclamation me-1"></i> <strong>Caution</strong>: Modifying database records via raw queries bypasses SQLAlchemy ORM validations. Always backup the database before performing updates or structural alterations.
+            </div>
+        </section>
+
+        <!-- Backups -->
+        <section id="backups" class="card card-custom p-4 mb-0">
+            <h5 class="fw-bold text-white mb-3"><i class="fa-solid fa-floppy-disk text-info me-2"></i> 7. Database Backups &amp; Restores</h5>
+            <p>Backing up and restoring the SQLite database can be performed with one click on the DB Dashboard:</p>
+            <ul>
+                <li><strong>DB Backup</strong>: Generates and downloads a complete snapshot of the <code>lms.db</code> file.</li>
+                <li><strong>DB Restore</strong>: Overwrites the current application database with the uploaded backup file. The system automatically releases active database connections dynamically before saving to prevent locks.</li>
+            </ul>
+        </section>
+    </div>
+</div>
+{% endblock %}

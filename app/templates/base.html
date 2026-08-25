@@ -40,7 +40,9 @@
     <!-- FontAwesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=13.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=17.0">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
         (function() {
             const savedTheme = localStorage.getItem('theme');
@@ -74,7 +76,7 @@
                 <!-- Brand Logo & Mobile Toggle -->
                 <div class="d-flex align-items-center gap-2 gap-md-4">
                     <!-- Mobile Hamburger Button -->
-                    <button class="btn btn-link text-dark d-lg-none p-1 border-0 text-decoration-none me-1" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileNavDrawer" aria-controls="mobileNavDrawer" aria-label="Toggle navigation">
+                    <button class="btn btn-link text-dark d-xl-none p-1 border-0 text-decoration-none me-1" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileNavDrawer" aria-controls="mobileNavDrawer" aria-label="Toggle navigation">
                         <i class="fa-solid fa-bars fs-4 text-teal"></i>
                     </button>
 
@@ -84,34 +86,34 @@
                     </a>
 
                     <!-- Desktop Capsule Nav Tabs -->
-                    <div class="d-none d-lg-flex align-items-center gap-1">
+                    <div class="d-none d-xl-flex align-items-center gap-1">
                         {% if admin_logged_in %}
-                        <a href="{{ url_for('dashboard.index') }}" class="ls-nav-tab {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+                        <a href="{{ url_for('dashboard.index') }}" class="ls-nav-tab {% if safe_endpoint == 'dashboard.index' %}active{% endif %}">
                             Home
                         </a>
-                        <a href="{{ url_for('courses.list_courses') }}" class="ls-nav-tab {% if 'courses' in request.endpoint or 'classes' in request.endpoint %}active{% endif %}">
+                        <a href="{{ url_for('courses.list_courses') }}" class="ls-nav-tab {% if 'courses' in safe_endpoint or 'classes' in safe_endpoint %}active{% endif %}">
                             Course & Classes
                         </a>
-                        <a href="{{ url_for('learners.list_learners') }}" class="ls-nav-tab {% if 'learners' in request.endpoint and request.endpoint != 'learners.my_portal' %}active{% endif %}">
+                        <a href="{{ url_for('learners.list_learners') }}" class="ls-nav-tab {% if 'learners' in safe_endpoint and safe_endpoint != 'learners.my_portal' %}active{% endif %}">
                             Learners
                         </a>
-                        <a href="{{ url_for('attendance.list_attendance') }}" class="ls-nav-tab {% if 'attendance' in request.endpoint %}active{% endif %}">
+                        <a href="{{ url_for('attendance.list_attendance') }}" class="ls-nav-tab {% if 'attendance' in safe_endpoint %}active{% endif %}">
                             Attendance
                         </a>
-                        <a href="{{ url_for('certificates.list_certificates') }}" class="ls-nav-tab {% if 'certificates' in request.endpoint %}active{% endif %}">
+                        <a href="{{ url_for('certificates.list_certificates') }}" class="ls-nav-tab {% if 'certificates' in safe_endpoint %}active{% endif %}">
                             Certificates
                         </a>
-                        <a href="{{ url_for('reports.index') }}" class="ls-nav-tab {% if 'reports' in request.endpoint %}active{% endif %}">
+                        <a href="{{ url_for('reports.index') }}" class="ls-nav-tab {% if 'reports' in safe_endpoint %}active{% endif %}">
                             Reports
                         </a>
-                        <a href="{{ url_for('learning_wall.index') }}" class="ls-nav-tab {% if 'learning_wall' in request.endpoint %}active{% endif %}">
+                        <a href="{{ url_for('learning_wall.index') }}" class="ls-nav-tab {% if 'learning_wall' in safe_endpoint %}active{% endif %}">
                             <i class="fa-solid fa-bullhorn me-1 text-warning"></i> Learning Wall
                         </a>
                         {% else %}
-                        <a href="{{ url_for('learners.my_portal') }}" class="ls-nav-tab {% if request.endpoint == 'learners.my_portal' %}active{% endif %}">
+                        <a href="{{ url_for('learners.my_portal') }}" class="ls-nav-tab {% if safe_endpoint == 'learners.my_portal' %}active{% endif %}">
                             My Programs
                         </a>
-                        <a href="{{ url_for('learning_wall.index') }}" class="ls-nav-tab {% if 'learning_wall' in request.endpoint %}active{% endif %}">
+                        <a href="{{ url_for('learning_wall.index') }}" class="ls-nav-tab {% if 'learning_wall' in safe_endpoint %}active{% endif %}">
                             <i class="fa-solid fa-bullhorn me-1 text-warning"></i> Learning Wall
                         </a>
                         <a href="#" class="ls-nav-tab dummy-nav-tab" data-tab-name="Course Catalog">
@@ -125,9 +127,9 @@
                 </div>
 
                 <!-- Right Utility Bar -->
-                <div class="d-flex align-items-center gap-1.5 gap-md-2.5 flex-shrink-0 ms-auto me-0">
+                <div class="d-flex align-items-center gap-2 gap-md-3 flex-shrink-0 ms-auto me-0">
                     {% set is_user_logged_in = admin_logged_in or session.get('learner_id') %}
-                    {% set is_auth_page = request.endpoint and request.endpoint.startswith('auth.') %}
+                    {% set is_auth_page = safe_endpoint and safe_endpoint.startswith('auth.') %}
                     
                     {% if is_user_logged_in and not is_auth_page %}
                     <!-- Search Trigger Button -->
@@ -191,7 +193,10 @@
 
                         <script>
                         function markAllReadNav() {
-                            fetch('/learners/notifications/mark_read/0', { method: 'POST' })
+                            fetch('/learners/notifications/mark_read/0', {
+                                method: 'POST',
+                                headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+                            })
                             .then(r => r.json())
                             .then(d => {
                                 if (d.status === 'success') {
@@ -214,16 +219,16 @@
 
                     <!-- Theme Switcher -->
                     <button type="button" class="theme-toggle-btn ms-1" title="Toggle Light/Dark Theme">
-                        <i class="fa-solid fa-moon text-teal me-0 me-md-1"></i> <span class="d-none d-md-inline">Dark Mode</span>
+                        <i class="fa-solid fa-moon text-primary me-0"></i> <span class="d-none d-xxl-inline ms-1">Dark Mode</span>
                     </button>
 
                     {% if is_user_logged_in and not is_auth_page %}
                     <!-- Account Dropdown -->
                     <div class="dropdown flex-shrink-0">
-                        <button class="btn p-0.5 p-md-1 border d-flex align-items-center gap-1 gap-md-2 rounded-pill bg-white shadow-xs px-1.5 px-md-2.5 py-1 flex-shrink-0 admin-profile-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Account Menu">
+                        <button class="btn border d-flex align-items-center gap-1 gap-md-2 rounded-pill bg-white shadow-xs px-2 px-md-3 py-1 flex-shrink-0 admin-profile-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Account Menu">
                             <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=120" alt="Profile Avatar" class="rounded-circle border border-2 border-teal shadow-xs flex-shrink-0 admin-profile-avatar" style="width: 32px; height: 32px; object-fit: cover;">
-                            <span class="fw-bold text-dark small d-none d-xl-inline pe-1">{% if admin_logged_in %}{{ admin_username }}{% elif session.get('learner_name') %}{{ session.get('learner_name') }}{% else %}Learner Portal{% endif %}</span>
-                            <i class="fa-solid fa-chevron-down text-muted small me-0.5 d-none d-sm-inline"></i>
+                            <span class="fw-bold text-dark small d-none d-xxl-inline pe-1">{% if admin_logged_in %}{{ admin_username }}{% elif session.get('learner_name') %}{{ session.get('learner_name') }}{% else %}Learner Portal{% endif %}</span>
+                            <i class="fa-solid fa-chevron-down text-muted small me-0.5 d-none d-xxl-inline"></i>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-2 p-2" style="min-width: 220px;">
                             <li class="px-3 py-2.5 border-bottom mb-1 bg-light rounded-3">
@@ -246,7 +251,7 @@
     </header>
 
     <!-- Responsive Mobile Offcanvas Drawer -->
-    <div class="offcanvas offcanvas-start mobile-nav-offcanvas d-lg-none" tabindex="-1" id="mobileNavDrawer" aria-labelledby="mobileNavDrawerLabel">
+    <div class="offcanvas offcanvas-start mobile-nav-offcanvas d-xl-none" tabindex="-1" id="mobileNavDrawer" aria-labelledby="mobileNavDrawerLabel">
         <div class="offcanvas-header border-bottom py-3">
             <div class="d-flex align-items-center">
                 <i class="fa-solid fa-graduation-cap text-teal fs-3 me-2"></i>
@@ -265,32 +270,32 @@
 
             <div class="mobile-nav-links d-flex flex-column gap-2">
                 {% if admin_logged_in %}
-                <a href="{{ url_for('dashboard.index') }}" class="mobile-nav-item {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+                <a href="{{ url_for('dashboard.index') }}" class="mobile-nav-item {% if safe_endpoint == 'dashboard.index' %}active{% endif %}">
                     <i class="fa-solid fa-house me-3 text-teal"></i> Home Dashboard
                 </a>
-                <a href="{{ url_for('courses.list_courses') }}" class="mobile-nav-item {% if 'courses' in request.endpoint or 'classes' in request.endpoint %}active{% endif %}">
+                <a href="{{ url_for('courses.list_courses') }}" class="mobile-nav-item {% if 'courses' in safe_endpoint or 'classes' in safe_endpoint %}active{% endif %}">
                     <i class="fa-solid fa-book-open me-3 text-teal"></i> Course & Classes
                 </a>
-                <a href="{{ url_for('learners.list_learners') }}" class="mobile-nav-item {% if 'learners' in request.endpoint and request.endpoint != 'learners.my_portal' %}active{% endif %}">
+                <a href="{{ url_for('learners.list_learners') }}" class="mobile-nav-item {% if 'learners' in safe_endpoint and safe_endpoint != 'learners.my_portal' %}active{% endif %}">
                     <i class="fa-solid fa-users me-3 text-teal"></i> Learners Directory
                 </a>
-                <a href="{{ url_for('attendance.list_attendance') }}" class="mobile-nav-item {% if 'attendance' in request.endpoint %}active{% endif %}">
+                <a href="{{ url_for('attendance.list_attendance') }}" class="mobile-nav-item {% if 'attendance' in safe_endpoint %}active{% endif %}">
                     <i class="fa-solid fa-clipboard-user me-3 text-teal"></i> Attendance Logs
                 </a>
-                <a href="{{ url_for('certificates.list_certificates') }}" class="mobile-nav-item {% if 'certificates' in request.endpoint %}active{% endif %}">
+                <a href="{{ url_for('certificates.list_certificates') }}" class="mobile-nav-item {% if 'certificates' in safe_endpoint %}active{% endif %}">
                     <i class="fa-solid fa-award me-3 text-teal"></i> Certificates
                 </a>
-                <a href="{{ url_for('reports.index') }}" class="mobile-nav-item {% if 'reports' in request.endpoint %}active{% endif %}">
+                <a href="{{ url_for('reports.index') }}" class="mobile-nav-item {% if 'reports' in safe_endpoint %}active{% endif %}">
                     <i class="fa-solid fa-chart-pie me-3 text-teal"></i> Reports & Analytics
                 </a>
-                <a href="{{ url_for('learning_wall.index') }}" class="mobile-nav-item {% if 'learning_wall' in request.endpoint %}active{% endif %}">
+                <a href="{{ url_for('learning_wall.index') }}" class="mobile-nav-item {% if 'learning_wall' in safe_endpoint %}active{% endif %}">
                     <i class="fa-solid fa-bullhorn me-3 text-warning"></i> Learning Wall Feed
                 </a>
                 {% else %}
-                <a href="{{ url_for('learners.my_portal') }}" class="mobile-nav-item {% if request.endpoint == 'learners.my_portal' %}active{% endif %}">
+                <a href="{{ url_for('learners.my_portal') }}" class="mobile-nav-item {% if safe_endpoint == 'learners.my_portal' %}active{% endif %}">
                     <i class="fa-solid fa-graduation-cap me-3 text-teal"></i> My Programs
                 </a>
-                <a href="{{ url_for('learning_wall.index') }}" class="mobile-nav-item {% if 'learning_wall' in request.endpoint %}active{% endif %}">
+                <a href="{{ url_for('learning_wall.index') }}" class="mobile-nav-item {% if 'learning_wall' in safe_endpoint %}active{% endif %}">
                     <i class="fa-solid fa-bullhorn me-3 text-warning"></i> Learning Wall Feed
                 </a>
                 <a href="#" class="mobile-nav-item dummy-nav-tab" data-tab-name="Course Catalog">
@@ -369,3 +374,4 @@
     {% block extra_js %}{% endblock %}
 </body>
 </html>
+

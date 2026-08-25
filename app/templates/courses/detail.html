@@ -26,6 +26,7 @@
                 <i class="fa-solid fa-pen-to-square me-1"></i> Edit Course
             </a>
             <form action="{{ url_for('courses.delete_course', course_id=course.id) }}" method="POST" class="d-inline me-2" onsubmit="return confirm('Are you sure you want to delete course {{ course.course_id }}? This will permanently delete all lessons, courseware, and assessments.');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn-action-delete fs-6 px-3.5 py-1.5" title="Delete Course">
                     <i class="fa-solid fa-trash-can me-1"></i> Delete Course
                 </button>
@@ -118,6 +119,7 @@
                             </div>
                             <div class="modal-body p-4">
                                 <form action="{{ url_for('learners.assign_learners') }}" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <input type="hidden" name="course_id" value="{{ course.id }}">
                                     <div class="mb-3">
                                         <label class="form-label fw-bold text-navy">Option A: Enter Global IDs (One per line)</label>
@@ -192,6 +194,7 @@
                                 </div>
                                 <div>
                                     <form action="{{ url_for('courses.clear_lessons', course_id=course.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Clear all lessons for this course?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="btn btn-sm btn-outline-danger" title="Clear All Lessons">
                                             <i class="fa-solid fa-trash-can me-1"></i> Clear All Lessons
                                         </button>
@@ -200,6 +203,7 @@
                             </div>
 
                             <form action="{{ url_for('courses.add_lesson', course_id=course.id) }}" method="POST" enctype="multipart/form-data" class="row g-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <!-- 1. Lesson Number (Auto-Populated) & Basic Info -->
                                 <div class="col-md-2">
                                     <label class="form-label small fw-bold text-navy">Lesson # (Auto)</label>
@@ -307,6 +311,7 @@
                                         <span class="badge bg-secondary font-monospace ms-2"><i class="fa-regular fa-clock me-1"></i>{{ les.duration_hours or 1.0 }} hrs</span>
                                     </button>
                                     <form action="{{ url_for('courses.delete_lesson', lesson_id=les.id) }}" method="POST" class="d-inline ms-2" onsubmit="return confirm('Are you sure you want to delete Lesson #{{ les.lesson_number }} completely?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="btn btn-sm btn-outline-danger px-2 py-1" title="Delete Lesson">
                                             <i class="fa-solid fa-trash-can me-1"></i> Delete
                                         </button>
@@ -320,6 +325,7 @@
                                                 <div class="p-2 border rounded bg-light">
                                                     <small class="fw-bold text-navy d-block mb-1"><i class="fa-solid fa-file-csv text-primary me-1"></i> Upload Lesson Pre-Assessment CSV</small>
                                                     <form action="{{ url_for('courses.upload_lesson_assessment', lesson_id=les.id) }}" method="POST" enctype="multipart/form-data" class="d-flex gap-1">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                         <input type="hidden" name="assessment_type" value="LESSON_PRE">
                                                         <input type="file" name="assessment_csv" class="form-control form-control-sm" accept=".csv,.xlsx,.xls" required>
                                                         <button type="submit" class="btn btn-primary btn-sm">Upload</button>
@@ -330,6 +336,7 @@
                                                 <div class="p-2 border rounded bg-light">
                                                     <small class="fw-bold text-navy d-block mb-1"><i class="fa-solid fa-file-csv text-success me-1"></i> Upload Lesson Post-Assessment CSV</small>
                                                     <form action="{{ url_for('courses.upload_lesson_assessment', lesson_id=les.id) }}" method="POST" enctype="multipart/form-data" class="d-flex gap-1">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                         <input type="hidden" name="assessment_type" value="LESSON_POST">
                                                         <input type="file" name="assessment_csv" class="form-control form-control-sm" accept=".csv,.xlsx,.xls" required>
                                                         <button type="submit" class="btn btn-success btn-sm">Upload</button>
@@ -342,6 +349,7 @@
                                         <div class="p-2 border rounded bg-white mb-3">
                                             <small class="fw-bold text-navy d-block mb-1"><i class="fa-solid fa-cloud-arrow-up text-warning me-1"></i> Attach Non-Downloadable Lesson Courseware (Video URL, PDF, PPT, Text)</small>
                                             <form action="{{ url_for('courses.add_lesson_courseware', lesson_id=les.id) }}" method="POST" enctype="multipart/form-data" class="row g-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                 <div class="col-md-3">
                                                     <input type="text" name="title" class="form-control form-control-sm" placeholder="Courseware Title" required>
                                                 </div>
@@ -406,6 +414,7 @@
                             </div>
                             <div class="collapse mt-3 pt-3 border-top" id="replaceAssessmentCollapse">
                                 <form action="{{ url_for('courses.upload_course_end_assessment', course_id=course.id) }}" method="POST" enctype="multipart/form-data" class="row g-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <div class="col-md-8">
                                         <input type="file" name="assessment_csv" class="form-control form-control-sm" accept=".csv,.xlsx,.xls" required>
                                         <small class="text-muted">Select new CSV to overwrite existing {{ course_end_questions|length }} question(s).</small>
@@ -452,6 +461,7 @@
                             <h6 class="fw-bold text-navy mb-2"><i class="fa-solid fa-file-csv text-warning me-1"></i> Upload Course End Assessment CSV Questions</h6>
                             <p class="text-muted small mb-3">No Course End Assessment CSV has been uploaded yet. Upload a CSV question bank below.</p>
                             <form action="{{ url_for('courses.upload_course_end_assessment', course_id=course.id) }}" method="POST" enctype="multipart/form-data" class="row g-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <div class="col-md-8">
                                     <input type="file" name="assessment_csv" class="form-control form-control-sm" accept=".csv,.xlsx,.xls" required>
                                 </div>
@@ -477,6 +487,7 @@
                             </div>
                             
                             <form action="{{ url_for('courses.upload_material', course_id=course.id) }}" method="POST" enctype="multipart/form-data" class="row g-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <div class="col-md-6">
                                     <label class="form-label small fw-bold text-navy mb-1">Material Title *</label>
                                     <input type="text" name="material_title" class="form-control form-control-sm" placeholder="e.g. Course Slide Deck / Reference Manual" required>
@@ -573,6 +584,7 @@
                                             {% endif %}
 
                                             <form action="{{ url_for('courses.toggle_download', material_id=mat.id) }}" method="POST" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                 <button type="submit" class="btn btn-sm {% if mat.allow_download %}btn-outline-success{% else %}btn-outline-secondary{% endif %}" title="Toggle Download Permission">
                                                     {% if mat.allow_download %}
                                                     <i class="fa-solid fa-download me-1"></i> Download Allowed
@@ -583,6 +595,7 @@
                                             </form>
 
                                             <form action="{{ url_for('courses.delete_material', material_id=mat.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete material {{ mat.title }}?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                 <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Material">
                                                     <i class="fa-solid fa-trash-can"></i>
                                                 </button>
@@ -608,6 +621,7 @@
                         <div class="card bg-light border-0 p-3 mb-4 shadow-sm">
                             <h6 class="fw-bold text-navy mb-3"><i class="fa-solid fa-calendar-plus me-1 text-success"></i> Schedule New Live Class Batch</h6>
                             <form action="{{ url_for('courses.create_course_class', course_id=course.id) }}" method="POST" enctype="multipart/form-data" class="row g-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <div class="col-md-3">
                                     <label class="form-label small fw-bold text-navy mb-1">Class Mode</label>
                                     {% if 'Hybrid' in course.mode %}
@@ -633,13 +647,23 @@
                                     </select>
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label small fw-bold text-navy mb-1">Lead Facilitator *</label>
-                                    <input type="text" name="facilitator_name" class="form-control form-control-sm" placeholder="Lead Facilitator Name" required>
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label small fw-bold text-navy mb-1">Co-Facilitator (Optional)</label>
-                                    <input type="text" name="co_facilitator_name" class="form-control form-control-sm" placeholder="Co-Facilitator Name">
-                                </div>
+                                     <label class="form-label small fw-bold text-navy mb-1">Lead Facilitator *</label>
+                                     <select name="facilitator_id" class="form-select form-select-sm" required>
+                                         <option value="">-- Lead Facilitator --</option>
+                                         {% for l in learners %}
+                                         <option value="{{ l.id }}">{{ l.name }} ({{ l.global_id }})</option>
+                                         {% endfor %}
+                                     </select>
+                                 </div>
+                                 <div class="col-md-3">
+                                     <label class="form-label small fw-bold text-navy mb-1">Co-Facilitator (Optional)</label>
+                                     <select name="co_facilitator_id" class="form-select form-select-sm">
+                                         <option value="">-- Co-Facilitator --</option>
+                                         {% for l in learners %}
+                                         <option value="{{ l.id }}">{{ l.name }} ({{ l.global_id }})</option>
+                                         {% endfor %}
+                                     </select>
+                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label small fw-bold text-navy mb-1">Location / City</label>
                                     <input type="text" name="location" class="form-control form-control-sm" placeholder="e.g. Hyderabad / Bangalore">
@@ -707,6 +731,7 @@
                                         </div>
                                         <div class="modal-body p-4">
                                             <form action="{{ url_for('classes.assign_learners_to_class', class_id=cls.id) }}" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                 <div class="mb-3">
                                                     <label class="form-label fw-bold text-navy">Option A: Enter Global IDs (One per line)</label>
                                                     <textarea class="form-control font-monospace" name="global_ids" rows="4" placeholder="10001&#10;10002&#10;10003"></textarea>
@@ -736,8 +761,8 @@
                                         <strong>Date:</strong> {{ cls.class_date.strftime('%Y-%m-%d') if cls.class_date else 'N/A' }}
                                     </div>
                                     <div class="col-md-3">
-                                        <strong>Facilitator:</strong> {{ cls.facilitator_name }}<br>
-                                        <strong>Co-Facilitator:</strong> {{ cls.co_facilitator_name or 'N/A' }}
+                                         <strong>Facilitator:</strong> {{ cls.facilitator.name }}<br>
+                                         <strong>Co-Facilitator:</strong> {{ cls.co_facilitator.name if cls.co_facilitator else 'N/A' }}
                                     </div>
                                     <div class="col-md-4">
                                         {% if cls.class_mode == 'Online' %}
@@ -787,6 +812,7 @@
                                     </div>
                                     <div class="modal-body p-4">
                                         <form action="{{ url_for('attendance.bulk_upload') }}" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <input type="hidden" name="class_id" value="{{ cls.id }}">
                                             
                                             <div class="mb-3">

@@ -1,20 +1,26 @@
 {% extends 'base.html' %}
 
 {% block public_content %}
-<div class="bg-navy text-white py-3 px-3 px-md-4 shadow-sm mb-4">
-    <div class="container d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
-        <div>
-            <h5 class="fw-bold mb-0 text-white"><i class="fa-solid fa-laptop-code text-gold me-2"></i> {{ course.name }}</h5>
-            <small class="text-white-50">Self-Paced Course | Pass Target: {{ course.pass_percentage }}%</small>
+{% if is_course_expired %}
+<div class="container mt-4 mb-5">
+    <div class="card border-0 shadow-lg mb-4 rounded-4 overflow-hidden bg-white text-center p-5 mx-auto" style="max-width: 600px;">
+        <div class="bg-danger-subtle text-danger rounded-circle p-4 d-inline-flex mx-auto mb-3">
+            <i class="fa-solid fa-lock fa-4x text-danger"></i>
         </div>
-        <div class="d-flex align-items-center gap-2">
-            <span class="badge bg-gold text-dark font-monospace">{{ learner.global_id }}</span>
-            <a href="{{ url_for('learners.my_portal') }}" class="btn btn-outline-light btn-sm">My Portal</a>
+        <h4 class="fw-bold text-dark mb-2">Course Access Expired</h4>
+        <p class="text-muted small mb-4">
+            This course had a target completion date of <strong>{{ course.completion_date.strftime('%d-%b-%Y') if course.completion_date else 'N/A' }}</strong> and has been locked. 
+            Please request your Reporting Manager to grant an extension in their Learner Portal.
+        </p>
+        <div>
+            <a href="{{ url_for('learners.my_portal') }}" class="btn btn-teal text-white fw-bold px-4 py-2 shadow-sm">
+                <i class="fa-solid fa-house me-1"></i> Return to Portal
+            </a>
         </div>
     </div>
 </div>
-
-<div class="container mb-5">
+{% else %}
+<div class="container mt-4 mb-5">
     {% if has_pre_questions and not pre_attempt %}
     <div class="alert alert-warning border-warning shadow-sm mb-4 p-4 rounded-3">
         <div class="d-flex align-items-center">
@@ -35,15 +41,38 @@
     {% endif %}
 
     <div class="row g-4">
-        <!-- Main Progression Container (Full Width / Centered matching Narayana UI) -->
+        <!-- Main Progression Container -->
         <div class="col-12 col-lg-10 col-xl-9 mx-auto">
+            <!-- Floating Hero Title Block (Aligned 100% with Content Column) -->
+            <div class="card border-0 shadow-sm mb-4 rounded-4 overflow-hidden bg-brand-header">
+                <div class="card-body p-4 p-md-4.5 text-white position-relative">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+                        <div class="min-w-0">
+                            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                                <span class="badge bg-gold text-dark font-monospace fw-bold px-2.5 py-1 rounded-pill">
+                                    <i class="fa-solid fa-laptop-code me-1"></i> Self-Paced Course
+                                </span>
+                                <span class="badge bg-white-15 text-white border border-white-20 rounded-pill px-2.5 py-1 font-monospace">
+                                    <i class="fa-solid fa-bullseye me-1 text-gold"></i> Pass Target: {{ course.pass_percentage }}%
+                                </span>
+                            </div>
+                            <h3 class="fw-extrabold text-white mb-1.5 tracking-tight">{{ course.name }}</h3>
+                            <div class="text-white-50 small d-flex flex-wrap align-items-center gap-3">
+                                <span><i class="fa-regular fa-clock me-1 text-gold"></i> {{ (course.duration_hours or 1.0) | format_duration }} Total</span>
+                                <span><i class="fa-solid fa-layer-group me-1 text-gold"></i> {{ course.lessons|length }} Lessons</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {% set sel_les_id = request.args.get('lesson_id') %}
             
             {% if not sel_les_id %}
-            <!-- ================= SCREEN 1: COURSE LESSONS LIST VIEW (Matching Reference Screenshot 1) ================= -->
+            <!-- ================= SCREEN 1: COURSE LESSONS LIST VIEW ================= -->
             <div class="card border-0 shadow-sm mb-4 rounded-3 overflow-hidden">
                 <div class="card-header bg-white py-3 px-3 px-md-4 d-flex align-items-center justify-content-between border-bottom">
-                    <h5 class="fw-bold text-navy mb-0">Course Lessons</h5>
+                    <h5 class="fw-bold text-navy mb-0"><i class="fa-solid fa-book-open text-teal me-2"></i> Course Lessons</h5>
                     <span class="badge bg-teal-subtle text-teal border border-teal-subtle rounded-pill px-3 py-1.5 font-monospace fw-bold fs-6">
                         {{ "%02d"|format(course.lessons|length) }} Lessons
                     </span>
@@ -99,7 +128,7 @@
                                     </div>
                                 </div>
 
-                                <!-- Right Navigation Chevron Button matching Screenshot 1 -->
+                                <!-- Right Navigation Chevron Button -->
                                 <div class="flex-shrink-0">
                                     {% if is_unlocked %}
                                     <a href="?lesson_id={{ les.id }}" class="btn bg-navy text-white rounded-3 p-2.5 d-inline-flex align-items-center justify-content-center shadow-xs" style="width: 42px; height: 42px; background-color: #0A4B5C;">
@@ -115,7 +144,7 @@
 
                             <hr class="my-2.5 border-secondary-subtle">
 
-                            <!-- Metadata Stats Row: Length & Min Length matching Screenshot 1 -->
+                            <!-- Metadata Stats Row -->
                             <div class="d-flex align-items-center justify-content-between text-muted small px-1">
                                 <div>
                                     <span class="text-xxs text-uppercase fw-semibold text-muted d-block mb-0.5">Length</span>
@@ -134,12 +163,16 @@
             </div>
 
             {% else %}
-            <!-- ================= SCREEN 2: INDIVIDUAL LESSON PLAYER VIEW (Matching Reference Screenshot 2) ================= -->
+            <!-- ================= SCREEN 2: INDIVIDUAL LESSON PLAYER VIEW ================= -->
             {% set active_les_id = sel_les_id|int %}
             {% set active_les = (course.lessons | selectattr('id', 'equalto', active_les_id) | list | first) or course.lessons[0] %}
+            
+            {% set active_les_pre_att = lesson_pre_attempts.get(active_les.id) or lesson_pre_attempts.get(active_les.lesson_number) %}
+            {% set active_has_pre = active_les.assessments | selectattr('assessment_type', 'equalto', 'LESSON_PRE') | list | length > 0 %}
+            {% set active_content_unlocked = (not active_has_pre) or (active_les_pre_att is not none) %}
 
             <div class="card border-0 shadow-sm mb-4 rounded-3 overflow-hidden">
-                <!-- Top Navigation Bar matching Screenshot 2 -->
+                <!-- Top Navigation Bar -->
                 <div class="card-header bg-white py-3 px-3 px-md-4 d-flex align-items-center gap-3 border-bottom">
                     <a href="{{ url_for('learners.self_paced_flow', course_id_str=course.course_id) }}" class="btn btn-outline-secondary rounded-3 p-2 d-inline-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
                         <i class="fa-solid fa-arrow-left"></i>
@@ -151,6 +184,16 @@
                 </div>
 
                 <div class="card-body p-0 bg-dark">
+                    {% if not active_content_unlocked %}
+                    <div class="text-center py-5 px-3 text-muted bg-dark">
+                        <i class="fa-solid fa-lock text-warning fa-4x mb-3"></i>
+                        <h5 class="fw-bold text-white mb-2">Lesson {{ active_les.lesson_number }} Content Locked</h5>
+                        <p class="small text-white-50 mb-4 mx-auto" style="max-width: 450px;">Complete the mandatory Lesson Pre-Assessment test to unlock the learning materials and courseware for this lesson.</p>
+                        <a href="{{ url_for('learners.take_assessment', course_id=course.id, assessment_type='LESSON_PRE') }}?lesson_id={{ active_les.id }}" class="btn btn-warning fw-bold px-4 py-2 shadow-sm text-dark">
+                            <i class="fa-solid fa-pen-nib me-1"></i> Start Lesson Pre-Assessment
+                        </a>
+                    </div>
+                    {% else %}
                     <!-- Courseware Viewers -->
                     {% for cw in active_les.courseware %}
                     <div class="border-bottom border-secondary">
@@ -193,23 +236,37 @@
                         {% endif %}
                     </div>
                     {% endif %}
+                    {% endif %}
                 </div>
 
-                <!-- Social Engagement Bar (Like, Comment, Share) matching Screenshot 2 -->
+                <!-- Social Engagement Bar -->
                 <div class="p-3 bg-white border-top border-bottom d-flex align-items-center justify-content-end gap-2">
                     <button class="btn btn-outline-secondary rounded-3 px-3 py-1.5 text-sm d-inline-flex align-items-center gap-1.5"><i class="fa-regular fa-thumbs-up"></i></button>
                     <button class="btn btn-outline-secondary rounded-3 px-3 py-1.5 text-sm d-inline-flex align-items-center gap-1.5"><i class="fa-regular fa-comment"></i></button>
                     <button class="btn btn-outline-secondary rounded-3 px-3 py-1.5 text-sm d-inline-flex align-items-center gap-1.5"><i class="fa-solid fa-share-nodes"></i></button>
                 </div>
 
-                <!-- Description Text Box matching Screenshot 2 -->
+                <!-- Description Text Box -->
                 <div class="p-4 bg-white">
+                    {% if not active_content_unlocked %}
                     <p class="text-secondary mb-0 lh-base" style="font-size: 0.95rem;">
-                        {{ active_les.summary or active_les.content or 'An overview of the Narayana Group, its journey, values, and commitment to education.' }}
+                        Lesson {{ active_les.lesson_number }} Content Locked
                     </p>
+                    {% else %}
+                        {% if active_les.summary %}
+                        <p class="text-secondary mb-2 fw-semibold lh-base" style="font-size: 0.95rem;">
+                            {{ active_les.summary }}
+                        </p>
+                        {% endif %}
+                        {% if active_les.content %}
+                        <p class="text-secondary mb-0 lh-base" style="font-size: 0.95rem;">
+                            {{ active_les.content }}
+                        </p>
+                        {% endif %}
+                    {% endif %}
                 </div>
 
-                <!-- Bottom Primary Next Button matching Screenshot 2 -->
+                <!-- Bottom Primary Next Button -->
                 <div class="p-3.5 bg-white border-top">
                     {% set current_idx = loop.index0 if loop is defined else 0 %}
                     {% set next_les = None %}
@@ -232,95 +289,96 @@
             </div>
             {% endif %}
 
-            <!-- COURSE END ASSESSMENT CARD -->
-                    <div class="p-4 border rounded-3 bg-white shadow-sm mt-4">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h5 class="fw-bold text-navy mb-0"><i class="fa-solid fa-award me-2 text-warning"></i>
-                                Course End Assessment</h5>
-                            <span class="badge bg-danger">Attempts: {{ enrollment.attempts_count }} / 3 Allowed</span>
-                        </div>
-                        <p class="text-muted small mb-3">Final comprehensive examination covering all course lessons.
-                            Requires {{ course.pass_percentage }}% pass mark to unlock course feedback & certification.</p>
+            <!-- ================= COURSE END ASSESSMENT CARD ================= -->
+            <div class="card border-0 shadow-sm mb-4 rounded-3 overflow-hidden">
+                <div class="card-header bg-white py-3 px-3 px-md-4 d-flex justify-content-between align-items-center border-bottom">
+                    <h5 class="fw-bold text-navy mb-0"><i class="fa-solid fa-award me-2 text-warning"></i> Course End Assessment</h5>
+                    <span class="badge bg-danger font-monospace">Attempts: {{ enrollment.attempts_count }} / 3 Allowed</span>
+                </div>
+                <div class="card-body p-4 bg-white">
+                    <p class="text-muted small mb-3">Final comprehensive examination covering all course lessons.
+                        Requires {{ course.pass_percentage }}% pass mark to unlock course feedback & certification.</p>
 
-                        {% set all_lessons_completed = (completed_lesson_ids|length >= course.lessons|length) if course.lessons else True %}
+                    {% set all_lessons_completed = (completed_lesson_ids|length >= course.lessons|length) if course.lessons else True %}
 
-                        {% if has_pre_questions and not pre_attempt %}
-                        <div class="alert alert-warning py-2 mb-0">
-                            <i class="fa-solid fa-lock me-1"></i> Locked: Complete Course Pre-Assessment first to unlock the final examination.
-                        </div>
-                        {% elif not all_lessons_completed %}
-                        <div class="alert alert-warning py-2 mb-0">
-                            <i class="fa-solid fa-lock me-1"></i> Locked: You must complete all {{ course.lessons|length }} course lessons (required viewing time & lesson post-assessments) to unlock the Course End Assessment.
-                        </div>
-                        {% else %}
-                        {% if course_end_attempt and course_end_attempt.passed %}
-                        <div class="alert alert-success d-flex align-items-center py-2 mb-0">
-                            <i class="fa-solid fa-circle-check fs-4 me-2"></i>
-                            <div>
-                                <strong>Course Assessment Passed!</strong> Final Score: {{ course_end_attempt.score_percentage }}%.
-                            </div>
-                        </div>
-                        {% else %}
-                        {% if enrollment.attempts_count < 3 %}
-                        <a href="{{ url_for('learners.take_assessment', course_id=course.id, assessment_type='COURSE_END') }}"
-                            class="btn btn-warning fw-bold text-dark w-100 shadow-sm">
-                            <i class="fa-solid fa-file-signature me-1"></i> Take Course End Assessment
-                        </a>
-                        {% else %}
-                        <div class="alert alert-danger py-2 mb-0">
-                            <i class="fa-solid fa-circle-xmark me-1"></i> Maximum 3 attempts limit exhausted.
-                        </div>
-                        {% endif %}
-                        {% endif %}
-                        {% endif %}
+                    {% if has_pre_questions and not pre_attempt %}
+                    <div class="alert alert-warning py-2 mb-0">
+                        <i class="fa-solid fa-lock me-1"></i> Locked: Complete Course Pre-Assessment first to unlock the final examination.
                     </div>
-
-                    <!-- MANDATORY COURSE FEEDBACK CARD -->
-                    <div class="p-4 border rounded-3 bg-white shadow-sm mt-4">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h5 class="fw-bold text-navy mb-0"><i class="fa-solid fa-comment-dots me-2 text-primary"></i>
-                                Mandatory Course Feedback</h5>
-                            {% if feedback_resp %}
-                            <span class="badge bg-success"><i class="fa-solid fa-check me-1"></i> Feedback Submitted</span>
-                            {% else %}
-                            <span class="badge bg-warning text-dark"><i class="fa-solid fa-hourglass-half me-1"></i> Pending Submission</span>
-                            {% endif %}
-                        </div>
-                        <p class="text-muted small mb-3">Your feedback is required to complete this course{% if course.has_certificate %} and issue your official completion certificate{% endif %}.</p>
-
-                        {% if course_end_attempt and course_end_attempt.passed %}
-                            {% if feedback_resp %}
-                            <div class="alert alert-success py-2.5 mb-0 d-flex align-items-center">
-                                <i class="fa-solid fa-heart text-danger me-2 fs-5"></i>
-                                <div>
-                                    <strong>Feedback Recorded!</strong> Thank you for sharing your evaluation.
-                                </div>
-                            </div>
-                            {% else %}
-                                {% if feedback_repo %}
-                                <a href="{{ url_for('learners.submit_feedback', repo_id=feedback_repo.id, course_id=course.id) }}"
-                                    class="btn btn-primary bg-navy fw-bold text-white w-100 shadow-sm py-2">
-                                    <i class="fa-solid fa-pen-to-square me-1"></i> Fill Course Feedback Form Now
-                                </a>
-                                {% else %}
-                                <div class="text-muted small border p-2 rounded bg-light text-center">No feedback form attached to this course.</div>
-                                {% endif %}
-                            {% endif %}
-                        {% else %}
-                        <div class="alert alert-warning py-2 mb-0">
-                            <i class="fa-solid fa-lock me-1"></i> Locked: Pass the Course End Assessment to unlock the Feedback Form.
-                        </div>
-                        {% endif %}
+                    {% elif not all_lessons_completed %}
+                    <div class="alert alert-warning py-2 mb-0">
+                        <i class="fa-solid fa-lock me-1"></i> Locked: You must complete all {{ course.lessons|length }} course lessons (required viewing time & lesson post-assessments) to unlock the Course End Assessment.
                     </div>
-
+                    {% else %}
+                    {% if course_end_attempt and course_end_attempt.passed %}
+                    <div class="alert alert-success d-flex align-items-center py-2 mb-0">
+                        <i class="fa-solid fa-circle-check fs-4 me-2"></i>
+                        <div>
+                            <strong>Course Assessment Passed!</strong> Final Score: {{ course_end_attempt.score_percentage }}%.
+                        </div>
+                    </div>
+                    {% else %}
+                    {% if enrollment.attempts_count < 3 %}
+                    <a href="{{ url_for('learners.take_assessment', course_id=course.id, assessment_type='COURSE_END') }}"
+                        class="btn btn-warning fw-bold text-dark w-100 shadow-sm">
+                        <i class="fa-solid fa-file-signature me-1"></i> Take Course End Assessment
+                    </a>
+                    {% else %}
+                    <div class="alert alert-danger py-2 mb-0">
+                        <i class="fa-solid fa-circle-xmark me-1"></i> Maximum 3 attempts limit exhausted.
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                    {% endif %}
                 </div>
             </div>
 
-            <!-- Certificate & Completion Card -->
-            <div class="card border-0 shadow-sm text-center p-4 rounded-3 mb-4">
-                <div class="card-body">
+            <!-- ================= MANDATORY COURSE FEEDBACK CARD ================= -->
+            <div class="card border-0 shadow-sm mb-4 rounded-3 overflow-hidden">
+                <div class="card-header bg-white py-3 px-3 px-md-4 d-flex justify-content-between align-items-center border-bottom">
+                    <h5 class="fw-bold text-navy mb-0"><i class="fa-solid fa-comment-dots me-2 text-primary"></i> Mandatory Course Feedback</h5>
+                    {% if feedback_resp %}
+                    <span class="badge bg-success"><i class="fa-solid fa-check me-1"></i> Feedback Submitted</span>
+                    {% else %}
+                    <span class="badge bg-warning text-dark"><i class="fa-solid fa-hourglass-half me-1"></i> Pending Submission</span>
+                    {% endif %}
+                </div>
+                <div class="card-body p-4 bg-white">
+                    <p class="text-muted small mb-3">Your feedback is required to complete this course{% if course.has_certificate %} and issue your official completion certificate{% endif %}.</p>
+
+                    {% if course_end_attempt and course_end_attempt.passed %}
+                        {% if feedback_resp %}
+                        <div class="alert alert-success py-2.5 mb-0 d-flex align-items-center">
+                            <i class="fa-solid fa-heart text-danger me-2 fs-5"></i>
+                            <div>
+                                <strong>Feedback Recorded!</strong> Thank you for sharing your evaluation.
+                            </div>
+                        </div>
+                        {% else %}
+                            {% if feedback_repo %}
+                            <a href="{{ url_for('learners.submit_feedback', repo_id=feedback_repo.id, course_id=course.id) }}"
+                                class="btn btn-primary bg-navy fw-bold text-white w-100 shadow-sm py-2">
+                                <i class="fa-solid fa-pen-to-square me-1"></i> Fill Course Feedback Form Now
+                            </a>
+                            {% else %}
+                            <div class="text-muted small border p-2 rounded bg-light text-center">No feedback form attached to this course.</div>
+                            {% endif %}
+                        {% endif %}
+                    {% else %}
+                    <div class="alert alert-warning py-2 mb-0">
+                        <i class="fa-solid fa-lock me-1"></i> Locked: Pass the Course End Assessment to unlock the Feedback Form.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- ================= COURSE COMPLETION & CERTIFICATION CARD ================= -->
+            <div class="card border-0 shadow-sm text-center mb-4 rounded-3 overflow-hidden">
+                <div class="card-header bg-white py-3 px-3 px-md-4 border-bottom">
+                    <h5 class="fw-bold text-navy mb-0"><i class="fa-solid fa-certificate me-2 text-warning"></i> Course Completion & Certification</h5>
+                </div>
+                <div class="card-body p-4 bg-white">
                     <i class="fa-solid fa-certificate text-gold fa-4x mb-3"></i>
-                    <h5 class="fw-bold text-navy">Course Completion & Certification</h5>
 
                     {% if enrollment.completion_status == 'Completed' %}
                         <div class="alert alert-success py-2.5 mb-3">
@@ -347,42 +405,9 @@
                     {% endif %}
                 </div>
             </div>
+
         </div>
     </div>
-
-    <!-- Certificate & Completion Card -->
-    <div class="card border-0 shadow-sm text-center p-4">
-        <div class="card-body">
-            <i class="fa-solid fa-certificate text-gold fa-4x mb-3"></i>
-            <h5 class="fw-bold text-navy">Course Completion & Certification</h5>
-
-            {% if enrollment.completion_status == 'Completed' %}
-                <div class="alert alert-success py-2.5 mb-3">
-                    <i class="fa-solid fa-circle-check text-success me-1"></i> Status: <strong>Course Completed!</strong>
-                </div>
-                {% if certificate %}
-                <div class="badge bg-gold text-dark font-monospace p-2 mb-3 fs-6 d-inline-block">
-                    <i class="fa-solid fa-award me-1"></i> Issued ID: {{ certificate.certificate_id }}
-                </div>
-                <div class="mt-2">
-                    <a href="{{ url_for('certificates.download_certificate', cert_id_str=certificate.certificate_id) }}"
-                        class="btn btn-navy bg-navy text-white w-100 fw-bold shadow-sm py-2">
-                        <i class="fa-solid fa-file-pdf me-1"></i> Download PDF Certificate
-                    </a>
-                </div>
-                {% else %}
-                <p class="text-muted small mb-0">Course marked as completed successfully. (No certificate generated for this course).</p>
-                {% endif %}
-            {% else %}
-                <p class="text-muted small mb-3">Course status: <strong class="text-dark">{{ enrollment.completion_status }}</strong></p>
-                <div class="text-muted small border p-3 rounded bg-light">
-                    <i class="fa-solid fa-lock text-warning me-1"></i> Submit the Course Feedback Form above to mark course as completed{% if course.has_certificate %} and generate your PDF certificate{% endif %}.
-                </div>
-            {% endif %}
-        </div>
-    </div>
-</div>
-</div>
 </div>
 
 <script>
@@ -423,7 +448,10 @@
             // Auto-record completion on server
             fetch("{{ url_for('learners.record_courseware_time', lesson_id=les.id) }}", {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                }
             }).then(res => res.json()).then(data => {
                 if (data.status === 'success') {
                     let tracker = document.getElementById('cw_tracker_' + lessonId);
@@ -463,4 +491,5 @@
     });
 });
 </script>
+{% endif %}
 {% endblock %}

@@ -16,6 +16,7 @@ class LearnerEnrollment(db.Model):
 
     assigned_at = db.Column(db.DateTime, default=datetime.utcnow)
     completion_date = db.Column(db.DateTime, nullable=True)
+    extended_deadline = db.Column(db.DateTime, nullable=True)
 
     assessment_attempts = db.relationship('AssessmentAttempt', backref='enrollment', lazy=True, cascade='all, delete-orphan')
 

@@ -1,4 +1,5 @@
 import os
+from app.utils.decorators import admin_required
 import uuid
 import json
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session, send_file, current_app
@@ -12,9 +13,6 @@ from app.utils.slide_renderer import render_pdf_to_slide_images
 
 courses_bp = Blueprint('courses', __name__)
 
-def check_admin():
-    return session.get('admin_logged_in')
-
 def format_youtube_embed(url):
     if not url:
         return url
@@ -27,9 +25,8 @@ def format_youtube_embed(url):
     return url
 
 @courses_bp.route('/')
+@admin_required
 def list_courses():
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
 
     search_query = request.args.get('search', '').strip()
     mode_filter = request.args.get('mode', '').strip()
@@ -52,9 +49,8 @@ def list_courses():
 
 
 @courses_bp.route('/create', methods=['GET', 'POST'])
+@admin_required
 def create_course():
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
 
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
@@ -194,9 +190,8 @@ def create_course():
 
 
 @courses_bp.route('/<int:course_id>')
+@admin_required
 def view_course(course_id):
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
 
     course = Course.query.get_or_404(course_id)
     pre_questions = CourseAssessment.query.filter_by(course_id=course.id, assessment_type='PRE').order_by(CourseAssessment.serial_number.asc()).all()
@@ -216,7 +211,9 @@ def view_course(course_id):
     for cls in live_classes:
         generate_class_qr(cls.class_id)
 
+    from app.models.user import Learner
     feedback_repos = FeedbackRepository.query.all()
+    learners = Learner.query.order_by(Learner.name.asc()).all()
 
     return render_template(
         'courses/detail.html',
@@ -226,7 +223,8 @@ def view_course(course_id):
         course_end_questions=course_end_questions,
         lessons=lessons,
         live_classes=live_classes,
-        feedback_repos=feedback_repos
+        feedback_repos=feedback_repos,
+        learners=learners
     )
 
 
@@ -251,13 +249,12 @@ def download_thumbnail(filename):
 
 
 @courses_bp.route('/<int:course_id>/add_lesson', methods=['POST'])
+@admin_required
 def add_lesson(course_id):
     """
     Add a new Lesson / Module directly inside a Course in a single step,
     including optional Lesson Pre-Assessment CSV, Non-Downloadable Courseware, and Post-Assessment CSV.
     """
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
 
     course = Course.query.get_or_404(course_id)
     title = request.form.get('title', '').strip()
@@ -401,12 +398,11 @@ def add_lesson(course_id):
 
 
 @courses_bp.route('/<int:course_id>/clear_lessons', methods=['POST'])
+@admin_required
 def clear_lessons(course_id):
     """
     Admin Route: Remove all existing lessons for a course.
     """
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
 
     course = Course.query.get_or_404(course_id)
     # Remove all lessons (cascades courseware & lesson assessments)
@@ -419,12 +415,11 @@ def clear_lessons(course_id):
 
 
 @courses_bp.route('/lesson/<int:lesson_id>/delete', methods=['POST'])
+@admin_required
 def delete_lesson(lesson_id):
     """
     Admin Route: Delete an individual lesson and all its attached courseware & assessments.
     """
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
 
     lesson = CourseLesson.query.get_or_404(lesson_id)
     course_id = lesson.course_id
@@ -442,12 +437,11 @@ def delete_lesson(lesson_id):
 
 
 @courses_bp.route('/lesson/<int:lesson_id>/add_courseware', methods=['POST'])
+@admin_required
 def add_lesson_courseware(lesson_id):
     """
     Attach Non-Downloadable Courseware (Video, PDF view, PPT slides, SCORM, Text) to a Lesson.
     """
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
 
     lesson = CourseLesson.query.get_or_404(lesson_id)
     title = request.form.get('title', '').strip()
@@ -503,12 +497,11 @@ def add_lesson_courseware(lesson_id):
 
 
 @courses_bp.route('/lesson/<int:lesson_id>/upload_assessment', methods=['POST'])
+@admin_required
 def upload_lesson_assessment(lesson_id):
     """
     Upload CSV questions specifically for a Lesson's Pre-Assessment or Post-Assessment.
     """
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
 
     lesson = CourseLesson.query.get_or_404(lesson_id)
     assessment_type = request.form.get('assessment_type', 'LESSON_PRE').strip() # 'LESSON_PRE' or 'LESSON_POST'
@@ -548,12 +541,11 @@ def upload_lesson_assessment(lesson_id):
 
 
 @courses_bp.route('/<int:course_id>/upload_course_end_assessment', methods=['POST'])
+@admin_required
 def upload_course_end_assessment(course_id):
     """
     Upload CSV questions for the Course End Assessment.
     """
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
 
     course = Course.query.get_or_404(course_id)
     csv_file = request.files.get('assessment_csv')
@@ -601,12 +593,11 @@ def upload_course_end_assessment(course_id):
 
 
 @courses_bp.route('/<int:course_id>/create_class', methods=['POST'])
+@admin_required
 def create_course_class(course_id):
     """
     Schedule a Live Class directly within the Course itself (Merged Course & Class Management).
     """
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
 
     course = Course.query.get_or_404(course_id)
     
@@ -623,8 +614,9 @@ def create_course_class(course_id):
     session_time = request.form.get('session_time', 'Morning').strip()
     meet_link = request.form.get('meet_link', '').strip()
 
-    facilitator_name = request.form.get('facilitator_name', '').strip()
-    co_facilitator_name = request.form.get('co_facilitator_name', '').strip()
+    facilitator_id = int(request.form.get('facilitator_id'))
+    co_facilitator_id = request.form.get('co_facilitator_id')
+    co_facilitator_id = int(co_facilitator_id) if co_facilitator_id else None
     expected_attendance = int(request.form.get('expected_attendance', 30))
     feedback_repo_id = request.form.get('feedback_repo_id')
     feedback_repo_id = int(feedback_repo_id) if feedback_repo_id else None
@@ -641,8 +633,8 @@ def create_course_class(course_id):
         branch=branch,
         session_time=session_time,
         meet_link=meet_link,
-        facilitator_name=facilitator_name,
-        co_facilitator_name=co_facilitator_name,
+        facilitator_id=facilitator_id,
+        co_facilitator_id=co_facilitator_id,
         duration_hours=course.duration_hours,
         expected_attendance=expected_attendance,
         feedback_repo_id=feedback_repo_id
@@ -698,9 +690,8 @@ def create_course_class(course_id):
 
 
 @courses_bp.route('/<int:course_id>/edit', methods=['GET', 'POST'])
+@admin_required
 def edit_course(course_id):
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
 
     course = Course.query.get_or_404(course_id)
 
@@ -812,9 +803,8 @@ def edit_course(course_id):
 
 
 @courses_bp.route('/<int:course_id>/delete', methods=['POST'])
+@admin_required
 def delete_course(course_id):
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
 
     course = Course.query.get_or_404(course_id)
     course_name = course.course_id
@@ -832,9 +822,8 @@ def delete_course(course_id):
 
 
 @courses_bp.route('/<int:course_id>/upload_material', methods=['POST'])
+@admin_required
 def upload_material(course_id):
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
 
     course = Course.query.get_or_404(course_id)
     title = request.form.get('material_title', '').strip()
@@ -917,9 +906,8 @@ def upload_material(course_id):
 
 
 @courses_bp.route('/material/<int:material_id>/toggle_download', methods=['POST'])
+@admin_required
 def toggle_download(material_id):
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
 
     mat = CourseMaterial.query.get_or_404(material_id)
     mat.allow_download = not mat.allow_download
@@ -1343,9 +1331,8 @@ def stream_courseware(courseware_id):
 
 
 @courses_bp.route('/material/<int:material_id>/delete', methods=['POST'])
+@admin_required
 def delete_material(material_id):
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
 
     mat = CourseMaterial.query.get_or_404(material_id)
     course_id = mat.course_id
@@ -1366,9 +1353,8 @@ def delete_material(material_id):
 
 
 @courses_bp.route('/<int:course_id>/download_analytics')
+@admin_required
 def download_analytics(course_id):
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
 
     course = Course.query.get_or_404(course_id)
     csv_buffer = generate_course_analytics_csv(course.id)
@@ -1385,9 +1371,8 @@ def download_analytics(course_id):
 
 
 @courses_bp.route('/class/<int:class_id>/download_attendance')
+@admin_required
 def download_attendance(class_id):
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
 
     live_cls = LiveClass.query.get_or_404(class_id)
     csv_buffer = generate_class_attendance_csv(live_cls.id)
@@ -1401,4 +1386,3 @@ def download_attendance(class_id):
         as_attachment=True,
         download_name=filename
     )
-

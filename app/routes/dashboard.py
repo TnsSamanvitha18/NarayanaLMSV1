@@ -8,12 +8,13 @@ from app.models.attendance import Attendance
 from app.models.certificate import Certificate
 from app.services.lock_service import check_and_auto_lock_classes
 
+from app.utils.decorators import admin_required
+
 dashboard_bp = Blueprint('dashboard', __name__)
 
 @dashboard_bp.route('/dashboard')
+@admin_required
 def index():
-    if not session.get('admin_logged_in'):
-        return redirect(url_for('auth.admin_login'))
 
     # Auto-lock check on load
     check_and_auto_lock_classes()
@@ -42,7 +43,7 @@ def index():
     # Facilitation Credits Calculation
     all_classes = LiveClass.query.all()
     overall_facilitator_hours = sum(c.duration_hours for c in all_classes)
-    overall_co_facilitator_hours = sum(c.duration_hours for c in all_classes if c.co_facilitator_name)
+    overall_co_facilitator_hours = sum(c.duration_hours for c in all_classes if c.co_facilitator_id)
 
     current_month_classes = LiveClass.query.filter(LiveClass.class_date >= current_month_start).all()
     current_month_hours = sum(c.duration_hours for c in current_month_classes)

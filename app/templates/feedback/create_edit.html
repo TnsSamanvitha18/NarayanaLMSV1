@@ -17,6 +17,7 @@
 <div class="card border-0 shadow-sm" style="max-width: 750px;">
     <div class="card-body p-4">
         <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="mb-3">
                 <label for="title" class="form-label fw-bold">Feedback Form Title <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" id="title" name="title" required placeholder="e.g. Standard Live Facilitation Feedback Form">

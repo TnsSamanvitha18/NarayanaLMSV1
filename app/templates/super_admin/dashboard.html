@@ -1,0 +1,105 @@
+{% extends 'super_admin/base.html' %}
+
+{% block title %}DB Dashboard{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card card-custom p-4 shadow-sm h-100">
+            <h6 class="text-muted text-uppercase tracking-wider small mb-2"><i class="fa-solid fa-file-invoice-dollar text-info me-1"></i> Database File Size</h6>
+            <div class="d-flex align-items-center">
+                <span class="fs-1 fw-bold tracking-tight text-white">{{ db_size_mb }} MB</span>
+            </div>
+            <p class="text-muted small mt-2 mb-0">Path: <span class="code-font text-info text-break">{{ db_path }}</span></p>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card card-custom p-4 shadow-sm h-100">
+            <h6 class="text-muted text-uppercase tracking-wider small mb-2"><i class="fa-solid fa-table text-info me-1"></i> Registered Tables</h6>
+            <div class="d-flex align-items-center">
+                <span class="fs-1 fw-bold tracking-tight text-white">{{ tables|length }} Tables</span>
+            </div>
+            <p class="text-muted small mt-2 mb-0">All schemas are tracked dynamically via SQLAlchemy Metadata bindings.</p>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card card-custom p-4 shadow-sm h-100">
+            <h6 class="text-muted text-uppercase tracking-wider small mb-2"><i class="fa-solid fa-floppy-disk text-info me-1"></i> Database Backups</h6>
+            <div class="d-grid gap-2">
+                <a href="{{ url_for('super_admin.backup_db') }}" class="btn btn-outline-info btn-sm text-start py-2 px-3 rounded-3">
+                    <i class="fa-solid fa-download me-2"></i> Download Database (lms.db)
+                </a>
+                <button type="button" class="btn btn-outline-warning btn-sm text-start py-2 px-3 rounded-3" data-bs-toggle="modal" data-bs-target="#restoreModal">
+                    <i class="fa-solid fa-upload me-2"></i> Restore DB from Backup
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card card-custom shadow-sm mb-4">
+    <div class="card-header bg-transparent border-bottom p-3">
+        <h5 class="fw-bold text-white mb-0"><i class="fa-solid fa-database text-info me-2"></i> System Database Schema Tables</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-dark align-middle mb-0" style="--bs-table-bg: transparent; --bs-table-border-color: rgba(255,255,255,0.06);">
+                <thead class="text-muted text-uppercase small">
+                    <tr>
+                        <th class="ps-4">Table Name</th>
+                        <th>Row Count</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in tables %}
+                    <tr>
+                        <td class="ps-4 fw-bold font-monospace text-info"><i class="fa-regular fa-folder-open me-2 text-muted"></i>{{ t.name }}</td>
+                        <td>
+                            {% if t.count == 'Error' %}
+                            <span class="badge bg-danger">Error</span>
+                            {% else %}
+                            <span class="badge bg-success bg-opacity-25 text-success">{{ t.count }} rows</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-4">
+                            <a href="{{ url_for('super_admin.view_table', table_name=t.name) }}" class="btn btn-outline-light btn-sm rounded-3">
+                                <i class="fa-solid fa-magnifying-glass me-1"></i> Inspect & Edit
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Restore Modal -->
+<div class="modal fade" id="restoreModal" tabindex="-1" aria-labelledby="restoreModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 bg-dark text-white shadow-lg">
+            <div class="modal-header border-bottom border-secondary border-opacity-25 bg-warning text-dark">
+                <h5 class="modal-title fw-bold" id="restoreModalLabel"><i class="fa-solid fa-triangle-exclamation me-2"></i> Restore Database</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('super_admin.restore_db') }}" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body py-4">
+                    <p class="text-muted small"><strong>Warning:</strong> Restoring the database will overwrite the current live SQLite database file. All active sessions, courseware progress, and attendance records will be updated to match the uploaded backup file.</p>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Select SQLite Backup File (.db)</label>
+                        <input type="file" class="form-control bg-dark border-secondary text-white" name="backup_file" accept=".db" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-secondary border-opacity-25">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger fw-bold"><i class="fa-solid fa-triangle-exclamation me-1"></i> Overwrite Database</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

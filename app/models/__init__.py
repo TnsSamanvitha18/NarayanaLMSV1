@@ -2,5 +2,11 @@ from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
+# Import all models to ensure registration for db.create_all() and migrations
+from app.models.user import AdminUser, Learner
+from app.models.course import Course, CourseLesson, CourseAssessment, CourseMaterial
+from app.models.live_class import LiveClass, AuditLog
+from app.models.enrollment import LearnerEnrollment, AssessmentAttempt, LessonReview
+from app.models.feedback import FeedbackRepository, FeedbackQuestion, FeedbackResponse
 from app.models.learning_wall import LearningWallPost, LearningWallReaction
-
+from app.models.notification import LearnerNotification

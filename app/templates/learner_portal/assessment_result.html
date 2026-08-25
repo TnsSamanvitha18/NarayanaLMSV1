@@ -1,0 +1,78 @@
+﻿{% extends 'base.html' %}
+{% block title %}Assessment Result — {{ course.name }}{% endblock %}
+{% block public_content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-9 col-xl-8">
+    {% set type_label = assessment_type.replace('_', ' ') %}
+    <div class="card border-0 shadow-sm mb-4 overflow-hidden">
+      <div class="card-body p-0">
+        <div class="p-5 text-white text-center" style="background: {% if passed %}linear-gradient(135deg,#10b981,#059669){% else %}linear-gradient(135deg,#ef4444,#dc2626){% endif %};">
+          <i class="fa-solid {% if passed %}fa-circle-check{% else %}fa-circle-xmark{% endif %} fa-4x mb-3 d-block"></i>
+          <h2 class="fw-bold mb-1">{% if passed %}Assessment Passed!{% else %}Not Passed Yet{% endif %}</h2>
+          <p class="mb-4 opacity-75">{{ type_label }} — {{ course.name }}</p>
+          <div class="d-flex justify-content-center gap-5">
+            <div class="text-center">
+              <div class="fw-bold" style="font-size:2.5rem;">{{ score_pct }}%</div>
+              <small class="opacity-75">Your Score</small>
+            </div>
+            <div class="text-center">
+              <div class="fw-bold" style="font-size:2.5rem;">{{ correct }}/{{ total }}</div>
+              <small class="opacity-75">Correct</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="d-flex gap-2 mb-4 flex-wrap">
+      {% if live_class %}
+      <a href="{{ url_for('learners.class_flow', class_id_str=live_class.class_id) }}" class="btn btn-teal fw-bold"><i class="fa-solid fa-arrow-left me-1"></i> Back to Class</a>
+      {% else %}
+      <a href="{{ url_for('learners.self_paced_flow', course_id_str=course.course_id) }}" class="btn btn-teal fw-bold"><i class="fa-solid fa-arrow-left me-1"></i> Back to Course</a>
+      {% endif %}
+      <a href="{{ url_for('learners.my_portal') }}" class="btn btn-light border fw-semibold"><i class="fa-solid fa-house me-1"></i> My Portal</a>
+    </div>
+    <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-list-check me-2 text-teal"></i> Question Breakdown</h5>
+    {% for q in questions %}
+    {% set q_key = 'q_' ~ q.id %}
+    {% set user_ans = user_answers.get(q_key, '') %}
+    {% set opts = [q.option1, q.option2, q.option3, q.option4] | select | list %}
+    {% set is_correct = (user_ans == q.correct_option) %}
+    <div class="card border-0 shadow-sm mb-3 p-3 border-start border-3 {% if is_correct %}border-success{% else %}border-danger{% endif %}">
+      <div class="d-flex align-items-start gap-3">
+        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 {% if is_correct %}bg-success-subtle{% else %}bg-danger-subtle{% endif %}" style="width:36px;height:36px;min-width:36px;">
+          <i class="fa-solid {% if is_correct %}fa-check text-success{% else %}fa-xmark text-danger{% endif %}"></i>
+        </div>
+        <div class="flex-grow-1">
+          <p class="fw-semibold text-dark mb-3 small">Q{{ loop.index }}. {{ q.question }}</p>
+          <div class="row g-2">
+            {% for opt in opts %}
+            {% if opt %}
+            <div class="col-12 col-sm-6">
+              <div class="p-2 rounded-3 border small
+                {% if opt == q.correct_option %}bg-success-subtle border-success text-success fw-semibold
+                {% elif opt == user_ans and not is_correct %}bg-danger-subtle border-danger text-danger
+                {% else %}bg-light text-muted{% endif %}">
+                {% if opt == q.correct_option %}<i class="fa-solid fa-check me-1"></i>
+                {% elif opt == user_ans and not is_correct %}<i class="fa-solid fa-xmark me-1"></i>
+                {% else %}<i class="fa-regular fa-circle me-1 opacity-50"></i>{% endif %}
+                {{ opt }}
+              </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+          </div>
+          {% if not is_correct %}
+          <p class="text-muted text-xs mt-2 mb-0"><i class="fa-solid fa-lightbulb text-warning me-1"></i>
+            Your answer: <strong class="text-danger">{{ user_ans or 'No answer' }}</strong> &nbsp;&bull;&nbsp;
+            Correct answer: <strong class="text-success">{{ q.correct_option }}</strong>
+          </p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted"><i class="fa-solid fa-circle-info fa-2x mb-2 d-block opacity-30"></i>No question details available.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

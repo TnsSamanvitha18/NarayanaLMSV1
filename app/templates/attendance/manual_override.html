@@ -24,6 +24,7 @@
             </div>
             <div class="card-body p-4">
                 <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="mb-3">
                         <label for="global_id" class="form-label fw-bold">Learner Global ID <span class="text-danger">*</span></label>
                         <input type="text" class="form-control font-monospace" id="global_id" name="global_id" required placeholder="e.g. 10001">
@@ -71,6 +72,7 @@
             </div>
             <div class="card-body p-4">
                 <form action="{{ url_for('attendance.bulk_upload') }}" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="mb-3">
                         <label for="bulk_class_id" class="form-label fw-bold">Select Live Class <span class="text-danger">*</span></label>
                         <select class="form-select" id="bulk_class_id" name="class_id" required>

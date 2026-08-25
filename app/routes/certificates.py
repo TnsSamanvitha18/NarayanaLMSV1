@@ -7,15 +7,13 @@ from app.models.user import Learner
 from app.models.course import Course
 from app.services.pdf_service import generate_certificate_pdf
 
+from app.utils.decorators import admin_required
+
 certificates_bp = Blueprint('certificates', __name__)
 
-def check_admin():
-    return session.get('admin_logged_in')
-
 @certificates_bp.route('/')
+@admin_required
 def list_certificates():
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
 
     search_query = request.args.get('search', '').strip()
     query = Certificate.query.join(Learner).join(Course)

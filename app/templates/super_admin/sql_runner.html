@@ -1,0 +1,96 @@
+{% extends 'super_admin/base.html' %}
+
+{% block title %}SQL query runner{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{{ url_for('super_admin.index') }}">Dashboard</a></li>
+            <li class="breadcrumb-item active">SQL runner</li>
+        </ol>
+    </nav>
+    <h3 class="fw-bold text-white mb-0"><i class="fa-solid fa-terminal text-info me-2"></i> SQL query Runner Console</h3>
+</div>
+
+<div class="row g-4">
+    <!-- Console Input Card -->
+    <div class="col-md-12">
+        <div class="card card-custom p-4 shadow-sm">
+            <h6 class="fw-bold text-white mb-3"><i class="fa-solid fa-code text-info me-2"></i> Write & Execute Raw SQL</h6>
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="mb-3">
+                    <textarea name="query" class="form-control code-font bg-dark border-secondary text-white" rows="6" placeholder="SELECT * FROM learners WHERE department = 'L&D';" style="font-size: 0.9rem;">{{ query }}</textarea>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-warning"><i class="fa-solid fa-triangle-exclamation me-1"></i> Running non-SELECT commands will modify table states permanently.</small>
+                    <button type="submit" class="btn btn-accent px-4 py-2"><i class="fa-solid fa-bolt me-1"></i> Execute Query</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Error Block -->
+    {% if error %}
+    <div class="col-md-12">
+        <div class="alert alert-danger border-0 bg-danger bg-opacity-10 text-danger rounded-3 p-4 shadow-sm" role="alert">
+            <h5 class="fw-bold mb-2"><i class="fa-solid fa-circle-xmark me-2"></i> SQL Compilation / Execution Error</h5>
+            <div class="code-font text-break" style="font-size: 0.9rem;">{{ error }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Non-SELECT Action Results -->
+    {% if affected_rows >= 0 %}
+    <div class="col-md-12">
+        <div class="alert alert-success border-0 bg-success bg-opacity-10 text-success rounded-3 p-4 shadow-sm" role="alert">
+            <h5 class="fw-bold mb-1"><i class="fa-solid fa-circle-check me-2"></i> Query Executed Successfully</h5>
+            <p class="mb-0">Affected Rows count: <strong>{{ affected_rows }} rows</strong>. Changes have been committed to the database.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Query Results Block -->
+    {% if results is not none %}
+    <div class="col-md-12">
+        <div class="card card-custom shadow-sm">
+            <div class="card-header bg-transparent border-bottom p-3 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold text-white mb-0"><i class="fa-solid fa-list text-info me-2"></i> Query Results Output</h6>
+                <span class="badge bg-secondary">{{ results|length }} rows returned</span>
+            </div>
+            <div class="card-body p-0">
+                {% if results|length > 0 %}
+                <div class="table-responsive" style="max-height: 480px;">
+                    <table class="table table-hover table-dark align-middle mb-0 code-font" style="--bs-table-bg: transparent; --bs-table-border-color: rgba(255,255,255,0.06); font-size: 0.85rem;">
+                        <thead class="text-muted text-uppercase small sticky-top" style="background-color: var(--surface-color); z-index: 1;">
+                            <tr>
+                                {% for head in headers %}
+                                <th class="py-3 px-3">{{ head }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in results %}
+                            <tr>
+                                {% for val in row %}
+                                <td class="px-3 py-2 text-break">{{ val if val is not none else 'NULL' }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="fa-solid fa-inbox display-4 mb-2 opacity-50"></i>
+                    <h6>Empty Set</h6>
+                    <p class="small mb-0">The query completed successfully but returned 0 rows.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

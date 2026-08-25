@@ -1,7 +1,13 @@
 import os
-from flask import Flask, session, g
+from flask import Flask, session, g, request
+from flask_wtf.csrf import CSRFProtect
+from flask_migrate import Migrate
 from app.config import Config
 from app.models import db
+
+csrf = CSRFProtect()
+migrate = Migrate()
+
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -10,6 +16,8 @@ def create_app(config_class=Config):
     # Initialize extensions
     config_class.init_app(app)
     db.init_app(app)
+    csrf.init_app(app)
+    migrate.init_app(app, db)
 
     # Register Blueprints
     from app.routes.auth import auth_bp
@@ -22,6 +30,7 @@ def create_app(config_class=Config):
     from app.routes.certificates import certificates_bp
     from app.routes.reports import reports_bp
     from app.routes.learning_wall import learning_wall_bp
+    from app.routes.super_admin import super_admin_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -33,6 +42,7 @@ def create_app(config_class=Config):
     app.register_blueprint(certificates_bp, url_prefix='/certificates')
     app.register_blueprint(reports_bp, url_prefix='/reports')
     app.register_blueprint(learning_wall_bp, url_prefix='/learning_wall')
+    app.register_blueprint(super_admin_bp)
 
     # Custom Jinja template filters
     @app.template_filter('format_duration')
@@ -84,7 +94,19 @@ def create_app(config_class=Config):
             'learner_global_id': session.get('learner_global_id', None),
             'parse_gdrive_url': parse_gdrive_url,
             'user_notifications': user_notifications,
-            'unread_notif_count': unread_notif_count
+            'unread_notif_count': unread_notif_count,
+            'safe_endpoint': request.endpoint or ''
         }
+
+    # Custom error handlers
+    @app.errorhandler(404)
+    def page_not_found(e):
+        from flask import render_template
+        return render_template('errors/404.html'), 404
+
+    @app.errorhandler(500)
+    def internal_server_error(e):
+        from flask import render_template
+        return render_template('errors/500.html'), 500
 
     return app

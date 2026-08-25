@@ -53,6 +53,7 @@
                             <i class="fa-solid fa-eye me-1"></i> View Questions
                         </a>
                         <form action="{{ url_for('feedback.delete_repository', repo_id=repo.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete repository {{ repo.title }}?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-sm btn-light border text-danger">
                                 <i class="fa-solid fa-trash-can"></i>
                             </button>

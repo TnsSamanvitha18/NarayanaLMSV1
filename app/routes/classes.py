@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session, send_file
+from app.utils.decorators import admin_required
 from datetime import datetime
 import os
 from app.models import db
@@ -10,13 +11,9 @@ from app.services.lock_service import unlock_class, check_and_auto_lock_classes
 
 classes_bp = Blueprint('classes', __name__)
 
-def check_admin():
-    return session.get('admin_logged_in')
-
 @classes_bp.route('/')
+@admin_required
 def list_classes():
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
 
     check_and_auto_lock_classes()
 
@@ -26,11 +23,12 @@ def list_classes():
     query = LiveClass.query
 
     if search_query:
+        from app.models.user import Learner
         query = query.filter(
             (LiveClass.class_name.ilike(f'%{search_query}%')) |
             (LiveClass.class_id.ilike(f'%{search_query}%')) |
-            (LiveClass.facilitator_name.ilike(f'%{search_query}%')) |
-            (LiveClass.co_facilitator_name.ilike(f'%{search_query}%')) |
+            (LiveClass.facilitator.has(Learner.name.ilike(f'%{search_query}%'))) |
+            (LiveClass.co_facilitator.has(Learner.name.ilike(f'%{search_query}%'))) |
             (LiveClass.location.ilike(f'%{search_query}%')) |
             (LiveClass.branch.ilike(f'%{search_query}%'))
         )
@@ -43,12 +41,13 @@ def list_classes():
 
 
 @classes_bp.route('/create', methods=['GET', 'POST'])
+@admin_required
 def create_class():
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
 
+    from app.models.user import Learner
     live_courses = Course.query.filter(Course.mode.like('Live%')).all()
     feedback_repos = FeedbackRepository.query.all()
+    learners = Learner.query.order_by(Learner.name.asc()).all()
 
     if request.method == 'POST':
         course_id = int(request.form.get('course_id'))
@@ -63,8 +62,9 @@ def create_class():
         session_time = request.form.get('session_time', 'Morning').strip()
         meet_link = request.form.get('meet_link', '').strip() if class_mode == 'Online' else None
 
-        facilitator_name = request.form.get('facilitator_name', '').strip()
-        co_facilitator_name = request.form.get('co_facilitator_name', '').strip()
+        facilitator_id = int(request.form.get('facilitator_id'))
+        co_facilitator_id = request.form.get('co_facilitator_id')
+        co_facilitator_id = int(co_facilitator_id) if co_facilitator_id else None
         expected_attendance = int(request.form.get('expected_attendance', 30))
         feedback_repo_id = request.form.get('feedback_repo_id')
         feedback_repo_id = int(feedback_repo_id) if feedback_repo_id else None
@@ -81,8 +81,8 @@ def create_class():
             branch=branch,
             session_time=session_time,
             meet_link=meet_link,
-            facilitator_name=facilitator_name,
-            co_facilitator_name=co_facilitator_name,
+            facilitator_id=facilitator_id,
+            co_facilitator_id=co_facilitator_id,
             duration_hours=course.duration_hours,
             expected_attendance=expected_attendance,
             feedback_repo_id=feedback_repo_id
@@ -146,9 +146,8 @@ def create_class():
 
 
 @classes_bp.route('/<int:class_id>')
+@admin_required
 def view_class(class_id):
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
 
     live_class = LiveClass.query.get_or_404(class_id)
     qr_url = generate_class_qr(live_class.class_id)
@@ -170,13 +169,14 @@ def view_class(class_id):
 
 
 @classes_bp.route('/<int:class_id>/edit', methods=['GET', 'POST'])
+@admin_required
 def edit_class(class_id):
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
 
+    from app.models.user import Learner
     live_class = LiveClass.query.get_or_404(class_id)
     live_courses = Course.query.filter_by(mode='Live').all()
     feedback_repos = FeedbackRepository.query.all()
+    learners = Learner.query.order_by(Learner.name.asc()).all()
 
     if request.method == 'POST':
         live_class.course_id = int(request.form.get('course_id'))
@@ -191,8 +191,9 @@ def edit_class(class_id):
         live_class.session_time = request.form.get('session_time', 'Morning').strip()
         live_class.meet_link = request.form.get('meet_link', '').strip()
 
-        live_class.facilitator_name = request.form.get('facilitator_name', '').strip()
-        live_class.co_facilitator_name = request.form.get('co_facilitator_name', '').strip()
+        live_class.facilitator_id = int(request.form.get('facilitator_id'))
+        co_fac_val = request.form.get('co_facilitator_id')
+        live_class.co_facilitator_id = int(co_fac_val) if co_fac_val else None
         live_class.expected_attendance = int(request.form.get('expected_attendance', 30))
         live_class.duration_hours = course.duration_hours
         
@@ -211,14 +212,14 @@ def edit_class(class_id):
         live_class=live_class,
         auto_id=live_class.class_id,
         live_courses=live_courses,
-        feedback_repos=feedback_repos
+        feedback_repos=feedback_repos,
+        learners=learners
     )
 
 
 @classes_bp.route('/<int:class_id>/delete', methods=['POST'])
+@admin_required
 def delete_class(class_id):
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
 
     live_class = LiveClass.query.get_or_404(class_id)
     db.session.delete(live_class)
@@ -228,9 +229,8 @@ def delete_class(class_id):
 
 
 @classes_bp.route('/unlock', methods=['POST'])
+@admin_required
 def unlock_class_route():
-    if not check_admin():
-        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
 
     class_id_str = request.form.get('class_id', '').strip()
     reason = request.form.get('reason', '').strip()
@@ -251,9 +251,8 @@ def download_qr(class_id_str):
 
 
 @classes_bp.route('/<int:class_id>/assign_learners', methods=['POST'])
+@admin_required
 def assign_learners_to_class(class_id):
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
 
     live_class = LiveClass.query.get_or_404(class_id)
     course = live_class.course

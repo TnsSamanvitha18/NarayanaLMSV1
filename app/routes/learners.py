@@ -1,4 +1,5 @@
 import os
+from app.utils.decorators import admin_required
 import json
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from datetime import datetime
@@ -17,15 +18,11 @@ from app.services.learning_wall_service import create_completion_post
 
 learners_bp = Blueprint('learners', __name__)
 
-def check_admin():
-    return session.get('admin_logged_in')
-
 # --- ADMIN LEARNER MANAGEMENT ---
 
 @learners_bp.route('/')
+@admin_required
 def list_learners():
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
 
     search_query = request.args.get('search', '').strip()
     query = Learner.query
@@ -43,12 +40,11 @@ def list_learners():
 
 
 @learners_bp.route('/reset_attempts/<int:learner_id>', methods=['POST'])
+@admin_required
 def reset_learner_attempts(learner_id):
     """
     Admin Route: Reset assessment attempts for a learner so they can retake the Course End Assessment.
     """
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
 
     learner = Learner.query.get_or_404(learner_id)
     enrollments = LearnerEnrollment.query.filter_by(learner_id=learner.id).all()
@@ -64,10 +60,34 @@ def reset_learner_attempts(learner_id):
     return redirect(url_for('learners.list_learners'))
 
 
+@learners_bp.route('/<int:learner_id>/detail')
+@admin_required
+def learner_detail(learner_id):
+    """Admin Route: Full learner profile — enrollments, attendance, certs, assessment history."""
+
+    from app.models.certificate import Certificate
+    from app.models.attendance import Attendance
+
+    learner = Learner.query.get_or_404(learner_id)
+    enrollments = LearnerEnrollment.query.filter_by(learner_id=learner.id).order_by(LearnerEnrollment.assigned_at.desc()).all()
+    attendances = Attendance.query.filter_by(learner_id=learner.id).order_by(Attendance.timestamp.desc()).all()
+    certificates = Certificate.query.filter_by(learner_id=learner.id).order_by(Certificate.issue_date.desc()).all()
+    attempts = AssessmentAttempt.query.join(LearnerEnrollment).filter(LearnerEnrollment.learner_id == learner.id).order_by(AssessmentAttempt.submitted_at.desc()).all()
+
+    return render_template(
+        'learners/detail.html',
+        learner=learner,
+        enrollments=enrollments,
+        attendances=attendances,
+        certificates=certificates,
+        attempts=attempts
+    )
+
+
+
 @learners_bp.route('/assign', methods=['GET', 'POST'])
+@admin_required
 def assign_learners():
-    if not check_admin():
-        return redirect(url_for('auth.admin_login'))
 
     courses = Course.query.filter_by(mode='Self Paced').all()
 
@@ -170,14 +190,78 @@ def my_portal():
     all_courses = Course.query.all()
     
     from app.models.notification import LearnerNotification
+    from app.models.certificate import Certificate
     notifications = LearnerNotification.query.filter_by(learner_id=learner.id).order_by(LearnerNotification.created_at.desc()).all()
-    
+    certificates = Certificate.query.filter_by(learner_id=learner.id).order_by(Certificate.issue_date.desc()).all()
+
+    # Build lesson progress map: {enrollment_id: {done: int, total: int, pct: float}}
+    progress_map = {}
+    for en in enrollments:
+        total_lessons = len(en.course.lessons) if en.course.lessons else 0
+        if total_lessons > 0:
+            done_count = LessonReview.query.filter_by(enrollment_id=en.id).count()
+            pct = round(min(done_count / total_lessons, 1.0) * 100)
+        else:
+            done_count = 0
+            pct = 100 if en.completion_status == 'Completed' else 0
+        progress_map[en.id] = {'done': done_count, 'total': total_lessons, 'pct': pct}
+
+    # Check if this learner has subordinates (is a manager)
+    subordinates = Learner.query.filter_by(manager_id=learner.id).all()
+    is_manager = len(subordinates) > 0
+    subordinate_data = []
+
+    if is_manager:
+        for sub in subordinates:
+            sub_enrollments = LearnerEnrollment.query.filter_by(learner_id=sub.id).all()
+            courses_info = []
+            for sub_en in sub_enrollments:
+                total_lessons = len(sub_en.course.lessons) if sub_en.course.lessons else 0
+                if total_lessons > 0:
+                    done_count = LessonReview.query.filter_by(enrollment_id=sub_en.id).count()
+                    pct = round(min(done_count / total_lessons, 1.0) * 100)
+                else:
+                    done_count = 0
+                    pct = 100 if sub_en.completion_status == 'Completed' else 0
+
+                # Expiry check
+                sub_expired = False
+                if sub_en.course.completion_date and sub_en.course.completion_date < datetime.utcnow():
+                    sub_expired = True
+                    if sub_en.extended_deadline and sub_en.extended_deadline >= datetime.utcnow():
+                        sub_expired = False
+                elif sub_en.class_id:
+                    # Live class check
+                    live_cl = LiveClass.query.get(sub_en.class_id)
+                    if live_cl and ((live_cl.class_date < datetime.utcnow().date()) or live_cl.is_locked):
+                        sub_expired = True
+                        if sub_en.extended_deadline and sub_en.extended_deadline.date() >= datetime.utcnow().date():
+                            sub_expired = False
+
+                courses_info.append({
+                    'enrollment_id': sub_en.id,
+                    'course_name': sub_en.course.name,
+                    'mode': sub_en.course.mode,
+                    'pct': pct,
+                    'status': sub_en.completion_status,
+                    'is_expired': sub_expired,
+                    'extended_deadline': sub_en.extended_deadline
+                })
+            subordinate_data.append({
+                'subordinate': sub,
+                'courses': courses_info
+            })
+
     return render_template(
         'learner_portal/portal.html',
         learner=learner,
         enrollments=enrollments,
         all_courses=all_courses,
-        notifications=notifications
+        notifications=notifications,
+        certificates=certificates,
+        progress_map=progress_map,
+        is_manager=is_manager,
+        subordinate_data=subordinate_data
     )
 
 
@@ -216,7 +300,22 @@ def class_flow(class_id_str):
     live_class = LiveClass.query.filter_by(class_id=class_id_str).first_or_404()
     course = live_class.course
 
+    # Find or create enrollment first to check extensions
+    enrollment = LearnerEnrollment.query.filter_by(learner_id=learner.id, course_id=course.id, class_id=live_class.id).first()
+    if not enrollment:
+        enrollment = LearnerEnrollment(
+            learner_id=learner.id,
+            course_id=course.id,
+            class_id=live_class.id,
+            completion_status='In Progress'
+        )
+        db.session.add(enrollment)
+        db.session.commit()
+
     is_expired = (live_class.class_date < datetime.utcnow().date()) or live_class.is_locked
+    if is_expired and enrollment.extended_deadline:
+        if enrollment.extended_deadline.date() >= datetime.utcnow().date():
+            is_expired = False
 
     # 1. Automatic Attendance Recording upon scanning QR & logging in (only if class not expired)
     att = Attendance.query.filter_by(class_id=live_class.id, learner_id=learner.id).first()
@@ -228,18 +327,7 @@ def class_flow(class_id_str):
             recorded_via='QR'
         )
         db.session.add(att)
-
-    # Find or create enrollment
-    enrollment = LearnerEnrollment.query.filter_by(learner_id=learner.id, course_id=course.id, class_id=live_class.id).first()
-    if not enrollment:
-        enrollment = LearnerEnrollment(
-            learner_id=learner.id,
-            course_id=course.id,
-            class_id=live_class.id,
-            completion_status='In Progress'
-        )
-        db.session.add(enrollment)
-    db.session.commit()
+        db.session.commit()
 
     # Pre and Post attempts & Pre questions check
     has_pre_questions = CourseAssessment.query.filter((CourseAssessment.course_id == course.id) & (CourseAssessment.assessment_type.in_(['PRE', 'LESSON_PRE']))).count() > 0
@@ -329,6 +417,12 @@ def self_paced_flow(course_id_str):
 
     cert = Certificate.query.filter_by(learner_id=learner.id, course_id=course.id).first()
 
+    is_course_expired = False
+    if course.completion_date and course.completion_date < datetime.utcnow():
+        is_course_expired = True
+        if enrollment.extended_deadline and enrollment.extended_deadline >= datetime.utcnow():
+            is_course_expired = False
+
     return render_template(
         'learner_portal/self_paced_flow.html',
         learner=learner,
@@ -344,7 +438,8 @@ def self_paced_flow(course_id_str):
         completed_lesson_ids=completed_lesson_ids,
         feedback_repo=feedback_repo,
         feedback_resp=feedback_resp,
-        certificate=cert
+        certificate=cert,
+        is_course_expired=is_course_expired
     )
 
 
@@ -390,6 +485,17 @@ def take_assessment(course_id, assessment_type):
         enrollment = LearnerEnrollment(learner_id=learner.id, course_id=course.id, class_id=live_class.id if live_class else None)
         db.session.add(enrollment)
         db.session.commit()
+
+    # Check if course is expired
+    is_course_expired = False
+    if course.completion_date and course.completion_date < datetime.utcnow():
+        is_course_expired = True
+        if enrollment.extended_deadline and enrollment.extended_deadline >= datetime.utcnow():
+            is_course_expired = False
+
+    if is_course_expired:
+        flash("This course has expired. You cannot take assessments unless your manager grants an extension.", "danger")
+        return redirect(url_for('learners.self_paced_flow', course_id_str=course.course_id))
 
     # Determine if this is strictly the final Course End Assessment
     type_upper = assessment_type.upper()
@@ -521,18 +627,30 @@ def take_assessment(course_id, assessment_type):
 
         db.session.commit()
 
+        # Redirect to result page instead of a plain flash message
         if is_course_end:
             if passed:
-                flash(f"Congratulations! You passed the Course-End Assessment with {score_pct}% ({correct}/{total}). Please submit the Course Feedback form below to complete your course and receive your certificate!", "success")
+                flash(f"Congratulations! You passed the Course-End Assessment with {score_pct}%. Please submit the Course Feedback form below to complete your course and receive your certificate!", "success")
             else:
                 flash(f"Course-End Assessment score: {score_pct}% ({correct}/{total}). Pass mark is {course.pass_percentage}%. Attempts remaining: {max(0, 3 - enrollment.attempts_count)}.", "warning" if enrollment.attempts_count < 3 else "danger")
+            if live_class:
+                return redirect(url_for('learners.class_flow', class_id_str=live_class.class_id))
+            else:
+                return redirect(url_for('learners.self_paced_flow', course_id_str=course.course_id))
         else:
-            flash(f"{type_upper.replace('_', ' ')} Assessment completed! Your score: {score_pct}% ({correct}/{total}).", "success")
-
-        if live_class:
-            return redirect(url_for('learners.class_flow', class_id_str=live_class.class_id))
-        else:
-            return redirect(url_for('learners.self_paced_flow', course_id_str=course.course_id))
+            # Show per-question result breakdown
+            return render_template(
+                'learner_portal/assessment_result.html',
+                course=course,
+                live_class=live_class,
+                assessment_type=type_upper,
+                questions=questions,
+                user_answers=user_answers,
+                score_pct=score_pct,
+                passed=passed,
+                correct=correct,
+                total=total
+            )
 
     return render_template(
         'learner_portal/assessment.html',
@@ -687,7 +805,10 @@ def submit_feedback(repo_id):
     )
 
 
+from app import csrf
+
 @learners_bp.route('/scorm/progress', methods=['POST'])
+@csrf.exempt
 def save_scorm_progress():
     learner_id = session.get('learner_id')
     if not learner_id:
@@ -703,15 +824,62 @@ def save_scorm_progress():
     lesson = CourseLesson.query.get_or_404(lesson_id)
 
     if status in ['completed', 'passed']:
-        rev = LessonReview.query.filter_by(learner_id=learner_id, lesson_id=lesson.id).first()
-        if not rev:
-            rev = LessonReview(
-                learner_id=learner_id,
-                lesson_id=lesson.id,
-                course_id=lesson.course_id,
-                time_spent_seconds=600
-            )
-            db.session.add(rev)
-            db.session.commit()
+        # Find the learner's enrollment for this course
+        enrollment = LearnerEnrollment.query.filter_by(learner_id=learner_id, course_id=lesson.course_id).first()
+        if enrollment:
+            rev = LessonReview.query.filter_by(enrollment_id=enrollment.id, lesson_id=lesson.id).first()
+            if not rev:
+                rev = LessonReview(
+                    enrollment_id=enrollment.id,
+                    lesson_id=lesson.id
+                )
+                db.session.add(rev)
+                db.session.commit()
 
     return jsonify({'status': 'success', 'lesson_id': lesson.id, 'scorm_status': status})
+
+
+@learners_bp.route('/grant_extension/<int:enrollment_id>', methods=['POST'])
+def grant_extension(enrollment_id):
+    """
+    Learner Portal: Route for managers to grant an extension to their subordinates.
+    """
+    manager_learner_id = session.get('learner_id')
+    if not manager_learner_id:
+        return jsonify({'status': 'error', 'message': 'Not logged in'}), 401
+
+    manager = Learner.query.get_or_404(manager_learner_id)
+    enrollment = LearnerEnrollment.query.get_or_404(enrollment_id)
+    subordinate = enrollment.learner
+
+    # Verify relationship: subordinate must report to manager
+    if subordinate.manager_id != manager.id:
+        return jsonify({'status': 'error', 'message': 'Permission denied. This learner does not report to you.'}), 403
+
+    extension_date_str = request.form.get('extension_date')
+    if not extension_date_str:
+        return jsonify({'status': 'error', 'message': 'Please select a valid extension date.'}), 400
+
+    try:
+        ext_date = datetime.strptime(extension_date_str, '%Y-%m-%d')
+        # Set to end of day
+        ext_datetime = datetime(ext_date.year, ext_date.month, ext_date.day, 23, 59, 59)
+    except ValueError:
+        return jsonify({'status': 'error', 'message': 'Invalid date format.'}), 400
+
+    enrollment.extended_deadline = ext_datetime
+
+    # Create a notification for the learner
+    from app.models.notification import LearnerNotification
+    notif = LearnerNotification(
+        learner_id=subordinate.id,
+        course_id=enrollment.course_id,
+        title=f"Course Extension Granted: {enrollment.course.name}",
+        message=f"Your manager {manager.name} has granted you an extension for '{enrollment.course.name}' until {ext_date.strftime('%d-%b-%Y')}.",
+        notification_type='LESSON_UPDATED'
+    )
+    db.session.add(notif)
+    db.session.commit()
+
+    flash(f"Granted course extension to {subordinate.name} until {ext_date.strftime('%d-%b-%Y')}.", "success")
+    return redirect(url_for('learners.my_portal'))

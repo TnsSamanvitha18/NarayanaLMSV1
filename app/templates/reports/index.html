@@ -9,7 +9,7 @@
         <p class="text-muted mb-0">Customize report columns, filter datasets, and export CSV reports using Pandas.</p>
     </div>
     {% if records %}
-    <a href="{{ url_for('reports.export_csv', search=search_query, mode=mode_filter, cols=selected_cols) }}" class="btn btn-success fw-bold shadow-sm px-4 btn-mobile-full text-nowrap">
+    <a href="{{ url_for('reports.export_csv', search=search_query, mode=mode_filter, cols=selected_cols, date_from=date_from_str, date_to=date_to_str) }}" class="btn btn-success fw-bold shadow-sm px-4 btn-mobile-full text-nowrap">
         <i class="fa-solid fa-file-csv me-2"></i> Export to CSV File
     </a>
     {% endif %}
@@ -49,13 +49,21 @@
                         <button type="button" class="ls-search-clear" title="Clear Search" style="display: none;"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                 </div>
-                <div class="col-12 col-md-4">
+                <div class="col-12 col-md-3">
                     <label class="form-label fw-bold text-teal">Course Mode Filter</label>
                     <select name="mode" class="form-select ls-filter-select">
                         <option value="ALL" {% if mode_filter == 'ALL' %}selected{% endif %}>All Course Modes</option>
                         <option value="Live" {% if mode_filter == 'Live' %}selected{% endif %}>Live Courses Only</option>
                         <option value="Self Paced" {% if mode_filter == 'Self Paced' %}selected{% endif %}>Self Paced Courses Only</option>
                     </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label fw-bold text-teal">Enrolled From</label>
+                    <input type="date" name="date_from" class="form-control ls-filter-select" value="{{ date_from_str }}">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label fw-bold text-teal">Enrolled To</label>
+                    <input type="date" name="date_to" class="form-control ls-filter-select" value="{{ date_to_str }}">
                 </div>
                 <div class="col-12 col-md-2">
                     <button type="submit" class="btn btn-navy text-white ls-filter-btn w-100 fw-bold">

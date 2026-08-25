@@ -110,12 +110,38 @@
    COLOR UTILITIES & HIGH CONTRAST THEMING
    -------------------------------------------------------------------------- */
 .bg-navy {
-    background-color: #0F172A !important;
+    background-color: #0A4B5C !important;
     color: #FFFFFF !important;
 }
 
+.bg-brand-header {
+    background: linear-gradient(135deg, #0A4B5C 0%, #0F766E 50%, #0D9488 100%) !important;
+    color: #FFFFFF !important;
+}
+
+.bg-white-15 {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.border-white-20 {
+    border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+.fw-extrabold {
+    font-weight: 800 !important;
+}
+
+.btn-hover-lift {
+    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.btn-hover-lift:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15) !important;
+}
+
 .text-navy {
-    color: #0F172A !important;
+    color: #0A4B5C !important;
 }
 
 .bg-teal {
@@ -398,8 +424,8 @@ h1, h2, h3, h4, h5, h6, strong, b {
     font-family: var(--font-heading) !important;
     color: var(--text-secondary);
     font-weight: 600 !important;
-    font-size: 16px !important;
-    padding: 0.55rem 1.25rem;
+    font-size: 14.5px !important;
+    padding: 0.45rem 0.9rem;
     border-radius: 50px;
     transition: all 0.2s ease;
     text-decoration: none;
@@ -2530,3 +2556,148 @@ img, video, iframe, embed, object {
         padding: 1.5rem !important;
     }
 }
+
+/* ==========================================================================
+   AUDIT FIXES — P2 POLISH (Added 24 Aug 2026)
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   F1. FRACTIONAL SPACING UTILITIES
+   Bootstrap 5 only ships integer steps. These fill the gaps used in templates.
+   -------------------------------------------------------------------------- */
+.p-0\.5  { padding: 0.125rem !important; }
+.p-1\.5  { padding: 0.375rem !important; }
+.p-2\.5  { padding: 0.625rem !important; }
+.p-3\.5  { padding: 0.875rem !important; }
+.p-4\.5  { padding: 1.25rem  !important; }
+
+.px-1\.5 { padding-left: 0.375rem !important; padding-right: 0.375rem !important; }
+.px-2\.5 { padding-left: 0.625rem !important; padding-right: 0.625rem !important; }
+.px-3\.5 { padding-left: 0.875rem !important; padding-right: 0.875rem !important; }
+
+.py-0\.5 { padding-top: 0.125rem !important; padding-bottom: 0.125rem !important; }
+.py-1\.5 { padding-top: 0.375rem !important; padding-bottom: 0.375rem !important; }
+.py-2\.5 { padding-top: 0.625rem !important; padding-bottom: 0.625rem !important; }
+.py-3\.5 { padding-top: 0.875rem !important; padding-bottom: 0.875rem !important; }
+
+.mb-0\.5 { margin-bottom: 0.125rem !important; }
+.mb-1\.5 { margin-bottom: 0.375rem !important; }
+.mb-2\.5 { margin-bottom: 0.625rem !important; }
+.mb-3\.5 { margin-bottom: 0.875rem !important; }
+
+.me-0\.5 { margin-right: 0.125rem !important; }
+.ms-0\.5 { margin-left:  0.125rem !important; }
+.me-1\.5 { margin-right: 0.375rem !important; }
+.ms-1\.5 { margin-left:  0.375rem !important; }
+
+.gap-1\.5 { gap: 0.375rem !important; }
+.gap-2\.5 { gap: 0.625rem !important; }
+
+/* Dot-notation aliases for templates that write p-2.5 without escaping */
+.p-2\.5, [class*="p-2.5"]  { padding: 0.625rem !important; }
+.p-3\.5, [class*="p-3.5"]  { padding: 0.875rem !important; }
+.gap-1\.5, [class*="gap-1.5"] { gap: 0.375rem !important; }
+.gap-2\.5, [class*="gap-2.5"] { gap: 0.625rem !important; }
+
+/* Text size extras */
+.text-xs   { font-size: 0.78rem !important; }
+.text-xxs  { font-size: 0.68rem !important; }
+.text-truncate-2 {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+}
+.letter-spacing-1 { letter-spacing: 0.05em !important; }
+.tracking-tight   { letter-spacing: -0.02em !important; }
+
+/* --------------------------------------------------------------------------
+   F2. SCOPED TRANSITION ENGINE
+   Replace the overly broad `body *` rule with targeted selectors only.
+   The original `body, body *` rule is kept for color/border transitions,
+   but here we ensure complex layout elements are excluded.
+   -------------------------------------------------------------------------- */
+.table,
+.table td,
+.table th,
+.table-responsive-card,
+svg,
+img,
+canvas,
+iframe,
+video {
+    transition: none !important;
+}
+
+/* Re-apply intentional transitions to interactive elements */
+.btn,
+.card,
+.card-stat,
+.ls-nav-tab,
+.mobile-nav-item,
+.btn-action-view,
+.btn-action-edit,
+.btn-action-delete,
+.btn-action-profile,
+.theme-toggle-btn,
+.form-control,
+.form-select,
+.form-control-login,
+.dropdown-item,
+.live-batch-card {
+    transition: background-color 0.2s ease,
+                border-color 0.2s ease,
+                color 0.2s ease,
+                box-shadow 0.2s ease,
+                transform 0.2s ease !important;
+}
+
+/* --------------------------------------------------------------------------
+   F3. BADGE-MODE — Now a real class (mode pill for class cards)
+   -------------------------------------------------------------------------- */
+.badge-mode {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.03em;
+    padding: 0.4em 0.85em !important;
+    border-radius: 50px !important;
+}
+
+/* --------------------------------------------------------------------------
+   F4. ALERT-LIGHT THEME FIX (used in class_flow.html for in-person location)
+   -------------------------------------------------------------------------- */
+.alert-light {
+    background-color: var(--bg-surface-elevated) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .alert-light {
+    background-color: var(--bg-surface) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .alert-light .text-dark,
+[data-theme="dark"] .alert-light strong {
+    color: var(--text-primary) !important;
+}
+
+
+/* --------------------------------------------------------------------------
+   F5. INTERMEDIATE VIEWPORT NAVBAR RESPONSIVENESS FIX
+   -------------------------------------------------------------------------- */
+@media (min-width: 1200px) and (max-width: 1440px) {
+    .ls-nav-tab {
+        padding: 0.45rem 0.8rem !important;
+        font-size: 14.5px !important;
+    }
+    .ls-navbar-capsule {
+        padding: 0.4rem 0.75rem 0.4rem 1rem !important;
+    }
+    .brand-title {
+        font-size: 15px !important;
+    }
+}
+
+

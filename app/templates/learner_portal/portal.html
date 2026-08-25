@@ -81,52 +81,237 @@
             <span class="text-muted small fw-semibold">{{ enrollments|length }} Enrolled</span>
         </div>
 
-        <div class="row g-3 mb-4">
-            {% for en in enrollments %}
-            <div class="col-12 col-sm-6">
-                <div class="card card-circular border-0 shadow-sm h-100 p-3">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <span class="badge font-monospace bg-dark text-gold">{{ en.course.course_id }}</span>
-                        <span class="status-pill {% if en.completion_status == 'Completed' %}pill-completed{% elif en.completion_status == 'Failed' %}bg-danger text-white{% else %}pill-in-progress{% endif %}">
-                            {{ en.completion_status }}
-                        </span>
+        {% set active_enrollments = enrollments | selectattr('completion_status', 'in', ['Enrolled', 'In Progress']) | list %}
+        {% set completed_enrollments = enrollments | selectattr('completion_status', 'in', ['Completed', 'Failed']) | list %}
+
+        <ul class="nav nav-pills gap-2 mb-3" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active fw-semibold" data-bs-toggle="pill" data-bs-target="#tab-active-pane" type="button">
+                    <i class="fa-solid fa-play me-1"></i> In Progress
+                    <span class="badge bg-teal ms-1">{{ active_enrollments|length }}</span>
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link fw-semibold" data-bs-toggle="pill" data-bs-target="#tab-completed-pane" type="button">
+                    <i class="fa-solid fa-circle-check me-1"></i> Completed
+                    <span class="badge bg-success ms-1">{{ completed_enrollments|length }}</span>
+                </button>
+            </li>
+            {% if is_manager %}
+            <li class="nav-item">
+                <button class="nav-link fw-semibold" data-bs-toggle="pill" data-bs-target="#tab-manager-pane" type="button">
+                    <i class="fa-solid fa-users me-1"></i> My Team
+                    <span class="badge bg-teal ms-1">{{ subordinate_data|length }}</span>
+                </button>
+            </li>
+            {% endif %}
+        </ul>
+
+        <div class="tab-content mb-4">
+            <div class="tab-pane fade show active" id="tab-active-pane" role="tabpanel">
+                <div class="row g-3">
+                    {% for en in active_enrollments %}
+                    {% set prog = progress_map.get(en.id, {'done': 0, 'total': 0, 'pct': 0}) %}
+                    <div class="col-12 col-sm-6">
+                        <div class="card card-circular border-0 shadow-sm h-100 p-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="badge font-monospace bg-dark text-gold">{{ en.course.course_id }}</span>
+                                <span class="status-pill pill-in-progress">{{ en.completion_status }}</span>
+                            </div>
+                            <h6 class="fw-bold text-dark mb-1">{{ en.course.name }}</h6>
+                            <small class="text-muted d-block mb-2"><i class="fa-regular fa-clock me-1"></i> {{ en.course.mode }} ({{ en.course.duration_hours }} hrs)</small>
+                            {% if prog.total > 0 %}
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <small class="text-muted text-xs">Lesson Progress</small>
+                                    <small class="fw-semibold text-teal text-xs">{{ prog.done }}/{{ prog.total }} lessons</small>
+                                </div>
+                                <div class="progress" style="height:6px;border-radius:4px;">
+                                    <div class="progress-bar bg-teal" role="progressbar" style="width:{{ prog.pct }}%;"></div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% if en.course.mode == 'Self Paced' %}
+                            <a href="{{ url_for('learners.self_paced_flow', course_id_str=en.course.course_id) }}" class="btn btn-teal btn-sm w-100 mt-auto fw-bold">
+                                Continue Learning <i class="fa-solid fa-arrow-right ms-1"></i>
+                            </a>
+                            {% else %}
+                                {% set cls_id = en.live_class.class_id if en.live_class else (en.course.classes[0].class_id if en.course.classes else '') %}
+                                {% if cls_id %}
+                                <a href="{{ url_for('learners.class_flow', class_id_str=cls_id) }}" class="btn btn-teal btn-sm w-100 mt-auto fw-bold">
+                                    Go to Class Flow <i class="fa-solid fa-arrow-right ms-1"></i>
+                                </a>
+                                {% else %}
+                                <button class="btn btn-secondary btn-sm w-100 mt-auto" disabled>Class Pending</button>
+                                {% endif %}
+                            {% endif %}
+                        </div>
                     </div>
-
-                    <h6 class="fw-bold text-dark mb-2">{{ en.course.name }}</h6>
-                    <small class="text-muted d-block mb-3"><i class="fa-regular fa-clock me-1"></i> Mode: {{ en.course.mode }} ({{ en.course.duration_hours }} hrs)</small>
-
-                    {% if en.final_score %}
-                    <div class="mb-2">
-                        <small class="text-muted">Final Exam Score:</small>
-                        <strong class="text-success ms-1">{{ en.final_score }}%</strong>
-                    </div>
-                    {% endif %}
-
-                    {% if en.course.mode == 'Self Paced' %}
-                    <a href="{{ url_for('learners.self_paced_flow', course_id_str=en.course.course_id) }}" class="btn btn-teal btn-sm w-100 mt-auto fw-bold">
-                        Open Course <i class="fa-solid fa-arrow-right ms-1"></i>
-                    </a>
                     {% else %}
-                        {% set cls_id = en.live_class.class_id if en.live_class else (en.course.classes[0].class_id if en.course.classes else '') %}
-                        {% if cls_id %}
-                        <a href="{{ url_for('learners.class_flow', class_id_str=cls_id) }}" class="btn btn-teal btn-sm w-100 mt-auto fw-bold">
-                            Go to Class Flow <i class="fa-solid fa-arrow-right ms-1"></i>
-                        </a>
-                        {% else %}
-                        <button class="btn btn-secondary btn-sm w-100 mt-auto" disabled>Class Pending</button>
-                        {% endif %}
-                    {% endif %}
+                    <div class="col-12">
+                        <div class="text-center py-5 text-muted">
+                            <i class="fa-solid fa-graduation-cap fa-3x mb-3 d-block opacity-20"></i>
+                            <h6 class="fw-semibold text-dark mb-1">No Active Courses</h6>
+                            <p class="small text-muted mb-0">Contact your L&D admin to get enrolled in a course.</p>
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
-            {% else %}
-            <div class="col-12">
-                <div class="alert alert-info border-info p-4 text-center rounded-3">
-                    <i class="fa-solid fa-circle-info fa-2x mb-2 text-info"></i>
-                    <h6 class="fw-bold text-dark mb-1">No Active Enrollments Yet</h6>
-                    <p class="small text-muted mb-3">You are not assigned to any self-paced courses or live classes currently.</p>
+
+            <div class="tab-pane fade" id="tab-completed-pane" role="tabpanel">
+                <div class="row g-3">
+                    {% for en in completed_enrollments %}
+                    {% set cert = certificates | selectattr('course_id', 'equalto', en.course_id) | first | default(None) %}
+                    <div class="col-12 col-sm-6">
+                        <div class="card card-circular border-0 shadow-sm h-100 p-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="badge font-monospace bg-dark text-gold">{{ en.course.course_id }}</span>
+                                <span class="status-pill {% if en.completion_status == 'Completed' %}pill-completed{% else %}bg-danger text-white{% endif %}">
+                                    {{ en.completion_status }}
+                                </span>
+                            </div>
+                            <h6 class="fw-bold text-dark mb-1">{{ en.course.name }}</h6>
+                            <small class="text-muted d-block mb-2"><i class="fa-regular fa-clock me-1"></i> {{ en.course.mode }}</small>
+                            {% if en.final_score %}
+                            <div class="mb-3">
+                                <small class="text-muted">Final Score:</small>
+                                <strong class="ms-1 {% if en.final_score >= en.course.pass_percentage %}text-success{% else %}text-danger{% endif %}">{{ en.final_score }}%</strong>
+                                {% if en.completion_date %}<small class="text-muted d-block text-xs">Completed {{ en.completion_date.strftime('%d-%b-%Y') }}</small>{% endif %}
+                            </div>
+                            {% endif %}
+                            {% set my_cert = None %}
+                            {% for c in certificates %}
+                                {% if c.course_id == en.course_id %}{% set my_cert = c %}{% endif %}
+                            {% endfor %}
+                            {% for c in certificates %}
+                            {% if c.course_id == en.course_id %}
+                            <a href="{{ url_for('certificates.download_certificate', cert_id_str=c.certificate_id) }}" class="btn btn-sm btn-teal fw-bold w-100 mt-auto">
+                                <i class="fa-solid fa-download me-1"></i> Download Certificate
+                            </a>
+                            {% endif %}
+                            {% else %}
+                            <button class="btn btn-light border btn-sm w-100 mt-auto text-muted" disabled>No Certificate</button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="col-12">
+                        <div class="text-center py-5 text-muted">
+                            <i class="fa-solid fa-circle-check fa-3x mb-3 d-block opacity-20"></i>
+                            <h6 class="fw-semibold text-dark mb-1">No Completed Courses Yet</h6>
+                            <p class="small text-muted mb-0">Finish your active courses to see them here.</p>
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
-            {% endfor %}
+
+            {% if is_manager %}
+            <div class="tab-pane fade" id="tab-manager-pane" role="tabpanel">
+                <div class="card border-0 shadow-sm p-4">
+                    <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-users text-teal me-2"></i> My Team Progress Reports</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 text-xs">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Learner Info</th>
+                                    <th>Course</th>
+                                    <th>Progress</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for sub_item in subordinate_data %}
+                                    {% set sub = sub_item.subordinate %}
+                                    {% if sub_item.courses %}
+                                        {% for c_info in sub_item.courses %}
+                                        <tr>
+                                            {% if loop.first %}
+                                            <td rowspan="{{ sub_item.courses|length }}" class="align-middle fw-bold text-dark">
+                                                {{ sub.name }}<br>
+                                                <small class="text-muted fw-normal">ID: {{ sub.global_id }}</small><br>
+                                                <small class="text-muted fw-normal">{{ sub.department }}</small>
+                                            </td>
+                                            {% endif %}
+                                            <td>
+                                                <span class="fw-semibold text-dark">{{ c_info.course_name }}</span><br>
+                                                <small class="text-muted">{{ c_info.mode }}</small>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <div class="progress flex-grow-1" style="height: 6px; min-width: 60px;">
+                                                        <div class="progress-bar bg-teal" role="progressbar" style="width: {{ c_info.pct }}%;"></div>
+                                                    </div>
+                                                    <span class="fw-bold">{{ c_info.pct }}%</span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {% if c_info.is_expired %}
+                                                    <span class="badge bg-danger">Expired/Locked</span>
+                                                    {% if c_info.extended_deadline %}
+                                                        <br><small class="text-muted text-xxs">Ext: {{ c_info.extended_deadline.strftime('%d-%b-%Y') }}</small>
+                                                    {% endif %}
+                                                {% elif c_info.status == 'Completed' %}
+                                                    <span class="badge bg-success">Completed</span>
+                                                {% else %}
+                                                    <span class="badge bg-teal-subtle text-teal border border-teal-subtle">Active</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if c_info.is_expired or c_info.status != 'Completed' %}
+                                                <button type="button" class="btn btn-outline-teal btn-xxs fw-bold" data-bs-toggle="modal" data-bs-target="#extModal-{{ c_info.enrollment_id }}">
+                                                    Grant Extension
+                                                </button>
+                                                
+                                                <!-- Modal -->
+                                                <div class="modal fade" id="extModal-{{ c_info.enrollment_id }}" tabindex="-1" aria-hidden="true">
+                                                    <div class="modal-dialog modal-dialog-centered">
+                                                        <div class="modal-content border-0 shadow-lg">
+                                                            <div class="modal-header bg-teal text-white">
+                                                                <h6 class="modal-title fw-bold"><i class="fa-regular fa-clock me-1"></i> Grant Extension</h6>
+                                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                            </div>
+                                                            <form action="{{ url_for('learners.grant_extension', enrollment_id=c_info.enrollment_id) }}" method="POST">
+                                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                                <div class="modal-body text-start">
+                                                                    <p class="small text-muted mb-3">Grant a deadline extension to <strong>{{ sub.name }}</strong> for course <strong>{{ c_info.course_name }}</strong>. This will allow them to bypass expiration lockouts.</p>
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label small fw-bold">Select Extension Date</label>
+                                                                        <input type="date" name="extension_date" class="form-control form-control-sm" required min="2026-08-25">
+                                                                    </div>
+                                                                </div>
+                                                                <div class="modal-footer bg-light border-0">
+                                                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                                                                    <button type="submit" class="btn btn-teal btn-sm fw-bold">Grant Extension</button>
+                                                                </div>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {% else %}
+                                                <span class="text-muted text-xxs">No action needed</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            <td class="align-middle fw-bold text-dark">
+                                                {{ sub.name }}<br>
+                                                <small class="text-muted fw-normal">ID: {{ sub.global_id }}</small>
+                                            </td>
+                                            <td colspan="4" class="text-center py-3 text-muted text-xs">No active course enrollments.</td>
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
         </div>
 
         <!-- Available Courses Catalog -->
@@ -141,7 +326,7 @@
                 <div class="card border-0 shadow-sm h-100 p-3">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <span class="badge font-monospace bg-secondary text-white">{{ c.course_id }}</span>
-                        <span class="badge {% if c.mode == 'Self Paced' %}bg-info{% else %}bg-success{% endif %}">{{ c.mode }}</span>
+                        <span class="badge {% if c.mode == 'Self Paced' %}bg-info-subtle text-info border border-info-subtle{% else %}bg-success-subtle text-success border border-success-subtle{% endif %}">{{ c.mode }}</span>
                     </div>
                     <h6 class="fw-bold text-dark mb-1">{{ c.name }}</h6>
                     <p class="text-muted text-xs mb-3 text-truncate-2">{{ c.description or 'Course catalog module.' }}</p>
@@ -221,7 +406,10 @@
 
         <script>
         function markAllRead() {
-            fetch('/learners/notifications/mark_read/0', { method: 'POST' })
+            fetch('/learners/notifications/mark_read/0', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+            })
             .then(r => r.json())
             .then(d => {
                 if (d.status === 'success') {

@@ -20,9 +20,10 @@ def admin_login():
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '').strip()
 
-        if username == 'admin' and password == 'admin':
+        admin = AdminUser.query.filter_by(username=username).first()
+        if admin and admin.check_password(password):
             session['admin_logged_in'] = True
-            session['admin_username'] = 'admin'
+            session['admin_username'] = admin.username
             flash('Successfully logged in as L&D Administrator.', 'success')
             return redirect(url_for('dashboard.index'))
         else:

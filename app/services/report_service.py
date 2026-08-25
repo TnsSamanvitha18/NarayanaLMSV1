@@ -14,10 +14,14 @@ ALL_REPORT_COLUMNS = {
     'class_name': 'Class Name',
     'global_id': 'Learner Global ID',
     'learner_name': 'Learner Name',
+    'department': 'Department',
     'attendance_status': 'Attendance Status',
     'pre_assessment': 'Pre Assessment Score (%)',
     'post_assessment': 'Post Assessment Score (%)',
+    'final_score': 'Final Score (%)',
     'completion_status': 'Completion Status',
+    'enrolled_date': 'Enrolled Date',
+    'completion_date': 'Completion Date',
     'certificate_id': 'Certificate ID',
     'facilitator': 'Facilitator Name',
     'co_facilitator': 'Co-Facilitator Name',
@@ -25,7 +29,7 @@ ALL_REPORT_COLUMNS = {
     'feedback_status': 'Feedback Submitted'
 }
 
-def generate_report_dataframe(selected_columns=None, search_query=None, mode_filter=None):
+def generate_report_dataframe(selected_columns=None, search_query=None, mode_filter=None, date_from=None, date_to=None):
     """
     Queries DB for learner enrollments, builds flat data records,
     and returns a Pandas DataFrame with selected columns.
@@ -58,6 +62,12 @@ def generate_report_dataframe(selected_columns=None, search_query=None, mode_fil
             if course.mode != mode_filter:
                 continue
 
+        # Check date range filter (enrolled_at)
+        if date_from and en.assigned_at and en.assigned_at.date() < date_from:
+            continue
+        if date_to and en.assigned_at and en.assigned_at.date() > date_to:
+            continue
+
         # Get attendance status
         att_status = 'N/A'
         if live_cls:
@@ -86,10 +96,14 @@ def generate_report_dataframe(selected_columns=None, search_query=None, mode_fil
             'class_name': live_cls.class_name if live_cls else 'Self-Paced (N/A)',
             'global_id': learner.global_id if learner else 'N/A',
             'learner_name': learner.name if learner else 'N/A',
+            'department': learner.department if (learner and learner.department) else 'N/A',
             'attendance_status': att_status,
             'pre_assessment': pre_score,
             'post_assessment': post_score,
+            'final_score': f"{en.final_score}%" if en.final_score else 'N/A',
             'completion_status': en.completion_status,
+            'enrolled_date': en.assigned_at.strftime('%d-%b-%Y') if en.assigned_at else 'N/A',
+            'completion_date': en.completion_date.strftime('%d-%b-%Y') if en.completion_date else 'N/A',
             'certificate_id': cert_id,
             'facilitator': live_cls.facilitator_name if live_cls else 'N/A',
             'co_facilitator': live_cls.co_facilitator_name if (live_cls and live_cls.co_facilitator_name) else 'N/A',

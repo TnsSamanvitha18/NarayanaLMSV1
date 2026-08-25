@@ -2,14 +2,17 @@ import os
 import qrcode
 from flask import current_app
 
-def generate_class_qr(class_id):
+def generate_class_qr(class_id, base_url=None):
     """
     Generates a QR code image for a Live Class.
-    QR payload: http://localhost:5000/learner/login?classId=xxxxx
+    QR payload: <base_url>/learner/login?classId=xxxxx
     Saves image in static/qr_codes directory.
     Returns relative static URL.
     """
-    target_url = f"http://localhost:5000/learner/login?classId={class_id}"
+    if not base_url:
+        base_url = "http://localhost:5000"
+    base_url = base_url.rstrip('/')
+    target_url = f"{base_url}/learner/login?classId={class_id}"
 
     qr = qrcode.QRCode(
         version=1,
