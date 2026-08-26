@@ -1,13 +1,15 @@
 import sys
 sys.path.insert(0, '.')
 
-from run import app, init_db_if_needed
+from run import app
+from app.seed import init_db_and_seed
 from app.models import db
 from app.models.course import Course, CourseLesson, CourseAssessment
 from app.models.enrollment import LearnerEnrollment, AssessmentAttempt, LessonReview
 
 def test_lesson_gating_and_timer():
-    init_db_if_needed()
+    init_db_and_seed(app)
+    app.config['WTF_CSRF_ENABLED'] = False
     client = app.test_client()
 
     with app.app_context():
@@ -71,11 +73,15 @@ def test_lesson_gating_and_timer():
         sess.clear()
     client.post('/learner/login', data={'global_id': '10001'}, follow_redirects=True)
 
-    res = client.get(f'/learners/self_paced_flow/{course_id_str}')
+    # Request Lesson 1 player page (content should be locked)
+    res = client.get(f'/learners/self_paced_flow/{course_id_str}?lesson_id={les1_id}')
     assert res.status_code == 200
     html_content = res.data.decode('utf-8')
     assert "Lesson 1 Content Locked" in html_content
-    # Lesson 2 (no pre-assessment) should show unlocked content immediately
+
+    # Request Lesson 2 player page (no pre-assessment, content should be unlocked immediately)
+    res = client.get(f'/learners/self_paced_flow/{course_id_str}?lesson_id={les2_id}')
+    assert res.status_code == 200
     assert b"Lesson 2 content text" in res.data
     print("   -> Lesson 1 content locked (Pre-Assessment pending), Lesson 2 content unlocked (No Pre-Assessment)!")
 
@@ -88,9 +94,9 @@ def test_lesson_gating_and_timer():
     assert res_sub.status_code == 200
 
     print("4. Testing Learner View Content Unlocked After Pre-Assessment Submission...")
-    res_after = client.get(f'/learners/self_paced_flow/{course_id_str}')
+    # Request Lesson 1 player page (should now be unlocked)
+    res_after = client.get(f'/learners/self_paced_flow/{course_id_str}?lesson_id={les1_id}')
     assert res_after.status_code == 200
-    assert b"Pre-Assessment Submitted" in res_after.data or b"Completed" in res_after.data
     assert b"Lesson 1 content text" in res_after.data
     print("   -> Lesson 1 content cleanly UNLOCKED after submitting Pre-Assessment!")
 

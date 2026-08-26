@@ -11,3 +11,8 @@ uploads/certificates/*
 !uploads/certificates/.gitkeep
 static/qr_codes/*
 !static/qr_codes/.gitkeep
+
+# Local databases and environment files
+.env
+*.db
+instance/

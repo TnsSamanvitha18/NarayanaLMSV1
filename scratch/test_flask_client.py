@@ -5,6 +5,7 @@ import os
 from run import app
 
 def test_lms_with_test_client():
+    app.config['WTF_CSRF_ENABLED'] = False
     client = app.test_client()
 
     print("1. Testing Admin Login...")

@@ -1,10 +1,12 @@
 import sys
 sys.path.insert(0, '.')
 
-from run import app, init_db_if_needed
+from run import app
+from app.seed import init_db_and_seed
 
 def test_bell_icon_visibility():
-    init_db_if_needed()
+    init_db_and_seed(app)
+    app.config['WTF_CSRF_ENABLED'] = False
     client = app.test_client()
 
     print("1. Checking login page (/learner/login)...")

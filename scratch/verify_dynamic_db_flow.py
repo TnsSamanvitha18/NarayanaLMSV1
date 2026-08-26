@@ -1,14 +1,16 @@
 import sys
 sys.path.insert(0, '.')
 
-from run import app, init_db_if_needed
+from run import app
+from app.seed import init_db_and_seed
 from app.models import db
 from app.models.user import Learner, AdminUser
 from app.models.course import Course, CourseLesson, LessonCourseware, CourseAssessment, CourseMaterial
 from app.models.enrollment import LearnerEnrollment, AssessmentAttempt
 
 def verify_backend_frontend_integration():
-    init_db_if_needed()
+    init_db_and_seed(app)
+    app.config['WTF_CSRF_ENABLED'] = False
     client = app.test_client()
 
     with app.app_context():

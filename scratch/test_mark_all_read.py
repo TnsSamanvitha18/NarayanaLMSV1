@@ -19,6 +19,7 @@ with app.app_context():
     db.session.add(n1)
     db.session.commit()
 
+    app.config['WTF_CSRF_ENABLED'] = False
     client = app.test_client()
     with client.session_transaction() as sess:
         sess['learner_id'] = l1.id

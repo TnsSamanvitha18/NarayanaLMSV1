@@ -2,7 +2,8 @@ import sys
 sys.path.insert(0, '.')
 
 import json
-from run import app, init_db_if_needed
+from run import app
+from app.seed import init_db_and_seed
 from app.models import db
 from app.models.user import Learner
 from app.models.course import Course
@@ -14,7 +15,8 @@ from app.services.learning_wall_service import (
 )
 
 def test_learning_wall_feature():
-    init_db_if_needed()
+    init_db_and_seed(app)
+    app.config['WTF_CSRF_ENABLED'] = False
     client = app.test_client()
 
     print("1. Testing Unauthenticated Access to Learning Wall (should redirect to login)...")
@@ -106,8 +108,8 @@ def test_learning_wall_feature():
     with client.session_transaction() as sess:
         sess.clear()
     client.post('/login', data={'username': 'admin', 'password': 'admin'}, follow_redirects=True)
-    res = client.post('/learning_wall/clear', follow_redirects=True)
-    assert res.status_code == 200
+    res = client.post('/learning_wall/clear', follow_redirects=False)
+    assert res.status_code == 302
     with app.app_context():
         count = LearningWallPost.query.count()
         assert count == 0

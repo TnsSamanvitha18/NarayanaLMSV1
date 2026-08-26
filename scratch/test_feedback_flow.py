@@ -1,7 +1,8 @@
 import sys
 sys.path.insert(0, '.')
 
-from run import app, init_db_if_needed
+from run import app
+from app.seed import init_db_and_seed
 from app.models import db
 from app.models.course import Course
 from app.models.feedback import FeedbackRepository, FeedbackQuestion, FeedbackResponse
@@ -10,7 +11,8 @@ from app.models.certificate import Certificate
 from app.models.user import Learner
 
 def test_feedback():
-    init_db_if_needed()
+    init_db_and_seed(app)
+    app.config['WTF_CSRF_ENABLED'] = False
     client = app.test_client()
 
     with app.app_context():
