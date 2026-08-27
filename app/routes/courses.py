@@ -1426,14 +1426,18 @@ def author_lesson(course_id, lesson_id):
     if not cw:
         cw = LessonCourseware(
             lesson_id=lesson.id,
-            title=f"Slides for {lesson.title}",
+            title=f"Interactive Lesson: {lesson.title}",
             courseware_type='Text',
             content_text=json.dumps([
                 {
+                    "type": "header",
                     "title": "Welcome to " + lesson.title,
-                    "layout": "full",
-                    "body": "<p>Start writing your lesson slides here. You can add text, headers, and bullet points!</p>",
+                    "body": "This lesson was created using the modular RISE block builder.",
                     "theme": "navy"
+                },
+                {
+                    "type": "text",
+                    "body": "<p>Start building your scrollable lesson here. Add new typography blocks, accordion segments, tabs, or knowledge checks!</p>"
                 }
             ])
         )
