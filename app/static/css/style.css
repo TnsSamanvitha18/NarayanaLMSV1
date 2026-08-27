@@ -2741,5 +2741,99 @@ video {
     display: none !important;
 }
 
+/* ==========================================================================
+   NARAYANA DESIGN SYSTEM - GLOBAL CONSISTENT CLASSES (Rework)
+   ========================================================================== */
+
+/* Component: Standard Centered Login Card */
+.card-login {
+    max-width: 440px !important;
+    width: 92% !important;
+    border-radius: 28px !important;
+}
+
+/* Component: Login Form Custom Buttons */
+.btn-login {
+    border-radius: 14px !important;
+}
+
+/* Z-Index Helpers */
+.z-index-2 {
+    z-index: 2 !important;
+}
+
+/* Text Sizing Helpers */
+.text-xxs {
+    font-size: 0.65rem !important;
+}
+
+/* Reusable Profile Avatars Sizes */
+.avatar-xs {
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 0.85rem !important;
+    font-weight: bold !important;
+}
+
+.avatar-sm {
+    width: 42px !important;
+    height: 42px !important;
+    font-size: 1.2rem !important;
+}
+
+.avatar-md {
+    width: 48px !important;
+    height: 48px !important;
+}
+
+.avatar-lg {
+    width: 72px !important;
+    height: 72px !important;
+    font-size: 1.8rem !important;
+    font-weight: bold !important;
+}
+
+/* Reusable Course/Class Thumbnails */
+.course-thumb-sm {
+    width: 42px !important;
+    height: 42px !important;
+    object-fit: cover !important;
+}
+
+.course-thumb-md {
+    max-height: 160px !important;
+    width: 100% !important;
+    object-fit: cover !important;
+}
+
+/* Reusable Text Truncations widths */
+.text-truncate-sm {
+    max-width: 240px !important;
+}
+
+.text-truncate-md {
+    max-width: 500px !important;
+}
+
+.meeting-link-truncate {
+    max-width: 180px !important;
+}
+
+/* Hide scrollbars for overflow containers */
+.hide-scrollbar {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+.hide-scrollbar::-webkit-scrollbar {
+    display: none !important;
+}
+
+/* Typography Utilities */
+.pre-line {
+    white-space: pre-line !important;
+}
+
+
 
 

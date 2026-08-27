@@ -46,7 +46,7 @@
             <div class="card-body">
                 {% if course.thumbnail_filename %}
                 <div class="mb-3 text-center">
-                    <img src="{{ url_for('courses.download_thumbnail', filename=course.thumbnail_filename) }}" alt="Course Thumbnail" class="img-fluid rounded border shadow-sm" style="max-height: 160px; width: 100%; object-fit: cover;">
+                    <img src="{{ url_for('courses.download_thumbnail', filename=course.thumbnail_filename) }}" alt="Course Thumbnail" class="img-fluid rounded border shadow-sm course-thumb-md">
                 </div>
                 {% endif %}
                 <p class="text-muted">{{ course.description or 'No description provided.' }}</p>
@@ -571,7 +571,7 @@
                                             {% endif %}
 
                                             {% if mat.external_url %}
-                                            <small class="text-muted text-xs font-monospace d-block text-truncate" style="max-width: 500px;">
+                                            <small class="text-muted text-xs font-monospace d-block text-truncate text-truncate-md">
                                                 <i class="fa-solid fa-link me-1 text-teal"></i> {{ mat.external_url }}
                                             </small>
                                             {% endif %}
@@ -767,7 +767,7 @@
                                     </div>
                                     <div class="col-md-4">
                                         {% if cls.class_mode == 'Online' %}
-                                        <strong>Meeting Link:</strong> <a href="{{ cls.meet_link }}" target="_blank" class="text-truncate d-inline-block" style="max-width: 180px;">{{ cls.meet_link or 'Pending' }}</a>
+                                        <strong>Meeting Link:</strong> <a href="{{ cls.meet_link }}" target="_blank" class="text-truncate d-inline-block meeting-link-truncate">{{ cls.meet_link or 'Pending' }}</a>
                                         {% else %}
                                         <strong>Location:</strong> {{ cls.location or 'Main Campus' }} - {{ cls.branch or 'HYD' }}
                                         {% endif %}

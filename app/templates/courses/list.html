@@ -89,9 +89,9 @@
                         <td data-label="Course Name">
                             <div class="d-flex align-items-center">
                                 {% if c.thumbnail_filename %}
-                                <img src="{{ url_for('courses.download_thumbnail', filename=c.thumbnail_filename) }}" alt="Thumbnail" class="rounded-3 me-2 border shadow-sm flex-shrink-0" style="width: 42px; height: 42px; object-fit: cover;">
+                                <img src="{{ url_for('courses.download_thumbnail', filename=c.thumbnail_filename) }}" alt="Thumbnail" class="rounded-3 me-2 border shadow-sm flex-shrink-0 course-thumb-sm">
                                 {% else %}
-                                <div class="gradient-blue text-white rounded-3 me-2 d-flex align-items-center justify-content-center shadow-xs flex-shrink-0" style="width: 42px; height: 42px; font-size: 1.2rem;">
+                                <div class="gradient-blue text-white rounded-3 me-2 d-flex align-items-center justify-content-center shadow-xs flex-shrink-0 avatar-sm">
                                     <i class="fa-solid fa-graduation-cap"></i>
                                 </div>
                                 {% endif %}
@@ -99,7 +99,7 @@
                                     <a href="{{ url_for('courses.view_course', course_id=c.id) }}" class="fw-bold text-dark text-decoration-none">
                                         {{ c.name }}
                                     </a>
-                                    <small class="text-muted d-block text-truncate" style="max-width: 240px;">{{ c.description }}</small>
+                                    <small class="text-muted d-block text-truncate text-truncate-sm">{{ c.description }}</small>
                                 </div>
                             </div>
                         </td>
