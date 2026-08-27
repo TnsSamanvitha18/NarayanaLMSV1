@@ -185,6 +185,14 @@ def add_comment():
     db.session.add(comment)
     db.session.flush()
     process_tags_and_notify(content, user_name, content)
+    
+    # Award points & badge for social engagement
+    learner_id = session.get('learner_id')
+    if learner_id:
+        from app.utils.gamification import award_points, award_badge
+        award_points(learner_id, 5, "Commenting on Social Wall")
+        award_badge(learner_id, "Social Bee 🐝", "fa-comments", "Posted a comment on the Learning Wall!")
+        
     db.session.commit()
     
     return jsonify({
@@ -196,6 +204,7 @@ def add_comment():
             'created_at': comment.created_at.strftime('%d-%b-%Y %H:%M')
         }
     })
+
 
 
 @learning_wall_bp.route('/comment/delete/<int:comment_id>', methods=['POST'])

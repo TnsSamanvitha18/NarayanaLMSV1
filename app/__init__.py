@@ -19,6 +19,19 @@ def create_app(config_class=Config):
     csrf.init_app(app)
     migrate.init_app(app, db)
 
+    # Configure SQLite pragmas for high-concurrency (WAL mode & synchronous NORMAL)
+    with app.app_context():
+        if 'sqlite' in app.config.get('SQLALCHEMY_DATABASE_URI', ''):
+            from sqlalchemy import event
+            @event.listens_for(db.engine, "connect")
+            def set_sqlite_pragma(dbapi_connection, connection_record):
+                cursor = dbapi_connection.cursor()
+                cursor.execute("PRAGMA journal_mode=WAL")
+                cursor.execute("PRAGMA synchronous=NORMAL")
+                cursor.close()
+
+
+
     # Register Blueprints
     from app.routes.auth import auth_bp
     from app.routes.dashboard import dashboard_bp

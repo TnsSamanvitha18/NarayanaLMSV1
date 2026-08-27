@@ -938,6 +938,41 @@ def grant_extension(enrollment_id):
     return redirect(url_for('learners.my_portal'))
 
 
+@learners_bp.route('/reject_extension/<int:enrollment_id>', methods=['POST'])
+def reject_extension(enrollment_id):
+    """
+    Learner Portal: Route for managers to reject an extension request from their subordinates.
+    """
+    manager_learner_id = session.get('learner_id')
+    if not manager_learner_id:
+        return jsonify({'status': 'error', 'message': 'Not logged in'}), 401
+
+    manager = Learner.query.get_or_404(manager_learner_id)
+    enrollment = LearnerEnrollment.query.get_or_404(enrollment_id)
+    subordinate = enrollment.learner
+
+    # Verify relationship
+    if subordinate.manager_id != manager.id:
+        return jsonify({'status': 'error', 'message': 'Permission denied. This learner does not report to you.'}), 403
+
+    enrollment.extension_requested = False # Clear the request flag
+    
+    # Create a notification for the learner
+    from app.models.notification import LearnerNotification
+    notif = LearnerNotification(
+        learner_id=subordinate.id,
+        course_id=enrollment.course_id,
+        title=f"Extension Request Declined: {enrollment.course.name}",
+        message=f"Your manager {manager.name} has declined your extension request for '{enrollment.course.name}'.",
+        notification_type='LESSON_UPDATED'
+    )
+    db.session.add(notif)
+    db.session.commit()
+
+    flash(f"Declined extension request for {subordinate.name}.", "info")
+    return redirect(url_for('learners.my_portal'))
+
+
 @learners_bp.route('/request_extension/<int:enrollment_id>', methods=['POST'])
 def request_extension(enrollment_id):
     """
@@ -975,3 +1010,24 @@ def request_extension(enrollment_id):
 
     flash(f"Extension request for '{enrollment.course.name}' sent to your manager {learner.manager.name}.", "success")
     return redirect(url_for('learners.my_portal'))
+
+
+@learners_bp.route('/complete_flashcards/<int:course_id>', methods=['POST'])
+def complete_flashcards(course_id):
+    """
+    Learner Portal: Route to mark flashcards completed, award points and badge.
+    """
+    learner_id = session.get('learner_id')
+    if not learner_id:
+        return jsonify({'status': 'error', 'message': 'Not logged in'}), 401
+        
+    from app.utils.gamification import award_points, award_badge
+    
+    # Award points and the "Flashcard Pro" badge
+    award_points(learner_id, 20, "Completing Course Flashcards Set")
+    award_badge(learner_id, "Flashcard Pro 🗂️", "fa-clone", "Completed study flashcards review!")
+    
+    return jsonify({
+        'status': 'success',
+        'message': 'Congratulations! You earned 20 points and unlocked the Flashcard Pro badge!'
+    })

@@ -53,9 +53,38 @@
                         <span class="badge bg-success text-white fw-bold">{{ learner.certificates|length }} Issued</span>
                     </div>
                 </div>
+
+                <!-- Streak & Points -->
+                <div class="p-2.5 rounded-3 bg-warning-subtle border border-warning text-center mt-2">
+                    <div class="fw-bold text-dark text-xs text-uppercase mb-1">
+                        <i class="fa-solid fa-fire text-warning me-1"></i> Active Streak
+                    </div>
+                    <div class="kpi-number text-warning fs-3 my-1">
+                        {{ learner.current_streak or 0 }} Days
+                    </div>
+                    <small class="text-muted text-xxs block">Points Balance: <strong>{{ learner.points or 0 }} pts</strong></small>
+                </div>
+
+                <!-- Badges -->
+                <div class="p-2.5 rounded-3 bg-light border text-start mt-2">
+                    <div class="fw-bold text-dark text-xs text-uppercase mb-2">
+                        <i class="fa-solid fa-medal text-teal me-1"></i> Unlocked Badges ({{ learner.badges|length }})
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 badge-container">
+                        {% for badge in learner.badges %}
+                        <span class="badge bg-teal-subtle text-teal border border-teal-subtle d-inline-flex align-items-center gap-1 text-xxs" title="{{ badge.description }}">
+                            <i class="fa-solid {{ badge.icon or 'fa-award' }} text-xs"></i> {{ badge.badge_name }}
+                        </span>
+                        {% else %}
+                        <small class="text-muted text-xxs">No badges unlocked yet. Keep learning!</small>
+                        {% endfor %}
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
+
 
     <!-- Main Content Area: Enrolled Programs & Available Courses -->
     <div class="col-12 col-lg-6 col-xl-6 main-content-col" id="mainContentCol">
@@ -302,6 +331,12 @@
                                                 <button type="button" class="btn btn-outline-teal btn-xxs fw-bold" data-bs-toggle="modal" data-bs-target="#extModal-{{ c_info.enrollment_id }}">
                                                     Grant Extension
                                                 </button>
+                                                {% if c_info.extension_requested %}
+                                                <form action="{{ url_for('learners.reject_extension', enrollment_id=c_info.enrollment_id) }}" method="POST" class="d-inline ms-1">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <button type="submit" class="btn btn-outline-danger btn-xxs fw-bold">Reject</button>
+                                                </form>
+                                                {% endif %}
                                                 
                                                 <!-- Modal -->
                                                 <div class="modal fade" id="extModal-{{ c_info.enrollment_id }}" tabindex="-1" aria-hidden="true">

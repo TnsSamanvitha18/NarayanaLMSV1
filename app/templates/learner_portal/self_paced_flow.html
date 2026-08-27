@@ -66,7 +66,109 @@
                 </div>
             </div>
 
+            <!-- Interactive Learner Journey Timeline -->
+            <div class="card border-0 shadow-sm mb-4 rounded-4 overflow-hidden p-3 bg-white">
+                <h6 class="fw-bold text-navy mb-3"><i class="fa-solid fa-map-location-dot text-teal me-1"></i> Your Learning Journey</h6>
+                <div class="d-flex justify-content-between align-items-center position-relative px-2 py-3 stepper-container" style="position: relative;">
+                    <!-- Progress Connecting Line -->
+                    <div class="position-absolute start-0 end-0 bg-light-subtle border" style="height: 6px; top: 38%; transform: translateY(-50%); z-index: 1; border-radius: 10px;">
+                        {% set total_steps = 5 %}
+                        {% set completed_steps = 0 %}
+                        {% if not has_pre_questions or pre_attempt %}{% set completed_steps = completed_steps + 1 %}{% endif %}
+                        {% if completed_lesson_ids|length == course.lessons|length %}{% set completed_steps = completed_steps + 1 %}{% endif %}
+                        {% if course_end_attempt and course_end_attempt.passed %}{% set completed_steps = completed_steps + 1 %}{% endif %}
+                        {% if feedback_resp %}{% set completed_steps = completed_steps + 1 %}{% endif %}
+                        {% if enrollment.completion_status == 'Completed' %}{% set completed_steps = completed_steps + 1 %}{% endif %}
+                        {% set progress_width = (completed_steps / total_steps) * 100 %}
+                        <div class="bg-teal h-100" style="width: {{ progress_width }}%; transition: width 0.3s ease; border-radius: 10px;"></div>
+                    </div>
+                    
+                    <!-- Step 1: Pre-Assessment -->
+                    <div class="text-center position-relative z-index-2 flex-grow-1" style="z-index: 2;">
+                        {% if not has_pre_questions or pre_attempt %}
+                        <span class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center mx-auto shadow-sm" style="width: 36px; height: 36px;" title="Completed">
+                            <i class="fa-solid fa-check fs-6"></i>
+                        </span>
+                        {% else %}
+                        <span class="rounded-circle bg-teal text-white d-flex align-items-center justify-content-center mx-auto shadow-sm animate-pulse" style="width: 36px; height: 36px;" title="Action Required">
+                            <i class="fa-solid fa-pen-nib fs-6"></i>
+                        </span>
+                        {% endif %}
+                        <small class="text-dark fw-bold d-block mt-2 text-xxs">Pre-Assessment</small>
+                    </div>
+
+                    <!-- Step 2: Lessons -->
+                    <div class="text-center position-relative z-index-2 flex-grow-1" style="z-index: 2;">
+                        {% if completed_lesson_ids|length == course.lessons|length %}
+                        <span class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center mx-auto shadow-sm" style="width: 36px; height: 36px;">
+                            <i class="fa-solid fa-check fs-6"></i>
+                        </span>
+                        {% elif has_pre_questions and not pre_attempt %}
+                        <span class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center mx-auto shadow-sm" style="width: 36px; height: 36px;">
+                            <i class="fa-solid fa-lock fs-6"></i>
+                        </span>
+                        {% else %}
+                        <span class="rounded-circle bg-teal text-white d-flex align-items-center justify-content-center mx-auto shadow-sm animate-pulse" style="width: 36px; height: 36px;">
+                            <i class="fa-solid fa-book-open fs-6"></i>
+                        </span>
+                        {% endif %}
+                        <small class="text-dark fw-bold d-block mt-2 text-xxs">Lessons ({{ completed_lesson_ids|length }}/{{ course.lessons|length }})</small>
+                    </div>
+
+                    <!-- Step 3: Post-Assessment -->
+                    <div class="text-center position-relative z-index-2 flex-grow-1" style="z-index: 2;">
+                        {% if course_end_attempt and course_end_attempt.passed %}
+                        <span class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center mx-auto shadow-sm" style="width: 36px; height: 36px;">
+                            <i class="fa-solid fa-check fs-6"></i>
+                        </span>
+                        {% elif completed_lesson_ids|length == course.lessons|length %}
+                        <span class="rounded-circle bg-teal text-white d-flex align-items-center justify-content-center mx-auto shadow-sm animate-pulse" style="width: 36px; height: 36px;">
+                            <i class="fa-solid fa-file-signature fs-6"></i>
+                        </span>
+                        {% else %}
+                        <span class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center mx-auto shadow-sm" style="width: 36px; height: 36px;">
+                            <i class="fa-solid fa-lock fs-6"></i>
+                        </span>
+                        {% endif %}
+                        <small class="text-dark fw-bold d-block mt-2 text-xxs">Assessment</small>
+                    </div>
+
+                    <!-- Step 4: Feedback -->
+                    <div class="text-center position-relative z-index-2 flex-grow-1" style="z-index: 2;">
+                        {% if feedback_resp %}
+                        <span class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center mx-auto shadow-sm" style="width: 36px; height: 36px;">
+                            <i class="fa-solid fa-check fs-6"></i>
+                        </span>
+                        {% elif course_end_attempt and course_end_attempt.passed %}
+                        <span class="rounded-circle bg-teal text-white d-flex align-items-center justify-content-center mx-auto shadow-sm animate-pulse" style="width: 36px; height: 36px;">
+                            <i class="fa-solid fa-comment-dots fs-6"></i>
+                        </span>
+                        {% else %}
+                        <span class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center mx-auto shadow-sm" style="width: 36px; height: 36px;">
+                            <i class="fa-solid fa-lock fs-6"></i>
+                        </span>
+                        {% endif %}
+                        <small class="text-dark fw-bold d-block mt-2 text-xxs">Feedback</small>
+                    </div>
+
+                    <!-- Step 5: Certificate -->
+                    <div class="text-center position-relative z-index-2 flex-grow-1" style="z-index: 2;">
+                        {% if enrollment.completion_status == 'Completed' %}
+                        <span class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center mx-auto shadow-sm" style="width: 36px; height: 36px;">
+                            <i class="fa-solid fa-certificate fs-6 text-warning"></i>
+                        </span>
+                        {% else %}
+                        <span class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center mx-auto shadow-sm" style="width: 36px; height: 36px;">
+                            <i class="fa-solid fa-certificate fs-6"></i>
+                        </span>
+                        {% endif %}
+                        <small class="text-dark fw-bold d-block mt-2 text-xxs">Certificate</small>
+                    </div>
+                </div>
+            </div>
+
             {% set sel_les_id = request.args.get('lesson_id') %}
+
             
             {% if not sel_les_id %}
             <!-- ================= SCREEN 1: COURSE LESSONS LIST VIEW ================= -->
@@ -356,6 +458,131 @@
                         {% endif %}
                     {% endif %}
                 </div>
+
+                <!-- Interactive Study Flashcards -->
+                {% if active_content_unlocked %}
+                <div class="p-4 bg-light border-top" id="flashcards-widget-container">
+                    <h6 class="fw-bold text-navy mb-3"><i class="fa-regular fa-clone text-teal me-1"></i> Interactive Concept Flashcards</h6>
+                    <p class="text-muted text-xxs mb-3">Flip the cards to review core definitions. Review all cards to earn 20 points! ⭐</p>
+                    
+                    <div class="flashcard-container d-flex justify-content-center align-items-center position-relative my-4" style="perspective: 1000px; height: 180px; position: relative;">
+                        <!-- Card Elements -->
+                        {% set cards = [
+                            {"front": "Active Learning", "back": "A dynamic learning model requiring users to complete milestones (pre/post-tests, timers) to unlock content sequentially."},
+                            {"front": "Progressive Gating", "back": "Enforces prerequisites and viewing time limits on lessons to maximize memory retention and course depth."},
+                            {"front": "Gamified Feedback Loop", "back": "Encourages knowledge sharing on the Social Wall while rewarding completions and logins with points and badges."}
+                        ] %}
+                        
+                        {% for c in cards %}
+                        <div class="flashcard w-100 h-100 position-absolute rounded-3 shadow-sm" id="flashcard-{{ loop.index0 }}" style="transform-style: preserve-3d; transition: transform 0.6s; cursor: pointer; display: {% if loop.first %}block{% else %}none{% endif %}; max-width: 320px; z-index: 5; position: absolute; left: 50%; transform: translateX(-50%);">
+                            <div class="flashcard-inner w-100 h-100 position-relative" style="transform-style: preserve-3d; width: 100%; height: 100%;" onclick="this.classList.toggle('flipped')">
+                                <!-- Front Face -->
+                                <div class="flashcard-front position-absolute w-100 h-100 bg-white border border-teal-subtle rounded-3 d-flex align-items-center justify-content-center p-3 text-center" style="backface-visibility: hidden; z-index: 2; position: absolute; top: 0; left: 0; right: 0; bottom: 0;">
+                                    <div>
+                                        <span class="badge bg-teal-subtle text-teal mb-2">Term {{ loop.index }}</span>
+                                        <h6 class="fw-bold text-navy mb-0">{{ c.front }}</h6>
+                                        <small class="text-muted d-block mt-3 text-xxs"><i class="fa-solid fa-rotate me-1"></i> Click to Flip</small>
+                                    </div>
+                                </div>
+                                <!-- Back Face -->
+                                <div class="flashcard-back position-absolute w-100 h-100 bg-teal text-white rounded-3 d-flex align-items-center justify-content-center p-3 text-center" style="backface-visibility: hidden; transform: rotateY(180deg); z-index: 1; position: absolute; top: 0; left: 0; right: 0; bottom: 0;">
+                                    <div>
+                                        <p class="small mb-0">{{ c.back }}</p>
+                                        <small class="text-white-50 d-block mt-3 text-xxs"><i class="fa-solid fa-rotate me-1"></i> Click to Flip Back</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Flashcard Navigation Controls -->
+                    <div class="d-flex justify-content-between align-items-center px-4">
+                        <button type="button" class="btn btn-outline-secondary btn-xxs rounded-pill" id="prev-card-btn" disabled onclick="navigateCard(-1)">
+                            <i class="fa-solid fa-chevron-left me-1"></i> Back
+                        </button>
+                        <span class="text-muted text-xs font-monospace fw-bold" id="card-indicator">Card 1 / 3</span>
+                        <button type="button" class="btn btn-teal text-white btn-xxs rounded-pill" id="next-card-btn" onclick="navigateCard(1)">
+                            Next <i class="fa-solid fa-chevron-right ms-1"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <style>
+                .flashcard-inner {
+                    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+                .flashcard-inner.flipped {
+                    transform: rotateY(180deg);
+                }
+                .flashcard-front, .flashcard-back {
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                }
+                </style>
+                
+                <script>
+                let currentCardIdx = 0;
+                const totalCards = 3;
+
+                function navigateCard(dir) {
+                    // Hide current card
+                    document.getElementById(`flashcard-${currentCardIdx}`).style.display = 'none';
+                    
+                    // Reset flip class if flipped
+                    const inner = document.querySelector(`#flashcard-${currentCardIdx} .flashcard-inner`);
+                    if (inner) inner.classList.remove('flipped');
+                    
+                    currentCardIdx += dir;
+                    
+                    // Show next card
+                    document.getElementById(`flashcard-${currentCardIdx}`).style.display = 'block';
+                    
+                    // Update buttons
+                    document.getElementById('prev-card-btn').disabled = (currentCardIdx === 0);
+                    
+                    const nextBtn = document.getElementById('next-card-btn');
+                    if (currentCardIdx === totalCards - 1) {
+                        nextBtn.innerHTML = '<i class="fa-solid fa-check me-1"></i> Complete';
+                        nextBtn.onclick = completeFlashcards;
+                    } else {
+                        nextBtn.innerHTML = 'Next <i class="fa-solid fa-chevron-right ms-1"></i>';
+                        nextBtn.onclick = function() { navigateCard(1); };
+                    }
+                    
+                    document.getElementById('card-indicator').innerText = `Card ${currentCardIdx + 1} / ${totalCards}`;
+                }
+
+                function completeFlashcards() {
+                    fetch("{{ url_for('learners.complete_flashcards', course_id=course.id) }}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token() }}'
+                        }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            alert(data.message);
+                            document.getElementById('flashcards-widget-container').innerHTML = `
+                                <div class="alert alert-success d-flex align-items-center py-2.5 mb-0">
+                                    <i class="fa-solid fa-circle-check fs-5 text-success me-2"></i>
+                                    <div>
+                                        <strong>Flashcards Completed!</strong> You earned 20 points and the Flashcard Pro badge!
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            alert(data.message || 'Already completed or error occurred.');
+                        }
+                    })
+                    .catch(err => console.error('Flashcard error:', err));
+                }
+                </script>
+                {% endif %}
 
                 <!-- Bottom Primary Next Button -->
                 <div class="p-3.5 bg-white border-top">

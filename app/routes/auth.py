@@ -87,6 +87,34 @@ def learner_login():
                 session['learner_global_id'] = learner.global_id
                 session['learner_name'] = learner.name
 
+                # Daily Streak Logic
+                from datetime import date, timedelta
+                from app.models import db
+                from app.utils.gamification import award_points, award_badge
+                
+                today = date.today()
+                if not learner.last_active_date:
+                    learner.current_streak = 1
+                    learner.last_active_date = today
+                    award_points(learner.id, 10, "First Daily Login")
+                else:
+                    if learner.last_active_date == today:
+                        # Already logged in today
+                        pass
+                    elif learner.last_active_date == today - timedelta(days=1):
+                        learner.current_streak += 1
+                        learner.last_active_date = today
+                        points_to_award = min(learner.current_streak * 5, 50)
+                        award_points(learner.id, points_to_award, f"{learner.current_streak}-Day Login Streak")
+                        if learner.current_streak >= 5:
+                            award_badge(learner.id, "Streak Master 🔥", "fa-fire", "Logged in for 5 consecutive days!")
+                    else:
+                        learner.current_streak = 1
+                        learner.last_active_date = today
+                        award_points(learner.id, 10, "Daily Login (Streak Reset)")
+                
+                db.session.commit()
+
                 flash(f"Welcome, {learner.name}!", "success")
 
                 if class_id_str:
@@ -95,6 +123,7 @@ def learner_login():
                     return redirect(url_for('learners.self_paced_flow', course_id_str=course_id_str))
                 else:
                     return redirect(url_for('learners.my_portal'))
+
 
     return render_template('auth/learner_login.html', class_id=class_id_str, course_id=course_id_str, error=error)
 

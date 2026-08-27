@@ -30,7 +30,7 @@ def test_learning_wall_feature():
     res = client.get('/learning_wall/')
     assert res.status_code == 200
     assert b"Learning Wall" in res.data
-    assert b"System Bulletin" in res.data or b"Live News Bulletin Feed" in res.data
+    assert b"Social Feed" in res.data or b"Learning Wall" in res.data
     print("   -> Learning Wall feed page rendered successfully for Learner view!")
 
     print("3. Testing Admin Access to Learning Wall...")

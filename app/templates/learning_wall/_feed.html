@@ -122,7 +122,11 @@
         <button class="btn btn-sm btn-filter px-3.5 py-2 rounded-pill fw-bold text-nowrap" onclick="filterFeed('LEARNER_MOMENT')"><i class="fa-solid fa-lightbulb me-1"></i> Moments</button>
         <button class="btn btn-sm btn-filter px-3.5 py-2 rounded-pill fw-bold text-nowrap" onclick="filterFeed('COURSE_RECOMMENDATION')"><i class="fa-solid fa-share-nodes me-1"></i> Recommendations</button>
         <button class="btn btn-sm btn-filter px-3.5 py-2 rounded-pill fw-bold text-nowrap" onclick="filterFeed('BIRTHDAY')"><i class="fa-solid fa-cake-candles me-1"></i> Birthdays</button>
+        <button class="btn btn-sm btn-filter px-3.5 py-2 rounded-pill fw-bold text-nowrap border-warning" onclick="filterFeed('#Python')"><i class="fa-solid fa-hashtag text-warning me-1"></i> #Python</button>
+        <button class="btn btn-sm btn-filter px-3.5 py-2 rounded-pill fw-bold text-nowrap border-warning" onclick="filterFeed('#StudyGroup')"><i class="fa-solid fa-hashtag text-warning me-1"></i> #StudyGroup</button>
+        <button class="btn btn-sm btn-filter px-3.5 py-2 rounded-pill fw-bold text-nowrap border-warning" onclick="filterFeed('#Help')"><i class="fa-solid fa-hashtag text-warning me-1"></i> #Help</button>
     </div>
+
 
     <div class="row g-4">
         <!-- Main News Feed Column -->
@@ -387,7 +391,7 @@ function filterFeed(postType) {
     // Toggle active filter classes
     const buttons = document.querySelectorAll('.btn-filter');
     buttons.forEach(btn => {
-        if(btn.getAttribute('onclick').includes(postType)) {
+        if(btn.getAttribute('onclick').includes(`'${postType}'`)) {
             btn.classList.add('active-filter');
         } else {
             btn.classList.remove('active-filter');
@@ -399,7 +403,19 @@ function filterFeed(postType) {
     
     posts.forEach(post => {
         const type = post.getAttribute('data-post-type');
-        if (postType === 'ALL' || type === postType) {
+        const contentEl = post.querySelector('.post-content');
+        const contentText = contentEl ? contentEl.textContent : '';
+        
+        let match = false;
+        if (postType === 'ALL') {
+            match = true;
+        } else if (postType.startsWith('#')) {
+            match = contentText.toLowerCase().includes(postType.toLowerCase());
+        } else {
+            match = (type === postType);
+        }
+
+        if (match) {
             post.style.display = 'block';
             visibleCount++;
         } else {
@@ -413,6 +429,7 @@ function filterFeed(postType) {
         counter.innerText = `${visibleCount} Posts`;
     }
 }
+
 
 // Toggle comments panel visibility
 function toggleCommentsSection(postId) {

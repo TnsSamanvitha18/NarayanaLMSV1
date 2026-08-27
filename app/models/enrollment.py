@@ -5,8 +5,8 @@ class LearnerEnrollment(db.Model):
     __tablename__ = 'learner_enrollments'
 
     id = db.Column(db.Integer, primary_key=True)
-    learner_id = db.Column(db.Integer, db.ForeignKey('learners.id'), nullable=False)
-    course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=False)
+    learner_id = db.Column(db.Integer, db.ForeignKey('learners.id'), nullable=False, index=True)
+    course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=False, index=True)
     class_id = db.Column(db.Integer, db.ForeignKey('live_classes.id'), nullable=True)
 
     completion_status = db.Column(db.String(30), nullable=False, default='Enrolled') # 'Enrolled', 'In Progress', 'Completed', 'Failed'

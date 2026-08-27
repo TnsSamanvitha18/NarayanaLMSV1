@@ -27,14 +27,18 @@ class Learner(db.Model):
     email = db.Column(db.String(120), nullable=True)
     department = db.Column(db.String(100), nullable=True, default='L&D')
     date_of_birth = db.Column(db.Date, nullable=True)
-    manager_id = db.Column(db.Integer, db.ForeignKey('learners.id'), nullable=True)
-    points = db.Column(db.Integer, nullable=False, default=0)
+    manager_id = db.Column(db.Integer, db.ForeignKey('learners.id'), nullable=True, index=True)
+    points = db.Column(db.Integer, nullable=False, default=0, index=True)
+    current_streak = db.Column(db.Integer, nullable=False, default=0)
+    last_active_date = db.Column(db.Date, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     subordinates = db.relationship('Learner', backref=db.backref('manager', remote_side=[id]), lazy=True)
     enrollments = db.relationship('LearnerEnrollment', backref='learner', lazy=True, cascade='all, delete-orphan')
     attendances = db.relationship('Attendance', backref='learner', lazy=True, cascade='all, delete-orphan')
     certificates = db.relationship('Certificate', backref='learner', lazy=True, cascade='all, delete-orphan')
+    badges = db.relationship('LearnerBadge', backref='learner', lazy=True, cascade='all, delete-orphan')
 
     def __repr__(self):
         return f'<Learner {self.global_id} - {self.name}>'
+

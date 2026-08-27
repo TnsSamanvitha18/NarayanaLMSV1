@@ -2,13 +2,13 @@ import sys
 sys.path.insert(0, '.')
 
 import os
-from run import app, init_db_if_needed
+from run import app, init_db_and_seed
 from app.models import db
 from app.models.course import Course, CourseMaterial
 from app.services.gdrive_service import parse_gdrive_url
 
 def test_google_drive_integration():
-    init_db_if_needed()
+    init_db_and_seed(app)
     client = app.test_client()
 
     print("1. Testing Google Drive URL Parsing & Embed Conversion Service...")

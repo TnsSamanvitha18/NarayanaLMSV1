@@ -1,10 +1,10 @@
 import sys
 sys.path.insert(0, '.')
 
-from run import app, init_db_if_needed
+from run import app, init_db_and_seed
 
 def test_mobile_navbar_elements():
-    init_db_if_needed()
+    init_db_and_seed(app)
     client = app.test_client()
 
     with client.session_transaction() as sess:
