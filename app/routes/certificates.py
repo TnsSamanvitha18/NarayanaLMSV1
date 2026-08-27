@@ -30,6 +30,18 @@ def list_certificates():
     return render_template('certificates/list.html', certificates=certs, search_query=search_query)
 
 
+@certificates_bp.route('/my_certificates')
+def my_certificates():
+    learner_id = session.get('learner_id')
+    if not learner_id:
+        flash("Please log in to view your certificates.", "info")
+        return redirect(url_for('auth.learner_login'))
+        
+    learner = Learner.query.get_or_404(learner_id)
+    certificates = Certificate.query.filter_by(learner_id=learner.id).order_by(Certificate.issue_date.desc()).all()
+    
+    return render_template('learner_portal/certificates.html', learner=learner, certificates=certificates)
+
 @certificates_bp.route('/download/<cert_id_str>')
 def download_certificate(cert_id_str):
     cert = Certificate.query.filter_by(certificate_id=cert_id_str).first_or_404()

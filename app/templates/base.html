@@ -119,7 +119,7 @@
                         <a href="{{ url_for('learners.my_portal') }}#availableCatalog" class="ls-nav-tab">
                             Catalog
                         </a>
-                        <a href="{{ url_for('learners.my_portal') }}?tab=completed#enrolledPrograms" class="ls-nav-tab">
+                        <a href="{{ url_for('certificates.my_certificates') }}" class="ls-nav-tab {% if 'certificates' in safe_endpoint %}active{% endif %}">
                             Certificates
                         </a>
                         {% endif %}
@@ -299,7 +299,7 @@
                 <a href="{{ url_for('learners.my_portal') }}#availableCatalog" class="mobile-nav-item">
                     <i class="fa-solid fa-layer-group me-3 text-teal"></i> Course Catalog
                 </a>
-                <a href="{{ url_for('learners.my_portal') }}?tab=completed#enrolledPrograms" class="mobile-nav-item">
+                <a href="{{ url_for('certificates.my_certificates') }}" class="mobile-nav-item {% if 'certificates' in safe_endpoint %}active{% endif %}">
                     <i class="fa-solid fa-certificate me-3 text-teal"></i> Certificates
                 </a>
                 {% endif %}
