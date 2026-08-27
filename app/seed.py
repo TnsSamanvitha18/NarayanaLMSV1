@@ -36,7 +36,10 @@ def init_db_and_seed(app):
             "ALTER TABLE live_classes ADD COLUMN co_facilitator_id INTEGER;",
             "ALTER TABLE learners ADD COLUMN points INTEGER DEFAULT 0;",
             "ALTER TABLE learners ADD COLUMN current_streak INTEGER DEFAULT 0;",
-            "ALTER TABLE learners ADD COLUMN last_active_date DATE;"
+            "ALTER TABLE learners ADD COLUMN last_active_date DATE;",
+            "ALTER TABLE learners ADD COLUMN designation VARCHAR(120);",
+            "ALTER TABLE learners ADD COLUMN location VARCHAR(120);",
+            "ALTER TABLE learners ADD COLUMN branch VARCHAR(120);"
         ]
 
         for stmt in alter_statements:
@@ -57,14 +60,14 @@ def init_db_and_seed(app):
                 db.session.add(admin)
 
             if Learner.query.count() == 0:
-                learner1 = Learner(global_id='10001', name='Rajesh Kumar', department='L&D Academics')
+                learner1 = Learner(global_id='10001', name='Rajesh Kumar', department='L&D Academics', designation='Academic Director', location='Hyderabad', branch='Madhapur')
                 db.session.add(learner1)
                 db.session.commit()
 
-                learner2 = Learner(global_id='10002', name='Priya Sharma', department='Mathematics Faculty', manager_id=learner1.id)
-                learner3 = Learner(global_id='10003', name='Anil Reddy', department='Physics Department', manager_id=learner1.id)
-                learner4 = Learner(global_id='10004', name='Sneha Patel', department='Chemistry Department', manager_id=learner1.id)
-                learner5 = Learner(global_id='10005', name='Vikram Verma', department='L&D Operations')
+                learner2 = Learner(global_id='10002', name='Priya Sharma', department='Mathematics Faculty', designation='Lecturer', location='Hyderabad', branch='Nallagandla', manager_id=learner1.id)
+                learner3 = Learner(global_id='10003', name='Anil Reddy', department='Physics Department', designation='Senior Lecturer', location='Bangalore', branch='Whitefield', manager_id=learner1.id)
+                learner4 = Learner(global_id='10004', name='Sneha Patel', department='Chemistry Department', designation='Lecturer', location='Bangalore', branch='Whitefield', manager_id=learner1.id)
+                learner5 = Learner(global_id='10005', name='Vikram Verma', department='L&D Operations', designation='Manager', location='Hyderabad', branch='Madhapur')
                 db.session.add_all([learner2, learner3, learner4, learner5])
                 db.session.commit()
 

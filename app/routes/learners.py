@@ -138,34 +138,63 @@ def assign_learners():
         course_id = int(request.form.get('course_id'))
         course = Course.query.get_or_404(course_id)
         
-        global_ids_text = request.form.get('global_ids', '').strip()
-        csv_file = request.files.get('learner_csv')
-
+        assignment_mode = request.form.get('assignment_mode', 'manual')
         parsed_global_ids = []
 
-        if global_ids_text:
-            # Split lines
-            lines = global_ids_text.split('\n')
-            parsed_global_ids.extend([line.strip() for line in lines if line.strip()])
+        if assignment_mode == 'parameters':
+            dept = request.form.get('filter_department', '').strip()
+            desg = request.form.get('filter_designation', '').strip()
+            loc = request.form.get('filter_location', '').strip()
+            br = request.form.get('filter_branch', '').strip()
 
-        if csv_file and csv_file.filename:
-            try:
-                df = pd.read_csv(csv_file.stream)
-                # Check for Global ID or first column
-                col_name = df.columns[0]
-                for col in df.columns:
-                    if 'global' in str(col).lower() or 'id' in str(col).lower():
-                        col_name = col
-                        break
-                for val in df[col_name].dropna():
-                    clean_val = str(val).strip()
-                    if clean_val and clean_val not in parsed_global_ids:
-                        parsed_global_ids.append(clean_val)
-            except Exception as e:
-                flash(f"Error parsing Learner CSV: {str(e)}", "danger")
+            query = Learner.query
+            has_filters = False
+            if dept:
+                query = query.filter_by(department=dept)
+                has_filters = True
+            if desg:
+                query = query.filter_by(designation=desg)
+                has_filters = True
+            if loc:
+                query = query.filter_by(location=loc)
+                has_filters = True
+            if br:
+                query = query.filter_by(branch=br)
+                has_filters = True
+
+            if not has_filters:
+                flash("Please select at least one parameter filter for batch assignment.", "warning")
+                return redirect(url_for('learners.assign_learners'))
+
+            filtered_learners = query.all()
+            parsed_global_ids = [learner.global_id for learner in filtered_learners]
+        else:
+            global_ids_text = request.form.get('global_ids', '').strip()
+            csv_file = request.files.get('learner_csv')
+
+            if global_ids_text:
+                # Split lines
+                lines = global_ids_text.split('\n')
+                parsed_global_ids.extend([line.strip() for line in lines if line.strip()])
+
+            if csv_file and csv_file.filename:
+                try:
+                    df = pd.read_csv(csv_file.stream)
+                    # Check for Global ID or first column
+                    col_name = df.columns[0]
+                    for col in df.columns:
+                        if 'global' in str(col).lower() or 'id' in str(col).lower():
+                            col_name = col
+                            break
+                    for val in df[col_name].dropna():
+                        clean_val = str(val).strip()
+                        if clean_val and clean_val not in parsed_global_ids:
+                            parsed_global_ids.append(clean_val)
+                except Exception as e:
+                    flash(f"Error parsing Learner CSV: {str(e)}", "danger")
 
         if not parsed_global_ids:
-            flash("No valid Global IDs provided.", "warning")
+            flash("No matching learners found or no valid Global IDs provided.", "warning")
             return redirect(url_for('learners.assign_learners'))
 
         assigned_count = 0
@@ -216,7 +245,20 @@ def assign_learners():
 
         return redirect(url_for('courses.view_course', course_id=course.id))
 
-    return render_template('learners/assign.html', courses=courses)
+    # Fetch unique list values for parameter selectors
+    departments = [r[0] for r in db.session.query(Learner.department).distinct() if r[0]]
+    designations = [r[0] for r in db.session.query(Learner.designation).distinct() if r[0]]
+    locations = [r[0] for r in db.session.query(Learner.location).distinct() if r[0]]
+    branches = [r[0] for r in db.session.query(Learner.branch).distinct() if r[0]]
+
+    return render_template(
+        'learners/assign.html',
+        courses=courses,
+        departments=sorted(departments),
+        designations=sorted(designations),
+        locations=sorted(locations),
+        branches=sorted(branches)
+    )
 
 
 # --- LEARNER PORTAL FLOWS ---

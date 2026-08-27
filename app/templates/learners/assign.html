@@ -77,18 +77,98 @@
 
                 <div class="col-12">
                     <hr class="my-2">
-                    <h5 class="fw-bold text-navy mb-3"><i class="fa-solid fa-list-ol me-2 text-warning"></i> Option A: Enter Global IDs Text Area</h5>
-                    <p class="text-muted small mb-2">Enter Global IDs separated by a new line (one ID per line).</p>
-                    <textarea class="form-control font-monospace" name="global_ids" rows="5" placeholder="10001&#10;10002&#10;10003"></textarea>
-                </div>
-
-                <div class="col-12">
-                    <h5 class="fw-bold text-navy mb-3"><i class="fa-solid fa-file-csv me-2 text-success"></i> Option B: Upload CSV File</h5>
-                    <div class="card bg-light border-0 p-3" style="max-width: 500px;">
-                        <input type="file" class="form-control" name="learner_csv" accept=".csv">
-                        <small class="text-muted mt-2 d-block">CSV column header should contain <code>Global ID</code> or <code>ID</code>.</small>
+                    <label class="form-label fw-bold mb-3">Assignment Method Selector</label>
+                    <div class="d-flex gap-3 mb-4">
+                        <div class="form-check form-check-inline p-3 border rounded-3 bg-light cursor-pointer shadow-sm text-center flex-fill" onclick="setMode('manual')" style="cursor: pointer;">
+                            <input class="form-check-input" type="radio" name="assignment_mode" id="mode_manual" value="manual" checked>
+                            <label class="form-check-label fw-bold text-navy cursor-pointer" for="mode_manual">
+                                <i class="fa-solid fa-file-csv me-1 text-success"></i> Option A/B: CSV Upload or Global IDs
+                            </label>
+                        </div>
+                        <div class="form-check form-check-inline p-3 border rounded-3 bg-light cursor-pointer shadow-sm text-center flex-fill" onclick="setMode('parameters')" style="cursor: pointer;">
+                            <input class="form-check-input" type="radio" name="assignment_mode" id="mode_parameters" value="parameters">
+                            <label class="form-check-label fw-bold text-navy cursor-pointer" for="mode_parameters">
+                                <i class="fa-solid fa-filter me-1 text-primary"></i> Option C: Parameter-Based Filters
+                            </label>
+                        </div>
                     </div>
                 </div>
+
+                <!-- Manual Mode Panel (A & B) -->
+                <div id="manual_panel" class="col-12">
+                    <div class="mb-4">
+                        <h5 class="fw-bold text-navy mb-3"><i class="fa-solid fa-list-ol me-2 text-warning"></i> Option A: Enter Global IDs</h5>
+                        <p class="text-muted small mb-2">Enter Global IDs separated by a new line (one ID per line).</p>
+                        <textarea class="form-control font-monospace" name="global_ids" rows="4" placeholder="10001&#10;10002&#10;10003"></textarea>
+                    </div>
+
+                    <div>
+                        <h5 class="fw-bold text-navy mb-3"><i class="fa-solid fa-file-csv me-2 text-success"></i> Option B: Upload CSV File</h5>
+                        <div class="card bg-light border-0 p-3" style="max-width: 500px;">
+                            <input type="file" class="form-control" name="learner_csv" accept=".csv">
+                            <small class="text-muted mt-2 d-block">CSV column header should contain <code>Global ID</code> or <code>ID</code>.</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Parameter-Based Filtering Panel (C) -->
+                <div id="parameter_panel" class="col-12" style="display: none;">
+                    <h5 class="fw-bold text-navy mb-3"><i class="fa-solid fa-filter me-2 text-primary"></i> Option C: Filter Target Group</h5>
+                    <p class="text-muted small mb-3">Select one or more parameters to filter target learners. The course will be assigned to all matching accounts.</p>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6 col-lg-3">
+                            <label for="filter_department" class="form-label text-xs fw-semibold text-muted">Department</label>
+                            <select class="form-select" id="filter_department" name="filter_department">
+                                <option value="">-- All Departments --</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept }}">{{ dept }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 col-lg-3">
+                            <label for="filter_designation" class="form-label text-xs fw-semibold text-muted">Designation</label>
+                            <select class="form-select" id="filter_designation" name="filter_designation">
+                                <option value="">-- All Designations --</option>
+                                {% for desg in designations %}
+                                <option value="{{ desg }}">{{ desg }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 col-lg-3">
+                            <label for="filter_location" class="form-label text-xs fw-semibold text-muted">Location</label>
+                            <select class="form-select" id="filter_location" name="filter_location">
+                                <option value="">-- All Locations --</option>
+                                {% for loc in locations %}
+                                <option value="{{ loc }}">{{ loc }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 col-lg-3">
+                            <label for="filter_branch" class="form-label text-xs fw-semibold text-muted">Branch</label>
+                            <select class="form-select" id="filter_branch" name="filter_branch">
+                                <option value="">-- All Branches --</option>
+                                {% for br in branches %}
+                                <option value="{{ br }}">{{ br }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                function setMode(mode) {
+                    if (mode === 'manual') {
+                        document.getElementById('manual_panel').style.display = 'block';
+                        document.getElementById('parameter_panel').style.display = 'none';
+                        document.getElementById('mode_manual').checked = true;
+                    } else {
+                        document.getElementById('manual_panel').style.display = 'none';
+                        document.getElementById('parameter_panel').style.display = 'block';
+                        document.getElementById('mode_parameters').checked = true;
+                    }
+                }
+                </script>
             </div>
 
             <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
