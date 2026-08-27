@@ -31,6 +31,7 @@ def init_db_and_seed(app):
             "ALTER TABLE course_materials ADD COLUMN description TEXT;",
             "ALTER TABLE learners ADD COLUMN manager_id INTEGER;",
             "ALTER TABLE learner_enrollments ADD COLUMN extended_deadline DATETIME;",
+            "ALTER TABLE learner_enrollments ADD COLUMN extension_requested BOOLEAN DEFAULT 0;",
             "ALTER TABLE live_classes ADD COLUMN facilitator_id INTEGER;",
             "ALTER TABLE live_classes ADD COLUMN co_facilitator_id INTEGER;"
         ]

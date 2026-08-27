@@ -120,6 +120,16 @@
                             </div>
                             <h6 class="fw-bold text-dark mb-1">{{ en.course.name }}</h6>
                             <small class="text-muted d-block mb-2"><i class="fa-regular fa-clock me-1"></i> {{ en.course.mode }} ({{ en.course.duration_hours }} hrs)</small>
+                            {% if en.extended_deadline or en.course.completion_date %}
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted text-xs"><i class="fa-regular fa-calendar me-1"></i> Target Deadline:</span>
+                                {% if en.extended_deadline %}
+                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle text-xxs">{{ en.extended_deadline.strftime('%d-%b-%Y') }}</span>
+                                {% else %}
+                                <span class="badge bg-light text-muted border text-xxs">{{ en.course.completion_date.strftime('%d-%b-%Y') }}</span>
+                                {% endif %}
+                            </div>
+                            {% endif %}
                             {% if prog.total > 0 %}
                             <div class="mb-3">
                                 <div class="d-flex justify-content-between align-items-center mb-1">
@@ -131,6 +141,22 @@
                                 </div>
                             </div>
                             {% endif %}
+                            {% if en.is_expired %}
+                            <div class="d-flex gap-2 mt-auto align-items-center w-100">
+                                <button class="btn btn-secondary btn-sm flex-grow-1" disabled><i class="fa-solid fa-lock me-1"></i> Expired</button>
+                                {% if en.extension_requested %}
+                                <button class="btn btn-warning-subtle text-warning border border-warning-subtle btn-sm flex-grow-1 fw-bold" disabled><i class="fa-solid fa-spinner fa-spin me-1"></i> Requested</button>
+                                {% else %}
+                                <form action="{{ url_for('learners.request_extension', enrollment_id=en.id) }}" method="POST" class="flex-grow-1 m-0">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-warning btn-sm w-100 fw-bold text-dark"><i class="fa-solid fa-paper-plane me-1"></i> Request</button>
+                                </form>
+                                {% endif %}
+                                <button type="button" class="btn btn-outline-teal btn-sm px-2.5" title="Recommend to Learning Wall" onclick="openRecommendModal({{ en.course.id }}, '{{ en.course.name|escape }}')">
+                                    <i class="fa-solid fa-share-nodes"></i>
+                                </button>
+                            </div>
+                            {% else %}
                             <div class="d-flex gap-2 mt-auto">
                                 {% if en.course.mode == 'Self Paced' %}
                                 <a href="{{ url_for('learners.self_paced_flow', course_id_str=en.course.course_id) }}" class="btn btn-teal btn-sm flex-grow-1 fw-bold">
@@ -150,6 +176,7 @@
                                     <i class="fa-solid fa-share-nodes"></i>
                                 </button>
                             </div>
+                            {% endif %}
                         </div>
                     </div>
                     {% else %}
@@ -256,6 +283,9 @@
                                                 </div>
                                             </td>
                                             <td>
+                                                {% if c_info.extension_requested %}
+                                                    <span class="badge bg-warning text-dark d-block mb-1 py-1"><i class="fa-regular fa-bell me-1"></i> Extension Requested</span>
+                                                {% endif %}
                                                 {% if c_info.is_expired %}
                                                     <span class="badge bg-danger">Expired/Locked</span>
                                                     {% if c_info.extended_deadline %}

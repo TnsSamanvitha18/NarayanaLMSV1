@@ -17,8 +17,30 @@ class LearnerEnrollment(db.Model):
     assigned_at = db.Column(db.DateTime, default=datetime.utcnow)
     completion_date = db.Column(db.DateTime, nullable=True)
     extended_deadline = db.Column(db.DateTime, nullable=True)
+    extension_requested = db.Column(db.Boolean, default=False, nullable=True)
 
     assessment_attempts = db.relationship('AssessmentAttempt', backref='enrollment', lazy=True, cascade='all, delete-orphan')
+
+    @property
+    def is_expired(self):
+        from datetime import datetime
+        from app.models.live_class import LiveClass
+        
+        # Check course target completion date
+        if self.course.completion_date and self.course.completion_date < datetime.utcnow():
+            if self.extended_deadline and self.extended_deadline >= datetime.utcnow():
+                return False
+            return True
+            
+        # Check live class date if applicable
+        if self.class_id:
+            live_cl = LiveClass.query.get(self.class_id)
+            if live_cl and ((live_cl.class_date < datetime.utcnow().date()) or live_cl.is_locked):
+                if self.extended_deadline and self.extended_deadline.date() >= datetime.utcnow().date():
+                    return False
+                return True
+                
+        return False
 
     def __repr__(self):
         return f'<Enrollment Learner {self.learner_id} - Course {self.course_id}>'

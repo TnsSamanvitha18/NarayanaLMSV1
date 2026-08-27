@@ -245,7 +245,8 @@ def my_portal():
                     'pct': pct,
                     'status': sub_en.completion_status,
                     'is_expired': sub_expired,
-                    'extended_deadline': sub_en.extended_deadline
+                    'extended_deadline': sub_en.extended_deadline,
+                    'extension_requested': sub_en.extension_requested
                 })
             subordinate_data.append({
                 'subordinate': sub,
@@ -868,6 +869,7 @@ def grant_extension(enrollment_id):
         return jsonify({'status': 'error', 'message': 'Invalid date format.'}), 400
 
     enrollment.extended_deadline = ext_datetime
+    enrollment.extension_requested = False # Clear the request flag
 
     # Create a notification for the learner
     from app.models.notification import LearnerNotification
@@ -882,4 +884,43 @@ def grant_extension(enrollment_id):
     db.session.commit()
 
     flash(f"Granted course extension to {subordinate.name} until {ext_date.strftime('%d-%b-%Y')}.", "success")
+    return redirect(url_for('learners.my_portal'))
+
+
+@learners_bp.route('/request_extension/<int:enrollment_id>', methods=['POST'])
+def request_extension(enrollment_id):
+    """
+    Learner Portal: Route for learners to request an extension from their reporting manager.
+    """
+    learner_id = session.get('learner_id')
+    if not learner_id:
+        flash("Please log in to request an extension.", "danger")
+        return redirect(url_for('auth.learner_login'))
+
+    learner = Learner.query.get_or_404(learner_id)
+    enrollment = LearnerEnrollment.query.get_or_404(enrollment_id)
+
+    if enrollment.learner_id != learner.id:
+        flash("You are not authorized to make this request.", "danger")
+        return redirect(url_for('learners.my_portal'))
+
+    if not learner.manager_id:
+        flash("You do not have a reporting manager assigned to approve this request. Please contact L&D.", "warning")
+        return redirect(url_for('learners.my_portal'))
+
+    enrollment.extension_requested = True
+
+    # Create a notification for the manager
+    from app.models.notification import LearnerNotification
+    notif = LearnerNotification(
+        learner_id=learner.manager_id,
+        course_id=enrollment.course_id,
+        title="Course Extension Requested",
+        message=f"{learner.name} has requested a deadline extension for '{enrollment.course.name}'.",
+        notification_type='LESSON_UPDATED'
+    )
+    db.session.add(notif)
+    db.session.commit()
+
+    flash(f"Extension request for '{enrollment.course.name}' sent to your manager {learner.manager.name}.", "success")
     return redirect(url_for('learners.my_portal'))
