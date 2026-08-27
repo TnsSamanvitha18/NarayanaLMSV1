@@ -30,6 +30,7 @@ def list_courses():
 
     search_query = request.args.get('search', '').strip()
     mode_filter = request.args.get('mode', '').strip()
+    page = request.args.get('page', 1, type=int)
 
     query = Course.query
 
@@ -44,7 +45,7 @@ def list_courses():
     if mode_filter and mode_filter != 'ALL':
         query = query.filter_by(mode=mode_filter)
 
-    courses = query.order_by(Course.id.desc()).all()
+    courses = query.order_by(Course.id.desc()).paginate(page=page, per_page=20, error_out=False)
     return render_template('courses/list.html', courses=courses, search_query=search_query, mode_filter=mode_filter)
 
 

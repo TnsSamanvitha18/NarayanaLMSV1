@@ -259,7 +259,8 @@ def restore_db():
 @super_admin_required
 def users_dashboard():
     from app.models.user import Learner, AdminUser
-    learners = Learner.query.order_by(Learner.name.asc()).all()
+    page = request.args.get('page', 1, type=int)
+    learners = Learner.query.order_by(Learner.name.asc()).paginate(page=page, per_page=50, error_out=False)
     admins = AdminUser.query.all()
     admin_usernames = {a.username for a in admins}
     

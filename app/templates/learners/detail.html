@@ -1,4 +1,4 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 {% block title %}Learner Profile — {{ learner.name }} | Narayana Learning Hub{% endblock %}
 {% block content %}
 <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
@@ -46,18 +46,36 @@
   <div class="tab-pane fade show active" id="tab-enroll-pane" role="tabpanel">
     <div class="card card-gradient-blue border-0 shadow-sm p-2"><div class="card-body p-0"><div class="table-responsive-card">
       <table class="table table-hover align-middle mb-0">
-        <thead><tr><th>Course</th><th>Mode</th><th>Status</th><th>Final Score</th><th>Enrolled On</th><th>Completed On</th></tr></thead>
+        <thead><tr><th>Course</th><th>Mode</th><th>Progress</th><th>Status</th><th>Final Score</th><th>Enrolled On</th><th>Completed On</th></tr></thead>
         <tbody>
           {% for en in enrollments %}
           <tr>
             <td data-label="Course"><span class="badge font-monospace bg-dark text-gold me-1">{{ en.course.course_id }}</span><span class="fw-semibold small">{{ en.course.name }}</span></td>
             <td data-label="Mode"><span class="badge bg-info-subtle text-info border border-info-subtle">{{ en.course.mode }}</span></td>
+            <td data-label="Progress">
+              {% set prog = progress_map[en.id] %}
+              {% if prog.type == 'lessons' %}
+                <span class="badge bg-light text-dark border">{{ prog.done }}/{{ prog.total }} Lessons</span>
+              {% else %}
+                <div class="d-flex gap-1 flex-wrap">
+                  <span title="Attendance" class="badge {% if prog.attended %}bg-success-subtle text-success border-success-subtle{% else %}bg-danger-subtle text-danger border-danger-subtle{% endif %} border text-xs">
+                    <i class="fa-solid {% if prog.attended %}fa-check{% else %}fa-xmark{% endif %}"></i> Attd
+                  </span>
+                  <span title="Assessment" class="badge {% if prog.assessment %}bg-success-subtle text-success border-success-subtle{% else %}bg-danger-subtle text-danger border-danger-subtle{% endif %} border text-xs">
+                    <i class="fa-solid {% if prog.assessment %}fa-check{% else %}fa-xmark{% endif %}"></i> Asmt
+                  </span>
+                  <span title="Feedback" class="badge {% if prog.feedback %}bg-success-subtle text-success border-success-subtle{% else %}bg-danger-subtle text-danger border-danger-subtle{% endif %} border text-xs">
+                    <i class="fa-solid {% if prog.feedback %}fa-check{% else %}fa-xmark{% endif %}"></i> Fdbk
+                  </span>
+                </div>
+              {% endif %}
+            </td>
             <td data-label="Status"><span class="status-pill {% if en.completion_status == 'Completed' %}pill-completed{% elif en.completion_status == 'Failed' %}bg-danger text-white{% else %}pill-in-progress{% endif %}">{{ en.completion_status }}</span></td>
             <td data-label="Final Score">{% if en.final_score %}<strong class="{% if en.final_score >= en.course.pass_percentage %}text-success{% else %}text-danger{% endif %}">{{ en.final_score }}%</strong>{% else %}<span class="text-muted">--</span>{% endif %}</td>
             <td data-label="Enrolled On" class="text-muted small">{{ en.assigned_at.strftime('%d-%b-%Y') if en.assigned_at else '--' }}</td>
             <td data-label="Completed On" class="text-muted small">{{ en.completion_date.strftime('%d-%b-%Y') if en.completion_date else '--' }}</td>
           </tr>
-          {% else %}<tr><td colspan="6" class="text-center py-5 text-muted"><i class="fa-solid fa-book-open fa-2x mb-2 d-block opacity-30"></i>No enrollments yet.</td></tr>{% endfor %}
+          {% else %}<tr><td colspan="7" class="text-center py-5 text-muted"><i class="fa-solid fa-book-open fa-2x mb-2 d-block opacity-30"></i>No enrollments yet.</td></tr>{% endfor %}
         </tbody>
       </table>
     </div></div></div>

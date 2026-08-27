@@ -81,12 +81,17 @@ def create_app(config_class=Config):
         learner_id = session.get('learner_id')
         user_notifications = []
         unread_notif_count = 0
-        
+        learner_points = 0
         if learner_id:
             try:
                 from app.models.notification import LearnerNotification
+                from app.models.user import Learner
                 user_notifications = LearnerNotification.query.filter_by(learner_id=learner_id).order_by(LearnerNotification.created_at.desc()).limit(8).all()
                 unread_notif_count = LearnerNotification.query.filter_by(learner_id=learner_id, is_read=False).count()
+                
+                learner = Learner.query.get(learner_id)
+                if learner:
+                    learner_points = learner.points or 0
             except Exception:
                 pass
 
@@ -95,6 +100,7 @@ def create_app(config_class=Config):
             'admin_username': session.get('admin_username', 'admin'),
             'learner_id': learner_id,
             'learner_global_id': session.get('learner_global_id', None),
+            'learner_points': learner_points,
             'parse_gdrive_url': parse_gdrive_url,
             'user_notifications': user_notifications,
             'unread_notif_count': unread_notif_count,

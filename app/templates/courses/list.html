@@ -83,7 +83,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for c in courses %}
+                    {% for c in courses.items %}
                     <tr>
                         <td data-label="Course ID" class="fw-bold font-monospace text-primary">{{ c.course_id }}</td>
                         <td data-label="Course Name">
@@ -144,6 +144,31 @@
                 </tbody>
             </table>
         </div>
+        
+        <!-- Pagination -->
+        {% if courses.pages > 1 %}
+        <div class="d-flex justify-content-center p-3 border-top bg-light">
+            <nav aria-label="Page navigation">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item {% if not courses.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('courses.list_courses', page=courses.prev_num, search=search_query, mode=mode_filter) }}" tabindex="-1"><i class="fa-solid fa-chevron-left"></i></a>
+                    </li>
+                    {% for page_num in courses.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if page_num %}
+                            <li class="page-item {% if courses.page == page_num %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('courses.list_courses', page=page_num, search=search_query, mode=mode_filter) }}">{{ page_num }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    <li class="page-item {% if not courses.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('courses.list_courses', page=courses.next_num, search=search_query, mode=mode_filter) }}"><i class="fa-solid fa-chevron-right"></i></a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

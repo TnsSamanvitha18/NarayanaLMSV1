@@ -33,7 +33,8 @@ def init_db_and_seed(app):
             "ALTER TABLE learner_enrollments ADD COLUMN extended_deadline DATETIME;",
             "ALTER TABLE learner_enrollments ADD COLUMN extension_requested BOOLEAN DEFAULT 0;",
             "ALTER TABLE live_classes ADD COLUMN facilitator_id INTEGER;",
-            "ALTER TABLE live_classes ADD COLUMN co_facilitator_id INTEGER;"
+            "ALTER TABLE live_classes ADD COLUMN co_facilitator_id INTEGER;",
+            "ALTER TABLE learners ADD COLUMN points INTEGER DEFAULT 0;"
         ]
 
         for stmt in alter_statements:

@@ -28,6 +28,7 @@ class Learner(db.Model):
     department = db.Column(db.String(100), nullable=True, default='L&D')
     date_of_birth = db.Column(db.Date, nullable=True)
     manager_id = db.Column(db.Integer, db.ForeignKey('learners.id'), nullable=True)
+    points = db.Column(db.Integer, nullable=False, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     subordinates = db.relationship('Learner', backref=db.backref('manager', remote_side=[id]), lazy=True)

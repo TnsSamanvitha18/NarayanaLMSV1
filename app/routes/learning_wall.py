@@ -248,6 +248,11 @@ def create_moment():
     db.session.add(post)
     db.session.flush()
     process_tags_and_notify(content, user_name, content)
+    
+    if learner_id:
+        from app.utils.gamification import award_points
+        award_points(learner_id, 20, "Sharing a learning moment")
+        
     db.session.commit()
     
     flash("Successfully posted your learning moment!", "success")
@@ -289,6 +294,11 @@ def share_course():
     db.session.add(post)
     db.session.flush()
     process_tags_and_notify(post.content, user_name, post.content)
+    
+    if learner_id:
+        from app.utils.gamification import award_points
+        award_points(learner_id, 20, "Recommending a course")
+        
     db.session.commit()
     
     flash(f"Recommended course '{course.name}' on the Learning Wall!", "success")

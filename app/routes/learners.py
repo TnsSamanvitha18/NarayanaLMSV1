@@ -25,6 +25,7 @@ learners_bp = Blueprint('learners', __name__)
 def list_learners():
 
     search_query = request.args.get('search', '').strip()
+    page = request.args.get('page', 1, type=int)
     query = Learner.query
 
     if search_query:
@@ -34,7 +35,7 @@ def list_learners():
             (Learner.department.ilike(f'%{search_query}%'))
         )
 
-    learners = query.order_by(Learner.id.desc()).all()
+    learners = query.order_by(Learner.id.desc()).paginate(page=page, per_page=50, error_out=False)
     courses = Course.query.all()
     return render_template('learners/list.html', learners=learners, courses=courses, search_query=search_query)
 
@@ -73,6 +74,47 @@ def learner_detail(learner_id):
     attendances = Attendance.query.filter_by(learner_id=learner.id).order_by(Attendance.timestamp.desc()).all()
     certificates = Certificate.query.filter_by(learner_id=learner.id).order_by(Certificate.issue_date.desc()).all()
     attempts = AssessmentAttempt.query.join(LearnerEnrollment).filter(LearnerEnrollment.learner_id == learner.id).order_by(AssessmentAttempt.submitted_at.desc()).all()
+    from app.models.enrollment import LessonReview
+    from app.models.live_class import LiveClass
+
+    # Build progress map: {enrollment_id: {'type': 'lessons'|'classes', 'done': int, 'total': int}}
+    progress_map = {}
+    for en in enrollments:
+        if en.course.mode == 'Self Paced':
+            total_lessons = len(en.course.lessons) if en.course.lessons else 0
+            if total_lessons > 0:
+                done_count = LessonReview.query.filter_by(enrollment_id=en.id).count()
+            else:
+                done_count = 0
+            progress_map[en.id] = {'type': 'lessons', 'done': done_count, 'total': total_lessons}
+        else:
+            # Check Attendance
+            has_attended = Attendance.query.join(LiveClass).filter(
+                Attendance.learner_id == learner.id,
+                LiveClass.course_id == en.course.id,
+                Attendance.status == 'Present'
+            ).first() is not None
+            
+            # Check Assessment
+            has_passed_assessment = AssessmentAttempt.query.filter_by(
+                enrollment_id=en.id,
+                assessment_type='POST',
+                passed=True
+            ).first() is not None
+            
+            # Check Feedback
+            from app.models.feedback import FeedbackResponse
+            has_feedback = FeedbackResponse.query.join(LiveClass).filter(
+                FeedbackResponse.learner_id == learner.id,
+                LiveClass.course_id == en.course.id
+            ).first() is not None
+
+            progress_map[en.id] = {
+                'type': 'live_status',
+                'attended': has_attended,
+                'assessment': has_passed_assessment,
+                'feedback': has_feedback
+            }
 
     return render_template(
         'learners/detail.html',
@@ -80,7 +122,8 @@ def learner_detail(learner_id):
         enrollments=enrollments,
         attendances=attendances,
         certificates=certificates,
-        attempts=attempts
+        attempts=attempts,
+        progress_map=progress_map
     )
 
 
@@ -253,6 +296,9 @@ def my_portal():
                 'courses': courses_info
             })
 
+    # Leaderboard (Top 5 Learners)
+    top_learners = Learner.query.order_by(Learner.points.desc()).limit(5).all()
+
     return render_template(
         'learner_portal/portal.html',
         learner=learner,
@@ -262,7 +308,8 @@ def my_portal():
         certificates=certificates,
         progress_map=progress_map,
         is_manager=is_manager,
-        subordinate_data=subordinate_data
+        subordinate_data=subordinate_data,
+        top_learners=top_learners
     )
 
 
@@ -732,9 +779,13 @@ def submit_feedback(repo_id):
             db.session.add(fb_resp)
 
         # Trigger Course Completion & Certificate Generation ONLY ON FEEDBACK SUBMISSION
-        if enrollment:
+        if enrollment and enrollment.completion_status != 'Completed':
             enrollment.completion_status = 'Completed'
             enrollment.completion_date = datetime.utcnow()
+            
+            # Gamification: Award 100 points for completing a course
+            from app.utils.gamification import award_points
+            award_points(learner_id, 100, f"Completing course '{course.name if course else ''}'")
 
             # Trigger automated Learning Wall post for course completion
             if course:

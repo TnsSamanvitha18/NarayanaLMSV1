@@ -12,7 +12,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     
     <style>
-        :root {
+        :root, [data-bs-theme="light"] {
+            --bg-color: #f8f9fa;
+            --surface-color: #ffffff;
+            --surface-hover: #f1f5f9;
+            --primary-accent: #06b6d4;
+            --accent-hover: #0891b2;
+            --border-color: rgba(0, 0, 0, 0.08);
+            --text-color: #1f2937;
+            --text-muted: #6b7280;
+        }
+        [data-bs-theme="dark"] {
             --bg-color: #0b0f19;
             --surface-color: #111827;
             --surface-hover: #1f2937;
@@ -79,12 +89,18 @@
     <!-- Header Navbar -->
     <nav class="navbar navbar-dark navbar-expand-lg navbar-super py-2">
         <div class="container-fluid px-4">
-            <a class="navbar-brand fw-extrabold text-white d-flex align-items-center" href="{{ url_for('super_admin.index') }}">
+            <button class="navbar-toggler me-2 border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#superAdminSidebar" aria-controls="superAdminSidebar">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <a class="navbar-brand fw-extrabold d-flex align-items-center" href="{{ url_for('super_admin.index') }}" style="color: var(--text-color);">
                 <i class="fa-solid fa-server text-info me-2 fs-4"></i> IT Super Admin Console
             </a>
-            <div class="d-flex align-items-center gap-3">
-                <span class="badge bg-danger bg-opacity-25 text-danger px-3 py-2 border border-danger-subtle"><i class="fa-solid fa-triangle-exclamation me-1"></i> Root DB Privileges</span>
-                <a href="{{ url_for('super_admin.logout') }}" class="btn btn-outline-light btn-sm px-3 rounded-3"><i class="fa-solid fa-arrow-right-from-bracket me-1"></i> Logout</a>
+            <div class="d-flex align-items-center gap-2 gap-md-3 ms-auto">
+                <button id="theme-toggle" class="btn btn-outline-secondary border-0 btn-sm rounded-circle me-2" title="Toggle Dark/Light Mode" style="width: 32px; height: 32px; padding: 0;">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+                <span class="badge bg-danger bg-opacity-25 text-danger px-2 px-md-3 py-2 border border-danger-subtle d-none d-sm-inline"><i class="fa-solid fa-triangle-exclamation me-1"></i> Root DB Privileges</span>
+                <a href="{{ url_for('super_admin.logout') }}" class="btn btn-outline-danger btn-sm px-2 px-md-3 rounded-3"><i class="fa-solid fa-arrow-right-from-bracket me-1"></i> Logout</a>
             </div>
         </div>
     </nav>
@@ -92,28 +108,36 @@
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <div class="col-md-2 p-3 sidebar-super d-none d-md-block">
-                <div class="mb-4 text-center py-2 border-bottom border-secondary border-opacity-25">
-                    <small class="text-uppercase text-muted tracking-wide font-monospace d-block small">System Status</small>
-                    <span class="text-success small"><i class="fa-solid fa-circle-check me-1 animate-pulse"></i> Online & Safe</span>
+            <div class="col-md-2 p-0 border-end" style="border-color: var(--border-color) !important;">
+                <div class="offcanvas-md offcanvas-start sidebar-super p-3" tabindex="-1" id="superAdminSidebar" style="background-color: var(--surface-color);">
+                    <div class="offcanvas-header d-md-none border-bottom mb-3" style="border-color: var(--border-color) !important;">
+                        <h5 class="offcanvas-title fw-bold" style="color: var(--text-color);"><i class="fa-solid fa-server text-info me-2"></i> IT Admin Menu</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#superAdminSidebar"></button>
+                    </div>
+                    <div class="offcanvas-body flex-column p-0">
+                        <div class="mb-4 text-center py-2 border-bottom d-none d-md-block" style="border-color: var(--border-color) !important;">
+                            <small class="text-uppercase text-muted tracking-wide font-monospace d-block small">System Status</small>
+                            <span class="text-success small"><i class="fa-solid fa-circle-check me-1 animate-pulse"></i> Online & Safe</span>
+                        </div>
+                        <nav class="nav flex-column w-100">
+                            <a href="{{ url_for('super_admin.index') }}" class="nav-link-super {% if request.path == '/super-admin/' %}active{% endif %}">
+                                <i class="fa-solid fa-gauge me-2"></i> DB Dashboard
+                            </a>
+                            <a href="{{ url_for('super_admin.users_dashboard') }}" class="nav-link-super {% if '/users' in request.path %}active{% endif %}">
+                                <i class="fa-solid fa-users-gear me-2"></i> User & Role Management
+                            </a>
+                            <a href="{{ url_for('super_admin.sql_runner') }}" class="nav-link-super {% if '/sql-runner' in request.path %}active{% endif %}">
+                                <i class="fa-solid fa-terminal me-2"></i> SQL query Runner
+                            </a>
+                            <a href="{{ url_for('super_admin.guide') }}" class="nav-link-super {% if '/guide' in request.path %}active{% endif %}">
+                                <i class="fa-solid fa-book me-2"></i> User Guide & Docs
+                            </a>
+                            <a href="{{ url_for('dashboard.index') }}" target="_blank" class="nav-link-super">
+                                <i class="fa-solid fa-arrow-up-right-from-square me-2"></i> Open L&D Portal
+                            </a>
+                        </nav>
+                    </div>
                 </div>
-                <nav class="nav flex-column">
-                    <a href="{{ url_for('super_admin.index') }}" class="nav-link-super {% if request.path == '/super-admin/' %}active{% endif %}">
-                        <i class="fa-solid fa-gauge me-2"></i> DB Dashboard
-                    </a>
-                    <a href="{{ url_for('super_admin.users_dashboard') }}" class="nav-link-super {% if '/users' in request.path %}active{% endif %}">
-                        <i class="fa-solid fa-users-gear me-2"></i> User & Role Management
-                    </a>
-                    <a href="{{ url_for('super_admin.sql_runner') }}" class="nav-link-super {% if '/sql-runner' in request.path %}active{% endif %}">
-                        <i class="fa-solid fa-terminal me-2"></i> SQL query Runner
-                    </a>
-                    <a href="{{ url_for('super_admin.guide') }}" class="nav-link-super {% if '/guide' in request.path %}active{% endif %}">
-                        <i class="fa-solid fa-book me-2"></i> User Guide & Docs
-                    </a>
-                    <a href="{{ url_for('dashboard.index') }}" target="_blank" class="nav-link-super">
-                        <i class="fa-solid fa-arrow-up-right-from-square me-2"></i> Open L&D Portal
-                    </a>
-                </nav>
             </div>
 
             <!-- Content Area -->
@@ -136,5 +160,34 @@
 
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const toggleBtn = document.getElementById("theme-toggle");
+            const htmlEl = document.documentElement;
+            const icon = toggleBtn.querySelector("i");
+            
+            // Sync with local storage or system preference if needed. By default it's dark.
+            let currentTheme = localStorage.getItem("superAdminTheme") || "dark";
+            htmlEl.setAttribute("data-bs-theme", currentTheme);
+            updateIcon(currentTheme);
+
+            toggleBtn.addEventListener("click", () => {
+                currentTheme = currentTheme === "dark" ? "light" : "dark";
+                htmlEl.setAttribute("data-bs-theme", currentTheme);
+                localStorage.setItem("superAdminTheme", currentTheme);
+                updateIcon(currentTheme);
+            });
+
+            function updateIcon(theme) {
+                if(theme === "dark") {
+                    icon.classList.remove("fa-moon");
+                    icon.classList.add("fa-sun");
+                } else {
+                    icon.classList.remove("fa-sun");
+                    icon.classList.add("fa-moon");
+                }
+            }
+        });
+    </script>
 </body>
 </html>

@@ -47,7 +47,7 @@
         <span class="badge bg-secondary">{{ learners|length }} users registered</span>
     </div>
     <div class="card-body p-0">
-        <div class="table-responsive">
+        <div class="table-responsive-card">
             <table class="table table-hover table-dark align-middle mb-0" style="--bs-table-bg: transparent; --bs-table-border-color: rgba(255,255,255,0.06);">
                 <thead class="text-muted text-uppercase small">
                     <tr>
@@ -60,19 +60,19 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for l in learners %}
+                    {% for l in learners.items %}
                     <tr>
-                        <td class="ps-4 font-monospace text-info fw-bold">{{ l.global_id }}</td>
-                        <td>
-                            <div>{{ l.name }}</div>
+                        <td data-label="Global ID" class="ps-4 font-monospace text-info fw-bold">{{ l.global_id }}</td>
+                        <td data-label="Name">
+                            <div><a href="{{ url_for('learners.learner_detail', learner_id=l.id) }}" class="text-white text-decoration-none hover-info fw-bold">{{ l.name }}</a></div>
                             <small class="text-muted">{{ l.email or 'No email' }}</small>
                         </td>
-                        <td>{{ l.department or 'N/A' }}</td>
-                        <td>
-                            <form action="{{ url_for('super_admin.change_manager') }}" method="POST" class="row g-1 align-items-center">
+                        <td data-label="Department">{{ l.department or 'N/A' }}</td>
+                        <td data-label="Reports To (Manager)">
+                            <form action="{{ url_for('super_admin.change_manager') }}" method="POST" class="row g-1 align-items-center m-0">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <input type="hidden" name="learner_id" value="{{ l.id }}">
-                                <div class="col-auto">
+                                <div class="col-auto p-0">
                                     <select name="manager_id" class="form-select form-select-sm bg-dark border-secondary text-white py-1" onchange="this.form.submit()" style="font-size: 0.8rem; max-width: 180px;">
                                         <option value="">-- No Manager --</option>
                                         {% for m in learners if m.id != l.id %}
@@ -84,27 +84,27 @@
                                 </div>
                             </form>
                         </td>
-                        <td>
+                        <td data-label="Role Privileges">
                             {% if l.global_id in admin_usernames %}
                             <span class="badge bg-danger bg-opacity-25 text-danger border border-danger-subtle"><i class="fa-solid fa-user-shield me-1"></i> L&D Admin</span>
                             {% else %}
                             <span class="badge bg-secondary bg-opacity-25 text-muted border border-secondary-subtle"><i class="fa-solid fa-user me-1"></i> Learner</span>
                             {% endif %}
                         </td>
-                        <td class="text-end pe-4">
+                        <td data-label="Operations" class="text-end pe-4">
                             {% if l.global_id in admin_usernames %}
                             <form action="{{ url_for('super_admin.demote_user') }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to demote {{ l.name }}? This deletes their L&D admin console login.');">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <input type="hidden" name="learner_id" value="{{ l.id }}">
-                                <button type="submit" class="btn btn-outline-warning btn-sm rounded-3 py-1 px-3">
+                                <button type="submit" class="btn btn-outline-warning btn-sm rounded-3 py-1 px-3 w-100 mb-1">
                                     <i class="fa-solid fa-arrow-down-long me-1"></i> Demote to Learner
                                 </button>
                             </form>
                             {% else %}
-                            <form action="{{ url_for('super_admin.promote_user') }}" method="POST" class="d-inline">
+                            <form action="{{ url_for('super_admin.promote_user') }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to promote {{ l.name }} to L&D Admin?');">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <input type="hidden" name="learner_id" value="{{ l.id }}">
-                                <button type="submit" class="btn btn-outline-danger btn-sm rounded-3 py-1 px-3">
+                                <button type="submit" class="btn btn-outline-success btn-sm rounded-3 py-1 px-3 w-100 mb-1">
                                     <i class="fa-solid fa-arrow-up-long me-1"></i> Promote to Admin
                                 </button>
                             </form>
@@ -119,6 +119,31 @@
                 </tbody>
             </table>
         </div>
+        
+        <!-- Pagination -->
+        {% if learners.pages > 1 %}
+        <div class="d-flex justify-content-center p-3 border-top" style="border-color: var(--border-color) !important;">
+            <nav aria-label="Page navigation">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item {% if not learners.has_prev %}disabled{% endif %}">
+                        <a class="page-link bg-dark text-info border-secondary" href="{{ url_for('super_admin.users_dashboard', page=learners.prev_num) }}" tabindex="-1"><i class="fa-solid fa-chevron-left"></i></a>
+                    </li>
+                    {% for page_num in learners.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if page_num %}
+                            <li class="page-item {% if learners.page == page_num %}active{% endif %}">
+                                <a class="page-link bg-dark border-secondary {% if learners.page == page_num %}text-white bg-info border-info{% else %}text-info{% endif %}" href="{{ url_for('super_admin.users_dashboard', page=page_num) }}">{{ page_num }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link bg-dark border-secondary text-muted">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    <li class="page-item {% if not learners.has_next %}disabled{% endif %}">
+                        <a class="page-link bg-dark text-info border-secondary" href="{{ url_for('super_admin.users_dashboard', page=learners.next_num) }}"><i class="fa-solid fa-chevron-right"></i></a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

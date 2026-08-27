@@ -398,6 +398,37 @@
 
     <!-- Right Side Widgets Area (3 Cols) -->
     <div class="col-12 col-lg-3 col-xl-3">
+        <!-- Gamification Leaderboard Widget -->
+        <div class="card p-3 mb-4 border-warning shadow-sm text-start" style="border-width: 2px;">
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-warning-subtle">
+                <h6 class="fw-bold text-dark mb-0">
+                    <i class="fa-solid fa-trophy text-warning me-1"></i> Top Learners
+                </h6>
+            </div>
+            
+            <div class="leaderboard-list">
+                {% for top_learner in top_learners %}
+                <div class="d-flex align-items-center mb-2 p-2 rounded-3 {% if top_learner.id == learner.id %}bg-warning-subtle border border-warning{% else %}bg-light{% endif %}">
+                    <div class="fw-bold text-muted me-2" style="width: 20px;">#{{ loop.index }}</div>
+                    <div class="avatar-profile bg-teal text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm me-2" style="width: 32px; height: 32px; font-size: 0.9rem; font-weight: bold;">
+                        {{ top_learner.name[0] | upper if top_learner.name else 'L' }}
+                    </div>
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="fw-bold text-dark text-xs text-truncate">{{ top_learner.name }}</div>
+                        <div class="text-muted text-xxs">{{ top_learner.department }}</div>
+                    </div>
+                    <div class="fw-bold text-warning ms-2 text-nowrap">
+                        {{ top_learner.points }} <i class="fa-solid fa-star text-xs"></i>
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center py-3 text-muted text-xs">
+                    No points awarded yet. Be the first!
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
         <!-- Learner Notifications Widget -->
         <div class="card p-3 mb-4 border-0 shadow-sm text-start">
             <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">

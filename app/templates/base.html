@@ -137,6 +137,14 @@
                         <i class="fa-solid fa-magnifying-glass fs-5 text-teal"></i>
                     </button>
 
+                    {% if learner_id %}
+                    <!-- Gamification Points Badge -->
+                    <div class="d-none d-md-flex align-items-center bg-warning-subtle text-warning-emphasis px-3 py-1 rounded-pill fw-bold border border-warning shadow-sm" title="Your Learning Points">
+                        <i class="fa-solid fa-star me-2 text-warning"></i>
+                        <span>{{ learner_points }} pts</span>
+                    </div>
+                    {% endif %}
+
                     <!-- Notifications Bell Dropdown -->
                     <div class="dropdown position-relative d-inline-flex align-items-center">
                         <button type="button" class="btn btn-link text-muted p-1 text-decoration-none dropdown-toggle hide-arrow d-inline-flex align-items-center justify-content-center" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications" style="height: 38px; width: 38px; border-radius: 50%; transition: background-color 0.2s;">
