@@ -1,7 +1,8 @@
 from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for, flash
 from app.models import db
-from app.models.learning_wall import LearningWallPost, LearningWallReaction
+from app.models.learning_wall import LearningWallPost, LearningWallReaction, LearningWallComment
 from app.models.user import Learner
+from app.models.course import Course
 from app.services.learning_wall_service import (
     seed_sample_wall_posts_if_empty,
     check_and_generate_birthday_posts,
@@ -28,6 +29,8 @@ def index():
 
     # 2. Query posts ordered newest first
     posts = LearningWallPost.query.order_by(LearningWallPost.created_at.desc()).all()
+    all_learners = Learner.query.order_by(Learner.name).all()
+    all_courses = Course.query.order_by(Course.name).all()
 
     # 3. Resolve user details (Learner or Admin)
     if session.get('admin_logged_in'):
@@ -53,14 +56,17 @@ def index():
             'post': p,
             'counts': counts,
             'total_reactions': len(rxns),
-            'user_reaction': user_reaction
+            'user_reaction': user_reaction,
+            'comments': p.comments
         })
 
     return render_template(
         'learning_wall/index.html',
         posts_data=posts_data,
         user_identifier=user_identifier,
-        user_name=user_name
+        user_name=user_name,
+        all_learners=all_learners,
+        all_courses=all_courses
     )
 
 
@@ -135,13 +141,146 @@ def create_post():
 
 @learning_wall_bp.route('/delete/<int:post_id>', methods=['POST'])
 def delete_post(post_id):
-    """Admin: Delete a specific Learning Wall post."""
-    if not session.get('admin_logged_in'):
-        flash("Only L&D Administrators can delete posts.", "danger")
+    """Delete a specific Learning Wall post (Admin or the original poster)."""
+    post = LearningWallPost.query.get_or_404(post_id)
+
+    is_admin = session.get('admin_logged_in')
+    is_author = post.learner_id and session.get('learner_id') == post.learner_id
+
+    if not (is_admin or is_author):
+        flash("You are not authorized to delete this post.", "danger")
         return redirect(url_for('learning_wall.index'))
 
-    post = LearningWallPost.query.get_or_404(post_id)
     db.session.delete(post)
     db.session.commit()
     flash("Learning Wall post deleted.", "success")
     return redirect(url_for('learning_wall.index'))
+
+
+@learning_wall_bp.route('/comment', methods=['POST'])
+def add_comment():
+    """Add a comment to a Learning Wall post."""
+    post_id = request.form.get('post_id')
+    content = request.form.get('content', '').strip()
+    
+    user_identifier = session.get('learner_global_id') or (session.get('admin_username') if session.get('admin_logged_in') else None)
+    user_name = session.get('learner_name') or (session.get('admin_username') if session.get('admin_logged_in') else None)
+    
+    if not user_identifier:
+        return jsonify({'success': False, 'message': 'Please log in to comment.'}), 401
+        
+    if not post_id or not content:
+        return jsonify({'success': False, 'message': 'Invalid comment content.'}), 400
+        
+    comment = LearningWallComment(
+        post_id=post_id,
+        user_identifier=user_identifier,
+        user_name=user_name,
+        content=content
+    )
+    db.session.add(comment)
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'comment': {
+            'id': comment.id,
+            'user_name': comment.user_name,
+            'content': comment.content,
+            'created_at': comment.created_at.strftime('%d-%b-%Y %H:%M')
+        }
+    })
+
+
+@learning_wall_bp.route('/comment/delete/<int:comment_id>', methods=['POST'])
+def delete_comment(comment_id):
+    """Delete a comment from a Learning Wall post."""
+    comment = LearningWallComment.query.get_or_404(comment_id)
+    
+    user_identifier = session.get('learner_global_id') or (session.get('admin_username') if session.get('admin_logged_in') else None)
+    is_admin = bool(session.get('admin_logged_in'))
+    
+    if not user_identifier:
+        return jsonify({'success': False, 'message': 'Please log in.'}), 401
+        
+    if comment.user_identifier != user_identifier and not is_admin:
+        return jsonify({'success': False, 'message': 'Unauthorized to delete this comment.'}), 403
+        
+    db.session.delete(comment)
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@learning_wall_bp.route('/create_moment', methods=['POST'])
+def create_moment():
+    """Allows Learners or Admins to post a custom Learning Moment."""
+    user_identifier = session.get('learner_global_id') or (session.get('admin_username') if session.get('admin_logged_in') else None)
+    user_name = session.get('learner_name') or (session.get('admin_username') if session.get('admin_logged_in') else None)
+    learner_id = session.get('learner_id')
+    
+    if not user_identifier:
+        flash("Please log in to post on the Learning Wall.", "danger")
+        return redirect(url_for('learning_wall.index'))
+        
+    title = request.form.get('title', '').strip()
+    content = request.form.get('content', '').strip()
+    badge_color = request.form.get('badge_color', 'bg-teal-subtle text-teal')
+    icon = request.form.get('icon', 'fa-lightbulb')
+    
+    if not title or not content:
+        flash("Post title and content are required.", "danger")
+        return redirect(url_for('learning_wall.index'))
+        
+    post = LearningWallPost(
+        post_type='LEARNER_MOMENT',
+        title=f"{user_name}: {title}" if not session.get('admin_logged_in') else title,
+        content=content,
+        learner_id=learner_id if not session.get('admin_logged_in') else None,
+        icon=icon,
+        badge_color=badge_color
+    )
+    db.session.add(post)
+    db.session.commit()
+    
+    flash("Successfully posted your learning moment!", "success")
+    return redirect(url_for('learning_wall.index'))
+
+
+@learning_wall_bp.route('/share_course', methods=['POST'])
+def share_course():
+    """Share a recommended course on the Learning Wall."""
+    user_identifier = session.get('learner_global_id') or (session.get('admin_username') if session.get('admin_logged_in') else None)
+    user_name = session.get('learner_name') or (session.get('admin_username') if session.get('admin_logged_in') else None)
+    learner_id = session.get('learner_id')
+    
+    if not user_identifier:
+        flash("Please log in to share a course.", "danger")
+        return redirect(url_for('learning_wall.index'))
+        
+    course_id = request.form.get('course_id')
+    note = request.form.get('note', '').strip()
+    
+    if not course_id:
+        flash("Course is required.", "danger")
+        return redirect(url_for('learning_wall.index'))
+        
+    course = Course.query.get(course_id)
+    if not course:
+        flash("Course not found.", "danger")
+        return redirect(url_for('learning_wall.index'))
+        
+    post = LearningWallPost(
+        post_type='COURSE_RECOMMENDATION',
+        title=f"{user_name} recommends: {course.name}",
+        content=note if note else f"Check out this interesting course: {course.name}.",
+        learner_id=learner_id if not session.get('admin_logged_in') else None,
+        course_id=course.id,
+        icon='fa-share-nodes',
+        badge_color='bg-primary-subtle text-primary border-primary-subtle'
+    )
+    db.session.add(post)
+    db.session.commit()
+    
+    flash(f"Recommended course '{course.name}' on the Learning Wall!", "success")
+    return redirect(url_for('learning_wall.index'))
+

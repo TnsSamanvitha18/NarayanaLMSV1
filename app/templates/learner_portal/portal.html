@@ -84,22 +84,22 @@
         {% set active_enrollments = enrollments | selectattr('completion_status', 'in', ['Enrolled', 'In Progress']) | list %}
         {% set completed_enrollments = enrollments | selectattr('completion_status', 'in', ['Completed', 'Failed']) | list %}
 
-        <ul class="nav nav-pills gap-2 mb-3" role="tablist">
+        <ul class="nav nav-pills gap-2 mb-3 flex-nowrap overflow-x-auto pb-1" role="tablist" style="scrollbar-width: none; -ms-overflow-style: none; -webkit-overflow-scrolling: touch;">
             <li class="nav-item">
-                <button class="nav-link active fw-semibold" data-bs-toggle="pill" data-bs-target="#tab-active-pane" type="button">
+                <button class="nav-link active fw-semibold text-nowrap" data-bs-toggle="pill" data-bs-target="#tab-active-pane" type="button">
                     <i class="fa-solid fa-play me-1"></i> In Progress
                     <span class="badge bg-teal ms-1">{{ active_enrollments|length }}</span>
                 </button>
             </li>
             <li class="nav-item">
-                <button class="nav-link fw-semibold" data-bs-toggle="pill" data-bs-target="#tab-completed-pane" type="button">
+                <button class="nav-link fw-semibold text-nowrap" data-bs-toggle="pill" data-bs-target="#tab-completed-pane" type="button">
                     <i class="fa-solid fa-circle-check me-1"></i> Completed
                     <span class="badge bg-success ms-1">{{ completed_enrollments|length }}</span>
                 </button>
             </li>
             {% if is_manager %}
             <li class="nav-item">
-                <button class="nav-link fw-semibold" data-bs-toggle="pill" data-bs-target="#tab-manager-pane" type="button">
+                <button class="nav-link fw-semibold text-nowrap" data-bs-toggle="pill" data-bs-target="#tab-manager-pane" type="button">
                     <i class="fa-solid fa-users me-1"></i> My Team
                     <span class="badge bg-teal ms-1">{{ subordinate_data|length }}</span>
                 </button>
@@ -211,8 +211,8 @@
             <div class="tab-pane fade" id="tab-manager-pane" role="tabpanel">
                 <div class="card border-0 shadow-sm p-4">
                     <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-users text-teal me-2"></i> My Team Progress Reports</h5>
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0 text-xs">
+                    <div class="table-responsive" style="scrollbar-width: thin; -webkit-overflow-scrolling: touch;">
+                        <table class="table table-hover align-middle mb-0 text-xs" style="min-width: 650px;">
                             <thead class="table-light">
                                 <tr>
                                     <th>Learner Info</th>
@@ -315,7 +315,7 @@
         </div>
 
         <!-- Available Courses Catalog -->
-        <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-3" id="availableCatalog">
             <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-layer-group me-2 text-teal"></i> Available Courses Catalog</h5>
             <span class="text-muted small fw-semibold">{{ all_courses|length }} Courses</span>
         </div>
@@ -471,4 +471,19 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    if (tabParam === 'completed') {
+        const completedTabBtn = document.querySelector('button[data-bs-target="#tab-completed-pane"]');
+        if (completedTabBtn) {
+            completedTabBtn.click();
+        }
+    }
+});
+</script>
 {% endblock %}

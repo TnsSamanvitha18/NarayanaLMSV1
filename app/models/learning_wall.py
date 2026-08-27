@@ -20,6 +20,7 @@ class LearningWallPost(db.Model):
     learner = db.relationship('Learner', backref=db.backref('wall_posts', lazy=True, cascade='all, delete-orphan'))
     course = db.relationship('Course', backref=db.backref('wall_posts', lazy=True, cascade='all, delete-orphan'))
     reactions = db.relationship('LearningWallReaction', backref='post', lazy=True, cascade='all, delete-orphan')
+    comments = db.relationship('LearningWallComment', backref='post', lazy=True, cascade='all, delete-orphan')
 
     def __repr__(self):
         return f'<LearningWallPost {self.post_type} - {self.title}>'
@@ -39,3 +40,19 @@ class LearningWallReaction(db.Model):
 
     def __repr__(self):
         return f'<LearningWallReaction {self.reaction_type} by {self.user_name} on Post {self.post_id}>'
+
+
+class LearningWallComment(db.Model):
+    __tablename__ = 'learning_wall_comments'
+
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('learning_wall_posts.id'), nullable=False)
+    
+    user_identifier = db.Column(db.String(100), nullable=False)
+    user_name = db.Column(db.String(120), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<LearningWallComment by {self.user_name} on Post {self.post_id}>'

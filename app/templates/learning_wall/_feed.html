@@ -4,17 +4,17 @@
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 position-relative" style="z-index: 2;">
             <div>
                 <span class="badge bg-teal text-white text-uppercase font-monospace mb-2 px-3 py-1.5 rounded-pill shadow-xs">
-                    <i class="fa-solid fa-bullhorn me-1"></i> Live News Bulletin Feed
+                    <i class="fa-solid fa-users me-1"></i> Interactive Hub
                 </span>
                 <h2 class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
-                    <i class="fa-solid fa-newspaper text-teal"></i> LMS Learning Wall
+                    <i class="fa-solid fa-comments text-teal"></i> LMS Learning Wall & Social Feed
                 </h2>
-                <p class="text-muted mb-0">Automated real-time updates on course completions, learner birthdays, and milestone achievements.</p>
+                <p class="text-muted mb-0">Share your learning moments, recommend courses, congratulate colleagues, and view system milestones.</p>
             </div>
             <div class="d-flex align-items-center gap-2">
                 {% if session.get('admin_logged_in') and posts_data|length > 0 %}
                 <form action="{{ url_for('learning_wall.clear_wall') }}" method="POST" onsubmit="return confirm('Are you sure you want to remove all events from the Learning Wall?');">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-sm btn-outline-danger fw-bold px-3 py-1.5 rounded-pill shadow-xs">
                         <i class="fa-solid fa-trash-can me-1"></i> Clear All Events
                     </button>
@@ -22,34 +22,107 @@
                 {% endif %}
                 <div class="d-flex align-items-center gap-2 bg-white-50 p-2 rounded-pill border shadow-xs">
                     <span class="badge bg-teal-subtle text-teal rounded-circle p-2.5 fs-5">
-                        <i class="fa-solid fa-bolt"></i>
+                        <i class="fa-solid fa-rss animate-pulse"></i>
                     </span>
                     <div class="pe-2">
-                        <small class="text-muted fw-bold d-block text-uppercase" style="font-size: 0.65rem;">System Bulletin</small>
-                        <span class="fw-extrabold text-dark fs-6 font-monospace">{{ posts_data|length }} Automated Posts</span>
+                        <small class="text-muted fw-bold d-block text-uppercase" style="font-size: 0.65rem;">Active Updates</small>
+                        <span class="fw-extrabold text-dark fs-6 font-monospace" id="post-counter">{{ posts_data|length }} Posts</span>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    {% if session.get('admin_logged_in') %}
-    <div class="card border-0 shadow-sm p-3 mb-4 rounded-4">
-        <h6 class="fw-bold text-teal mb-3"><i class="fa-solid fa-bullhorn me-2"></i> Post New Announcement</h6>
-        <form action="{{ url_for('learning_wall.create_post') }}" method="POST" class="row g-2 align-items-end">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="col-12 col-md-4">
-                <input type="text" name="title" class="form-control" placeholder="Announcement title..." required maxlength="200">
+    <!-- Create Social Post Card (For Learners & Admins) -->
+    <div class="card border-0 shadow-sm p-4 mb-4 rounded-4 border-start border-teal border-4">
+        <h5 class="fw-bold text-teal mb-3"><i class="fa-solid fa-pen-nib me-2"></i> Share with your Learning Community</h5>
+        
+        <ul class="nav nav-tabs border-bottom mb-3" id="postTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active fw-bold text-xs text-uppercase py-2.5 px-4" id="moment-tab" data-bs-toggle="tab" data-bs-target="#moment-pane" type="button" role="tab"><i class="fa-solid fa-lightbulb me-1"></i> Share a Moment</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold text-xs text-uppercase py-2.5 px-4" id="recommend-tab" data-bs-toggle="tab" data-bs-target="#recommend-pane" type="button" role="tab"><i class="fa-solid fa-share-nodes me-1"></i> Recommend a Course</button>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="postTabContent">
+            <!-- Pane 1: Share a Moment -->
+            <div class="tab-pane fade show active" id="moment-pane" role="tabpanel">
+                <form action="{{ url_for('learning_wall.create_moment') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-xs text-uppercase text-muted">Title / Topic</label>
+                            <input type="text" name="title" class="form-control rounded-3" placeholder="E.g., Finished Python fundamentals or Tip of the day..." required maxlength="100">
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label fw-semibold text-xs text-uppercase text-muted">Select Icon</label>
+                            <select name="icon" class="form-select rounded-3">
+                                <option value="fa-lightbulb">💡 Idea / Concept</option>
+                                <option value="fa-trophy">🏆 Achievement</option>
+                                <option value="fa-rocket">🚀 Milestone</option>
+                                <option value="fa-graduation-cap">🎓 Graduation</option>
+                                <option value="fa-bullhorn">📢 Announcement</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label fw-semibold text-xs text-uppercase text-muted">Theme Color</label>
+                            <select name="badge_color" class="form-select rounded-3">
+                                <option value="bg-teal-subtle text-teal">Teal (Standard)</option>
+                                <option value="bg-primary-subtle text-primary border-primary-subtle">Blue (Highlight)</option>
+                                <option value="bg-warning-subtle text-warning">Amber (Alert)</option>
+                                <option value="bg-danger-subtle text-danger">Pink (Celebration)</option>
+                                <option value="bg-dark-subtle text-dark">Gray (Casual)</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold text-xs text-uppercase text-muted">Write your learning updates or tips</label>
+                            <textarea name="content" rows="3" class="form-control rounded-3" placeholder="Share what you learned, tags, or a helpful tip with your teammates..." required maxlength="500"></textarea>
+                        </div>
+                        <div class="col-12 text-end">
+                            <button type="submit" class="btn btn-teal fw-bold px-4 py-2 rounded-pill"><i class="fa-solid fa-paper-plane me-1"></i> Post Moment</button>
+                        </div>
+                    </div>
+                </form>
             </div>
-            <div class="col-12 col-md-6">
-                <input type="text" name="content" class="form-control" placeholder="Announcement message..." required maxlength="500">
+            
+            <!-- Pane 2: Recommend a Course -->
+            <div class="tab-pane fade" id="recommend-pane" role="tabpanel">
+                <form action="{{ url_for('learning_wall.share_course') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-xs text-uppercase text-muted">Select Course to Recommend</label>
+                            <select name="course_id" class="form-select rounded-3" required>
+                                <option value="" disabled selected>Choose a course from the list...</option>
+                                {% for course in all_courses %}
+                                <option value="{{ course.id }}">{{ course.name }} ({{ course.mode }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-xs text-uppercase text-muted">Why do you recommend this?</label>
+                            <input type="text" name="note" class="form-control rounded-3" placeholder="Add a custom note (e.g. 'Must watch for React developers!')" maxlength="300">
+                        </div>
+                        <div class="col-12 text-end">
+                            <button type="submit" class="btn btn-primary fw-bold px-4 py-2 rounded-pill"><i class="fa-solid fa-share-nodes me-1"></i> Recommend Course</button>
+                        </div>
+                    </div>
+                </form>
             </div>
-            <div class="col-12 col-md-2">
-                <button type="submit" class="btn btn-teal fw-bold w-100"><i class="fa-solid fa-paper-plane me-1"></i> Post</button>
-            </div>
-        </form>
+        </div>
     </div>
-    {% endif %}
+
+    <!-- Social Filtering Navigation -->
+    <div class="d-flex flex-nowrap gap-2 mb-4 overflow-x-auto pb-2 social-filter-scroll justify-content-start justify-content-md-center" style="scrollbar-width: none; -ms-overflow-style: none; -webkit-overflow-scrolling: touch;">
+        <button class="btn btn-sm btn-filter active-filter px-3.5 py-2 rounded-pill fw-bold text-nowrap" onclick="filterFeed('ALL')"><i class="fa-solid fa-list me-1"></i> All Posts</button>
+        <button class="btn btn-sm btn-filter px-3.5 py-2 rounded-pill fw-bold text-nowrap" onclick="filterFeed('ADMIN_ANNOUNCEMENT')"><i class="fa-solid fa-bullhorn me-1"></i> Announcements</button>
+        <button class="btn btn-sm btn-filter px-3.5 py-2 rounded-pill fw-bold text-nowrap" onclick="filterFeed('COURSE_COMPLETION')"><i class="fa-solid fa-graduation-cap me-1"></i> Completions</button>
+        <button class="btn btn-sm btn-filter px-3.5 py-2 rounded-pill fw-bold text-nowrap" onclick="filterFeed('LEARNER_MOMENT')"><i class="fa-solid fa-lightbulb me-1"></i> Moments</button>
+        <button class="btn btn-sm btn-filter px-3.5 py-2 rounded-pill fw-bold text-nowrap" onclick="filterFeed('COURSE_RECOMMENDATION')"><i class="fa-solid fa-share-nodes me-1"></i> Recommendations</button>
+        <button class="btn btn-sm btn-filter px-3.5 py-2 rounded-pill fw-bold text-nowrap" onclick="filterFeed('BIRTHDAY')"><i class="fa-solid fa-cake-candles me-1"></i> Birthdays</button>
+    </div>
 
     <div class="row g-4">
         <!-- Main News Feed Column -->
@@ -59,33 +132,41 @@
                 {% set post = item.post %}
                 {% set counts = item.counts %}
                 {% set user_rxn = item.user_reaction %}
+                {% set comments = item.comments %}
 
-                <div class="card border-0 shadow-sm mb-4 rounded-4 overflow-hidden post-card" id="post-card-{{ post.id }}">
+                <div class="card border-0 shadow-sm mb-4 rounded-4 overflow-hidden post-card" id="post-card-{{ post.id }}" data-post-type="{{ post.post_type }}">
                     <!-- Card Top Header -->
                     <div class="card-header bg-surface border-bottom p-3.5 d-flex align-items-center justify-content-between">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="badge {{ post.badge_color or 'bg-teal-subtle text-teal border-teal-subtle' }} p-3 rounded-circle fs-4 d-flex align-items-center justify-content-center shadow-xs" style="width: 48px; height: 48px;">
+                        <div class="d-flex align-items-center gap-3 w-100">
+                            <div class="badge {{ post.badge_color or 'bg-teal-subtle text-teal border-teal-subtle' }} p-3 rounded-circle fs-4 d-flex align-items-center justify-content-center shadow-xs flex-shrink-0" style="width: 48px; height: 48px;">
                                 <i class="fa-solid {{ post.icon or 'fa-bullhorn' }}"></i>
                             </div>
-                            <div>
-                                <h6 class="fw-bold text-dark mb-0 fs-6">{{ post.title }}</h6>
-                                <small class="text-muted text-xs d-flex align-items-center gap-1">
-                                    <i class="fa-regular fa-clock text-teal"></i> {{ post.created_at.strftime('%d-%b-%Y %H:%M') }}
-                                    <span class="mx-1">&bull;</span>
-                                    <span class="badge bg-secondary-subtle text-secondary py-0.5 px-2">{% if post.post_type == 'ADMIN_ANNOUNCEMENT' %}📢 Admin{% else %}Automated{% endif %}</span>
+                            <div class="min-w-0 flex-grow-1">
+                                <h6 class="fw-bold text-dark mb-0 fs-6 text-truncate w-100">{{ post.title }}</h6>
+                                <small class="text-muted text-xs d-flex flex-wrap align-items-center gap-x-2 gap-y-1 mt-1">
+                                    <span class="text-nowrap d-inline-flex align-items-center"><i class="fa-regular fa-clock text-teal me-1"></i> {{ post.created_at.strftime('%d-%b-%Y %H:%M') }}</span>
+                                    <span class="text-muted d-none d-sm-inline">&bull;</span>
+                                    {% if post.post_type == 'ADMIN_ANNOUNCEMENT' %}
+                                    <span class="badge bg-teal-subtle text-teal py-0.5 px-2 text-nowrap"><i class="fa-solid fa-shield-halved me-0.5"></i> Admin Post</span>
+                                    {% elif post.post_type == 'LEARNER_MOMENT' %}
+                                    <span class="badge bg-primary-subtle text-primary py-0.5 px-2 text-nowrap"><i class="fa-solid fa-user me-0.5"></i> Learner Moment</span>
+                                    {% elif post.post_type == 'COURSE_RECOMMENDATION' %}
+                                    <span class="badge bg-warning-subtle text-warning py-0.5 px-2 text-nowrap"><i class="fa-solid fa-share-nodes me-0.5"></i> Recommendation</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary-subtle text-secondary py-0.5 px-2 text-nowrap"><i class="fa-solid fa-gear me-0.5"></i> System</span>
+                                    {% endif %}
                                 </small>
                             </div>
                         </div>
-                        {% if session.get('admin_logged_in') %}
-                        <form action="{{ url_for('learning_wall.delete_post', post_id=post.id) }}" method="POST" onsubmit="return confirm('Delete this post?');" class="d-inline">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-2 py-0" title="Delete post"><i class="fa-solid fa-trash-can"></i></button>
-                        </form>
-                        {% endif %}
-
-                        <span class="badge bg-teal-subtle text-teal font-monospace text-xs">
-                            <i class="fa-solid fa-robot me-1"></i> System Event
-                        </span>
+                        
+                        <div class="d-flex align-items-center gap-2">
+                            {% if session.get('admin_logged_in') or (post.learner_id and session.get('learner_id') == post.learner_id) %}
+                            <form action="{{ url_for('learning_wall.delete_post', post_id=post.id) }}" method="POST" onsubmit="return confirm('Delete this post?');" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-link text-danger p-0" title="Delete post"><i class="fa-solid fa-trash-can fs-6"></i></button>
+                            </form>
+                            {% endif %}
+                        </div>
                     </div>
 
                     <!-- Post Body Content -->
@@ -95,12 +176,14 @@
                         </div>
 
                         {% if post.course %}
-                        <div class="p-3 bg-light rounded-3 border d-flex align-items-center justify-content-between mb-3">
-                            <div class="d-flex align-items-center gap-2">
-                                <i class="fa-solid fa-book-open text-teal fs-5"></i>
+                        <div class="p-3 bg-light rounded-3 border d-flex align-items-center justify-content-between mb-3 shadow-xs">
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="badge bg-white text-teal rounded-circle p-2.5 shadow-xs border">
+                                    <i class="fa-solid fa-book-open fs-5"></i>
+                                </span>
                                 <div>
-                                    <span class="fw-bold text-dark d-block fs-6">{{ post.course.name }}</span>
-                                    <small class="text-muted text-xs">Mode: {{ post.course.mode }} • {{ post.course.duration_hours }} hrs</small>
+                                    <span class="fw-bold text-dark d-block fs-6 mb-0.5">{{ post.course.name }}</span>
+                                    <small class="text-muted text-xs">Mode: {{ post.course.mode }} &bull; {{ post.course.duration_hours }} hrs &bull; Passing mark: {{ post.course.pass_percentage }}%</small>
                                 </div>
                             </div>
                             <a href="{{ url_for('learners.self_paced_flow', course_id_str=post.course.course_id) if post.course.mode == 'Self Paced' else url_for('courses.list_courses') }}" class="btn btn-sm btn-outline-teal text-teal fw-bold">
@@ -110,33 +193,39 @@
                         {% endif %}
 
                         <!-- Reaction summary bar -->
-                        <div class="d-flex align-items-center justify-content-between pt-2 border-top text-muted text-xs">
-                            <div class="d-flex align-items-center gap-2" id="reaction-summary-{{ post.id }}">
-                                <span class="d-flex align-items-center gap-1">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2.5 pt-2.5 border-top text-muted text-xs">
+                            <div class="d-flex flex-wrap align-items-center gap-x-3 gap-y-1.5" id="reaction-summary-{{ post.id }}">
+                                <span class="d-flex align-items-center gap-1 text-nowrap">
                                     <span class="rxn-icon">👍</span> <strong class="text-dark count-like">{{ counts['like'] }}</strong>
                                 </span>
-                                <span class="d-flex align-items-center gap-1">
+                                <span class="d-flex align-items-center gap-1 text-nowrap">
                                     <span class="rxn-icon">❤️</span> <strong class="text-dark count-love">{{ counts['love'] }}</strong>
                                 </span>
-                                <span class="d-flex align-items-center gap-1">
+                                <span class="d-flex align-items-center gap-1 text-nowrap">
                                     <span class="rxn-icon">🎉</span> <strong class="text-dark count-celebrate">{{ counts['celebrate'] }}</strong>
                                 </span>
-                                <span class="d-flex align-items-center gap-1">
+                                <span class="d-flex align-items-center gap-1 text-nowrap">
                                     <span class="rxn-icon">👏</span> <strong class="text-dark count-clap">{{ counts['clap'] }}</strong>
                                 </span>
-                                <span class="d-flex align-items-center gap-1">
+                                <span class="d-flex align-items-center gap-1 text-nowrap">
                                     <span class="rxn-icon">🔥</span> <strong class="text-dark count-fire">{{ counts['fire'] }}</strong>
                                 </span>
                             </div>
 
-                            <span class="fw-bold text-teal" id="total-rxns-{{ post.id }}">
-                                {{ item.total_reactions }} Reactions
-                            </span>
+                            <div class="d-flex align-items-center gap-2 text-nowrap ms-auto">
+                                <span class="fw-bold text-teal cursor-pointer" onclick="toggleCommentsSection({{ post.id }})">
+                                    <i class="fa-regular fa-comment me-0.5"></i> <span id="comments-count-text-{{ post.id }}">{{ comments|length }} Comments</span>
+                                </span>
+                                <span class="mx-1 text-light-gray">|</span>
+                                <span class="fw-bold text-teal" id="total-rxns-{{ post.id }}">
+                                    {{ item.total_reactions }} Reactions
+                                </span>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Interactive Reaction Action Buttons -->
-                    <div class="card-footer bg-light p-2.5 d-flex align-items-center justify-content-around gap-1 border-top">
+                    <div class="card-footer bg-light p-2 d-flex align-items-center justify-content-around gap-1 border-top">
                         <button type="button" class="btn btn-sm rxn-btn flex-grow-1 {% if user_rxn == 'like' %}active-rxn{% endif %}" onclick="submitReaction({{ post.id }}, 'like');" data-post-id="{{ post.id }}" data-rxn="like">
                             <span class="fs-5 me-1">👍</span> <span class="d-none d-sm-inline">Like</span>
                         </button>
@@ -157,12 +246,53 @@
                             <span class="fs-5 me-1">🔥</span> <span class="d-none d-sm-inline">Fire</span>
                         </button>
                     </div>
+
+                    <!-- Comments Section Panel (Initially visible if comments exist, otherwise toggled) -->
+                    <div class="card-footer bg-white border-top p-3.5 comments-panel" id="comments-panel-{{ post.id }}" style="display: block;">
+                        <!-- Comment Thread List -->
+                        <div class="comments-list d-flex flex-column gap-3 mb-3" id="comments-list-{{ post.id }}">
+                            {% for c in comments %}
+                            <div class="d-flex gap-2.5 align-items-start comment-item" id="comment-{{ c.id }}">
+                                <div class="avatar-profile bg-teal text-white rounded-circle d-flex align-items-center justify-content-center shadow-xs text-uppercase font-monospace flex-shrink-0" style="width: 34px; height: 34px; font-size: 0.85rem; font-weight: bold;">
+                                    {{ c.user_name[0] if c.user_name else 'U' }}
+                                </div>
+                                <div class="bg-light p-2.5 rounded-3 flex-grow-1 position-relative">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="fw-bold text-dark text-xs">{{ c.user_name }}</span>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="text-muted text-xxs"><i class="fa-regular fa-clock"></i> {{ c.created_at.strftime('%d-%b-%Y %H:%M') }}</span>
+                                            {% if session.get('admin_logged_in') or user_identifier == c.user_identifier %}
+                                            <button type="button" class="btn btn-link text-danger p-0 text-xxs" onclick="deleteComment({{ c.id }}, {{ post.id }})">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <p class="text-dark text-xs mb-0" style="white-space: pre-line;">{{ c.content }}</p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Write Comment Form -->
+                        <div class="d-flex gap-2 align-items-center">
+                            <div class="avatar-profile bg-teal-subtle text-teal rounded-circle d-flex align-items-center justify-content-center font-monospace text-uppercase" style="width: 34px; height: 34px; font-size: 0.85rem; font-weight: bold;">
+                                {{ user_name[0] if user_name else 'M' }}
+                            </div>
+                            <div class="input-group flex-nowrap">
+                                <input type="text" id="comment-input-{{ post.id }}" class="form-control form-control-sm rounded-pill-start border-end-0 py-2 px-3 text-xs" placeholder="Write a comment or congratulate colleague..." onkeydown="if(event.key === 'Enter') postComment({{ post.id }});">
+                                <button class="btn btn-teal text-white btn-sm rounded-pill-end px-3 border-start-0 py-2" type="button" onclick="postComment({{ post.id }})">
+                                    <i class="fa-solid fa-paper-plane text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 {% else %}
                 <div class="card border-0 shadow-sm p-5 text-center rounded-4">
                     <i class="fa-solid fa-newspaper text-teal display-3 opacity-50 mb-3"></i>
                     <h5 class="fw-bold text-dark mb-1">Learning Wall Feed Empty</h5>
-                    <p class="text-muted mb-0">System bulletin posts will automatically generate here when learners complete courses and celebrate milestones.</p>
+                    <p class="text-muted mb-0">Be the first to share a learning moment or recommend a course above!</p>
                 </div>
                 {% endfor %}
             </div>
@@ -201,9 +331,193 @@
 .post-card:hover {
     box-shadow: var(--card-hover-shadow) !important;
 }
+
+.btn-filter {
+    background-color: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
+}
+
+.btn-filter:hover, .btn-filter.active-filter {
+    background-color: #0d9488 !important;
+    color: white !important;
+    border-color: #0d9488 !important;
+    box-shadow: 0 4px 10px rgba(13, 148, 136, 0.25);
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.text-xxs {
+    font-size: 0.7rem;
+}
+
+.text-xxs i {
+    font-size: 0.65rem;
+}
+
+.rounded-pill-start {
+    border-top-left-radius: 50px !important;
+    border-bottom-left-radius: 50px !important;
+}
+
+.rounded-pill-end {
+    border-top-right-radius: 50px !important;
+    border-bottom-right-radius: 50px !important;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(0.95); }
+}
+
+.animate-pulse {
+    animation: pulse 2s infinite ease-in-out;
+}
+.social-filter-scroll::-webkit-scrollbar {
+    display: none !important;
+}
 </style>
 
 <script>
+// Filter Posts in client
+function filterFeed(postType) {
+    // Toggle active filter classes
+    const buttons = document.querySelectorAll('.btn-filter');
+    buttons.forEach(btn => {
+        if(btn.getAttribute('onclick').includes(postType)) {
+            btn.classList.add('active-filter');
+        } else {
+            btn.classList.remove('active-filter');
+        }
+    });
+
+    const posts = document.querySelectorAll('.post-card');
+    let visibleCount = 0;
+    
+    posts.forEach(post => {
+        const type = post.getAttribute('data-post-type');
+        if (postType === 'ALL' || type === postType) {
+            post.style.display = 'block';
+            visibleCount++;
+        } else {
+            post.style.display = 'none';
+        }
+    });
+
+    // Update posts counter
+    const counter = document.getElementById('post-counter');
+    if (counter) {
+        counter.innerText = `${visibleCount} Posts`;
+    }
+}
+
+// Toggle comments panel visibility
+function toggleCommentsSection(postId) {
+    const el = document.getElementById(`comments-panel-${postId}`);
+    if (el) {
+        if (el.style.display === 'none') {
+            el.style.display = 'block';
+        } else {
+            el.style.display = 'none';
+        }
+    }
+}
+
+// Post comment via fetch
+function postComment(postId) {
+    const inputEl = document.getElementById(`comment-input-${postId}`);
+    const content = inputEl.value.trim();
+    if (!content) return;
+
+    const formData = new FormData();
+    formData.append('post_id', postId);
+    formData.append('content', content);
+
+    fetch("{{ url_for('learning_wall.add_comment') }}", {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token() }}' },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Append comment element to comments list
+            const c = data.comment;
+            const listEl = document.getElementById(`comments-list-${postId}`);
+            
+            const commentItem = document.createElement('div');
+            commentItem.className = 'd-flex gap-2.5 align-items-start comment-item';
+            commentItem.id = `comment-${c.id}`;
+            commentItem.innerHTML = `
+                <div class="avatar-profile bg-teal text-white rounded-circle d-flex align-items-center justify-content-center shadow-xs text-uppercase font-monospace flex-shrink-0" style="width: 34px; height: 34px; font-size: 0.85rem; font-weight: bold;">
+                    ${c.user_name[0]}
+                </div>
+                <div class="bg-light p-2.5 rounded-3 flex-grow-1 position-relative">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-bold text-dark text-xs">${c.user_name}</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="text-muted text-xxs"><i class="fa-regular fa-clock"></i> ${c.created_at}</span>
+                            <button type="button" class="btn btn-link text-danger p-0 text-xxs" onclick="deleteComment(${c.id}, ${postId})">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <p class="text-dark text-xs mb-0" style="white-space: pre-line;">${c.content}</p>
+                </div>
+            `;
+            
+            listEl.appendChild(commentItem);
+            inputEl.value = '';
+
+            // Update comments count text
+            const countTextEl = document.getElementById(`comments-count-text-${postId}`);
+            if (countTextEl) {
+                const count = parseInt(countTextEl.innerText) || 0;
+                countTextEl.innerText = `${count + 1} Comments`;
+            }
+        } else {
+            alert(data.message || 'Failed to submit comment.');
+        }
+    })
+    .catch(err => {
+        console.error('Comment error:', err);
+    });
+}
+
+// Delete comment via fetch
+function deleteComment(commentId, postId) {
+    if (!confirm('Are you sure you want to delete this comment?')) return;
+
+    fetch(`/learning_wall/comment/delete/${commentId}`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Remove from DOM
+            const el = document.getElementById(`comment-${commentId}`);
+            if (el) el.remove();
+
+            // Update comments count text
+            const countTextEl = document.getElementById(`comments-count-text-${postId}`);
+            if (countTextEl) {
+                const count = parseInt(countTextEl.innerText) || 1;
+                countTextEl.innerText = `${count - 1} Comments`;
+            }
+        } else {
+            alert(data.message || 'Failed to delete comment.');
+        }
+    })
+    .catch(err => {
+        console.error('Delete comment error:', err);
+    });
+}
+
+// React to posts
 function submitReaction(postId, rxnType) {
     const formData = new FormData();
     formData.append('post_id', postId);

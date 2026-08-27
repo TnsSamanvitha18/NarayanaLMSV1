@@ -218,6 +218,97 @@
                             <div class="bg-white">
                                 <iframe src="{{ url_for('courses.stream_courseware', courseware_id=cw.id) }}#toolbar=0" class="w-100" style="height: 580px; border: none;"></iframe>
                             </div>
+                        {% elif cw.courseware_type == 'SCORM' %}
+                            <div class="scorm-player-wrapper border-0" style="height: 600px; width: 100%; background: #fff; position: relative;">
+                                <script>
+                                    window.API = {
+                                        LMSInitialize: function() {
+                                            console.log("SCORM API: LMSInitialize");
+                                            return "true";
+                                        },
+                                        LMSGetValue: function(element) {
+                                            console.log("SCORM API: LMSGetValue -> " + element);
+                                            if (element === "cmi.core.lesson_status") {
+                                                {% if active_les.id in reviewed_lesson_ids %}
+                                                return "completed";
+                                                {% else %}
+                                                return "not attempted";
+                                                {% endif %}
+                                            }
+                                            return "";
+                                        },
+                                        LMSSetValue: function(element, value) {
+                                            console.log("SCORM API: LMSSetValue -> " + element + " = " + value);
+                                            if (element === "cmi.core.lesson_status" && (value === "completed" || value === "passed")) {
+                                                fetch("{{ url_for('learners.save_scorm_progress') }}", {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
+                                                    body: JSON.stringify({ lesson_id: {{ active_les.id }}, status: value })
+                                                })
+                                                .then(r => r.json())
+                                                .then(d => {
+                                                    console.log("SCORM Progress saved:", d);
+                                                    if (d.status === 'success') {
+                                                        window.location.reload();
+                                                    }
+                                                });
+                                            }
+                                            return "true";
+                                        },
+                                        LMSCommit: function() { return "true"; },
+                                        LMSFinish: function() { return "true"; },
+                                        GetLastError: function() { return 0; },
+                                        GetErrorString: function() { return "No error"; },
+                                        GetDiagnostic: function() { return "No diagnostic info"; }
+                                    };
+                                    window.API_1484_11 = {
+                                        Initialize: function() { return "true"; },
+                                        GetValue: function(element) { 
+                                            console.log("SCORM 2004 API: GetValue -> " + element);
+                                            if (element === "cmi.completion_status") {
+                                                {% if active_les.id in reviewed_lesson_ids %}
+                                                return "completed";
+                                                {% else %}
+                                                return "incomplete";
+                                                {% endif %}
+                                            }
+                                            return ""; 
+                                        },
+                                        SetValue: function(element, value) {
+                                            console.log("SCORM 2004 API: SetValue -> " + element + " = " + value);
+                                            if ((element === "cmi.completion_status" || element === "cmi.success_status") && (value === "completed" || value === "passed")) {
+                                                fetch("{{ url_for('learners.save_scorm_progress') }}", {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
+                                                    body: JSON.stringify({ lesson_id: {{ active_les.id }}, status: 'completed' })
+                                                })
+                                                .then(r => r.json())
+                                                .then(d => {
+                                                    console.log("SCORM Progress saved:", d);
+                                                    if (d.status === 'success') {
+                                                        window.location.reload();
+                                                    }
+                                                });
+                                            }
+                                            return "true";
+                                        },
+                                        Commit: function() { return "true"; },
+                                        Terminate: function() { return "true"; },
+                                        GetLastError: function() { return 0; },
+                                        GetErrorString: function() { return "No error"; },
+                                        GetDiagnostic: function() { return "No diagnostic info"; }
+                                    };
+                                </script>
+                                {% if cw.filename and cw.external_url %}
+                                <iframe id="scorm-content-iframe" src="{{ url_for('courses.serve_scorm_file', scorm_id_str=cw.filename, filename=cw.external_url) }}" class="w-100 h-100 border-0" allowfullscreen></iframe>
+                                {% else %}
+                                <div class="text-center py-5 text-muted">
+                                    <i class="fa-solid fa-triangle-exclamation fa-3x text-warning mb-3"></i>
+                                    <h5 class="fw-bold">SCORM Package Not Configured</h5>
+                                    <p class="small">The SCORM launch file could not be resolved. Please re-upload the package.</p>
+                                </div>
+                                {% endif %}
+                            </div>
                         {% endif %}
                     </div>
                     {% endfor %}
@@ -346,15 +437,15 @@
                 <div class="card-body p-4 bg-white">
                     <p class="text-muted small mb-3">Your feedback is required to complete this course{% if course.has_certificate %} and issue your official completion certificate{% endif %}.</p>
 
-                    {% if course_end_attempt and course_end_attempt.passed %}
-                        {% if feedback_resp %}
+                    {% if feedback_resp %}
                         <div class="alert alert-success py-2.5 mb-0 d-flex align-items-center">
                             <i class="fa-solid fa-heart text-danger me-2 fs-5"></i>
                             <div>
                                 <strong>Feedback Recorded!</strong> Thank you for sharing your evaluation.
                             </div>
                         </div>
-                        {% else %}
+                    {% else %}
+                        {% if course_end_attempt and course_end_attempt.passed %}
                             {% if feedback_repo %}
                             <a href="{{ url_for('learners.submit_feedback', repo_id=feedback_repo.id, course_id=course.id) }}"
                                 class="btn btn-primary bg-navy fw-bold text-white w-100 shadow-sm py-2">
@@ -363,11 +454,11 @@
                             {% else %}
                             <div class="text-muted small border p-2 rounded bg-light text-center">No feedback form attached to this course.</div>
                             {% endif %}
+                        {% else %}
+                        <div class="alert alert-warning py-2 mb-0">
+                            <i class="fa-solid fa-lock me-1"></i> Locked: Pass the Course End Assessment to unlock the Feedback Form.
+                        </div>
                         {% endif %}
-                    {% else %}
-                    <div class="alert alert-warning py-2 mb-0">
-                        <i class="fa-solid fa-lock me-1"></i> Locked: Pass the Course End Assessment to unlock the Feedback Form.
-                    </div>
                     {% endif %}
                 </div>
             </div>

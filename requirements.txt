@@ -13,3 +13,5 @@ pypdfium2
 python-dotenv
 waitress
 flask-migrate
+gunicorn
+psycopg2-binary

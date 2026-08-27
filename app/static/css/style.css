@@ -1444,14 +1444,26 @@ img, svg, video, canvas, iframe {
     gap: 1rem !important;
     padding-bottom: 0.75rem !important;
     padding-top: 0.25rem !important;
-    -ms-overflow-style: none !important;
-    scrollbar-width: none !important;
+    -ms-overflow-style: auto !important;
+    scrollbar-width: thin !important;
 }
 
 .horizontal-card-row::-webkit-scrollbar {
-    display: none !important;
-    width: 0 !important;
-    height: 0 !important;
+    display: block !important;
+    height: 5px !important;
+}
+
+.horizontal-card-row::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+
+.horizontal-card-row::-webkit-scrollbar-thumb {
+    background: rgba(13, 148, 136, 0.2) !important;
+    border-radius: 10px !important;
+}
+
+.horizontal-card-row::-webkit-scrollbar-thumb:hover {
+    background: rgba(13, 148, 136, 0.45) !important;
 }
 
 .horizontal-card-row > [class*="col-"] {
@@ -1494,14 +1506,26 @@ img, svg, video, canvas, iframe {
     padding-top: 0.25rem !important;
     margin-left: 0 !important;
     margin-right: 0 !important;
-    -ms-overflow-style: none !important;
-    scrollbar-width: none !important;
+    -ms-overflow-style: auto !important;
+    scrollbar-width: thin !important;
 }
 
 .scheduled-batches-carousel::-webkit-scrollbar {
-    display: none !important;
-    width: 0 !important;
-    height: 0 !important;
+    display: block !important;
+    height: 5px !important;
+}
+
+.scheduled-batches-carousel::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+
+.scheduled-batches-carousel::-webkit-scrollbar-thumb {
+    background: rgba(13, 148, 136, 0.2) !important;
+    border-radius: 10px !important;
+}
+
+.scheduled-batches-carousel::-webkit-scrollbar-thumb:hover {
+    background: rgba(13, 148, 136, 0.45) !important;
 }
 
 .scheduled-batches-carousel > [class*="col-"],
@@ -2031,14 +2055,26 @@ html, body {
     width: 100% !important;
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch !important;
-    -ms-overflow-style: none !important;
-    scrollbar-width: none !important;
+    -ms-overflow-style: auto !important;
+    scrollbar-width: thin !important;
 }
 
 .table-responsive-card::-webkit-scrollbar {
-    display: none !important;
-    width: 0 !important;
-    height: 0 !important;
+    display: block !important;
+    height: 5px !important;
+}
+
+.table-responsive-card::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+
+.table-responsive-card::-webkit-scrollbar-thumb {
+    background: rgba(13, 148, 136, 0.2) !important;
+    border-radius: 10px !important;
+}
+
+.table-responsive-card::-webkit-scrollbar-thumb:hover {
+    background: rgba(13, 148, 136, 0.45) !important;
 }
 
 /* Floating Capsule Navbar Responsive Fit */
@@ -2699,5 +2735,11 @@ video {
         font-size: 15px !important;
     }
 }
+
+/* Hide scrollbars for nav-pills tabs container */
+.nav-pills::-webkit-scrollbar {
+    display: none !important;
+}
+
 
 

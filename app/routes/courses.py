@@ -2,7 +2,7 @@ import os
 from app.utils.decorators import admin_required
 import uuid
 import json
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session, send_file, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session, send_file, current_app, send_from_directory
 from app.models import db
 from app.models.course import Course, CourseAssessment, CourseMaterial, CourseLesson, LessonCourseware
 from app.models.live_class import LiveClass
@@ -468,18 +468,31 @@ def add_lesson_courseware(lesson_id):
         ext = os.path.splitext(file_obj.filename)[1].lower()
         short_id = uuid.uuid4().hex[:8]
         filename = f"cw_{lesson.id}_{short_id}{ext}"
-        save_path = os.path.join(current_app.config['MATERIALS_FOLDER'], filename)
-        file_obj.save(save_path)
-
-        # Also create a non-downloadable CourseMaterial record for inline viewing
-        mat = CourseMaterial(
-            course_id=lesson.course_id,
-            title=f"[Lesson {lesson.lesson_number} Courseware] {title}",
-            material_type='Video' if ext in ['.mp4', '.webm'] else ('PDF' if ext == '.pdf' else 'PPT'),
-            filename=filename,
-            allow_download=False # NON-DOWNLOADABLE as required!
-        )
-        db.session.add(mat)
+        
+        if c_type == 'SCORM' or ext == '.zip':
+            from app.services.scorm_service import process_scorm_package
+            scorm_id_str = f"scorm_{short_id}"
+            upload_base_folder = os.path.abspath(os.path.join(current_app.root_path, '..', 'uploads'))
+            launch_href, err_msg = process_scorm_package(file_obj, scorm_id_str, upload_base_folder)
+            if err_msg:
+                flash(err_msg, "danger")
+                return redirect(url_for('courses.view_course', course_id=lesson.course_id))
+            filename = scorm_id_str
+            external_url = launch_href
+            c_type = 'SCORM'
+        else:
+            save_path = os.path.join(current_app.config['MATERIALS_FOLDER'], filename)
+            file_obj.save(save_path)
+            
+            # Also create a non-downloadable CourseMaterial record for inline viewing
+            mat = CourseMaterial(
+                course_id=lesson.course_id,
+                title=f"[Lesson {lesson.lesson_number} Courseware] {title}",
+                material_type='Video' if ext in ['.mp4', '.webm'] else ('PDF' if ext == '.pdf' else 'PPT'),
+                filename=filename,
+                allow_download=False # NON-DOWNLOADABLE as required!
+            )
+            db.session.add(mat)
 
     cw = LessonCourseware(
         lesson_id=lesson.id,
@@ -1350,6 +1363,12 @@ def delete_material(material_id):
 
     flash(f"Learning material '{mat.title}' deleted.", "success")
     return redirect(url_for('courses.view_course', course_id=course_id))
+
+
+@courses_bp.route('/scorm/content/<scorm_id_str>/<path:filename>')
+def serve_scorm_file(scorm_id_str, filename):
+    scorm_dir = os.path.abspath(os.path.join(current_app.root_path, '..', 'uploads', 'scorm', scorm_id_str))
+    return send_from_directory(scorm_dir, filename)
 
 
 @courses_bp.route('/<int:course_id>/download_analytics')
