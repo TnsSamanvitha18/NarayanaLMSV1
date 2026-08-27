@@ -14,6 +14,13 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     ENABLE_CONTENT_AUTHORING = os.environ.get('ENABLE_CONTENT_AUTHORING', 'True') == 'True'
     
+    # Decoupled Storage Provider Configuration (MinIO / S3 compat)
+    STORAGE_PROVIDER = os.environ.get('STORAGE_PROVIDER', 'local')
+    S3_ACCESS_KEY = os.environ.get('S3_ACCESS_KEY', '')
+    S3_SECRET_KEY = os.environ.get('S3_SECRET_KEY', '')
+    S3_ENDPOINT_URL = os.environ.get('S3_ENDPOINT_URL', '')
+    S3_BUCKET = os.environ.get('S3_BUCKET', 'narayana-lms')
+    
     # Upload Directories
     UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
     QR_FOLDER = os.path.join(BASE_DIR, 'app', 'static', 'qr_codes')
