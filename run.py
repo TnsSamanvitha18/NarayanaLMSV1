@@ -3,9 +3,9 @@ from app import create_app
 from app.seed import init_db_and_seed
 
 app = create_app()
-init_db_and_seed(app)
 
 if __name__ == '__main__':
+    init_db_and_seed(app)
     env = os.environ.get('FLASK_ENV', 'development')
     port = int(os.environ.get('PORT', 5000))
     
