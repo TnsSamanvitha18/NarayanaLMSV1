@@ -148,7 +148,8 @@ def delete_post(post_id):
     post = LearningWallPost.query.get_or_404(post_id)
 
     is_admin = session.get('admin_logged_in')
-    is_author = post.learner_id and session.get('learner_id') == post.learner_id
+    learner_id = session.get('learner_id')
+    is_author = post.learner_id and learner_id and int(learner_id) == int(post.learner_id)
 
     if not (is_admin or is_author):
         flash("You are not authorized to delete this post.", "danger")

@@ -160,7 +160,7 @@
                         </div>
                         
                         <div class="d-flex align-items-center gap-2">
-                            {% if session.get('admin_logged_in') or (post.learner_id and session.get('learner_id') == post.learner_id) %}
+                            {% if session.get('admin_logged_in') or (post.learner_id and session.get('learner_id') and session.get('learner_id')|int == post.learner_id|int) %}
                             <form action="{{ url_for('learning_wall.delete_post', post_id=post.id) }}" method="POST" onsubmit="return confirm('Delete this post?');" class="d-inline">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-sm btn-link text-danger p-0" title="Delete post"><i class="fa-solid fa-trash-can fs-6"></i></button>
@@ -261,7 +261,7 @@
                                         <span class="fw-bold text-dark text-xs">{{ c.user_name }}</span>
                                         <div class="d-flex align-items-center gap-2">
                                             <span class="text-muted text-xxs"><i class="fa-regular fa-clock"></i> {{ c.created_at.strftime('%d-%b-%Y %H:%M') }}</span>
-                                            {% if session.get('admin_logged_in') or user_identifier == c.user_identifier %}
+                                            {% if session.get('admin_logged_in') or user_identifier|string == c.user_identifier|string %}
                                             <button type="button" class="btn btn-link text-danger p-0 text-xxs" onclick="deleteComment({{ c.id }}, {{ post.id }})">
                                                 <i class="fa-solid fa-trash-can"></i>
                                             </button>
