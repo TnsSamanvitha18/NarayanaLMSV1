@@ -4,7 +4,7 @@ import uuid
 import json
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session, send_file, current_app, send_from_directory
 from app.models import db
-from app.models.course import Course, CourseAssessment, CourseMaterial, CourseLesson, LessonCourseware
+from app.models.course import Course, CourseAssessment, CourseMaterial, CourseLesson, LessonCourseware, RiseCoursewareVersion, LearnerBlockProgress
 from app.models.live_class import LiveClass
 from app.services.assessment_service import parse_assessment_csv
 from app.services.report_service import generate_course_analytics_csv, generate_class_attendance_csv
@@ -1444,6 +1444,17 @@ def author_lesson(course_id, lesson_id):
         db.session.add(cw)
         db.session.commit()
 
+    # Find or create draft version
+    draft = RiseCoursewareVersion.query.filter_by(courseware_id=cw.id, status='Draft').first()
+    if not draft:
+        draft = RiseCoursewareVersion(
+            courseware_id=cw.id,
+            status='Draft',
+            blocks_json=cw.content_text or '[]'
+        )
+        db.session.add(draft)
+        db.session.commit()
+
     if request.method == 'POST':
         action = request.form.get('action')
 
@@ -1502,16 +1513,30 @@ def author_lesson(course_id, lesson_id):
                 flash("Please enter a valid URL.", "warning")
             return redirect(url_for('courses.author_lesson', course_id=course.id, lesson_id=lesson.id))
 
+        elif action == 'publish':
+            # Publish draft blocks to live courseware
+            slides_data = request.form.get('slides_json')
+            if slides_data:
+                try:
+                    json.loads(slides_data)
+                    draft.blocks_json = slides_data
+                    cw.content_text = slides_data
+                    db.session.commit()
+                    return jsonify({'status': 'success', 'message': 'Interactive lesson published successfully!'})
+                except Exception as e:
+                    return jsonify({'status': 'error', 'message': f'Invalid schema: {str(e)}'}), 400
+            return jsonify({'status': 'error', 'message': 'No content provided to publish.'}), 400
+
         else:
-            # Handle saving interactive slide content
+            # Handle saving draft blocks
             slides_data = request.form.get('slides_json')
             if slides_data:
                 try:
                     # Validate JSON
                     json.loads(slides_data)
-                    cw.content_text = slides_data
+                    draft.blocks_json = slides_data
                     db.session.commit()
-                    return jsonify({'status': 'success', 'message': 'Lesson slides saved successfully!'})
+                    return jsonify({'status': 'success', 'message': 'Draft version saved successfully!'})
                 except Exception as e:
                     return jsonify({'status': 'error', 'message': f'Invalid slides data: {str(e)}'}), 400
             
@@ -1523,10 +1548,10 @@ def author_lesson(course_id, lesson_id):
         LessonCourseware.id != cw.id
     ).all()
 
-    # Load slides structure
+    # Load slides structure from Draft
     slides = []
     try:
-        slides = json.loads(cw.content_text) if cw.content_text else []
+        slides = json.loads(draft.blocks_json) if draft.blocks_json else []
     except Exception:
         pass
 
@@ -1538,3 +1563,45 @@ def author_lesson(course_id, lesson_id):
         slides=slides,
         materials=materials
     )
+
+
+@courses_bp.route('/courseware/<int:courseware_id>/track', methods=['POST'])
+def track_rise_telemetry(courseware_id):
+    """
+    Telemetry: Track block-level learner interactions asynchronously.
+    """
+    learner_id = session.get('learner_id')
+    if not learner_id:
+        return jsonify({'status': 'error', 'message': 'Learner not authenticated.'}), 401
+    
+    data = request.json or {}
+    block_id = data.get('block_id')
+    if not block_id:
+        return jsonify({'status': 'error', 'message': 'Missing block ID.'}), 400
+    
+    progress = LearnerBlockProgress.query.filter_by(
+        learner_id=learner_id,
+        courseware_id=courseware_id,
+        block_id=block_id
+    ).first()
+    
+    if not progress:
+        progress = LearnerBlockProgress(
+            learner_id=learner_id,
+            courseware_id=courseware_id,
+            block_id=block_id,
+            attempts_count=0,
+            time_spent_seconds=0
+        )
+        db.session.add(progress)
+    
+    progress.attempts_count = (progress.attempts_count or 0) + 1
+    if data.get('is_completed') is not None:
+        progress.is_completed = bool(data.get('is_completed'))
+    if data.get('score') is not None:
+        progress.score = int(data.get('score'))
+    if data.get('time_spent') is not None:
+        progress.time_spent_seconds = (progress.time_spent_seconds or 0) + int(data.get('time_spent'))
+        
+    db.session.commit()
+    return jsonify({'status': 'success'})

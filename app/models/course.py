@@ -118,3 +118,32 @@ class CourseMaterial(db.Model):
     def __repr__(self):
         return f'<CourseMaterial {self.title} ({self.material_type})>'
 
+
+class RiseCoursewareVersion(db.Model):
+    __tablename__ = 'rise_courseware_version'
+    id = db.Column(db.Integer, primary_key=True)
+    courseware_id = db.Column(db.Integer, db.ForeignKey('lesson_courseware.id'), nullable=False, index=True)
+    version_number = db.Column(db.Integer, default=1)
+    status = db.Column(db.String(20), default='Draft') # 'Draft', 'Published'
+    blocks_json = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    courseware = db.relationship('LessonCourseware', backref=db.backref('versions', lazy=True, cascade='all, delete-orphan'))
+
+
+class LearnerBlockProgress(db.Model):
+    __tablename__ = 'learner_block_progress'
+    id = db.Column(db.Integer, primary_key=True)
+    learner_id = db.Column(db.Integer, db.ForeignKey('learners.id'), nullable=False, index=True)
+    courseware_id = db.Column(db.Integer, db.ForeignKey('lesson_courseware.id'), nullable=False, index=True)
+    block_id = db.Column(db.String(50), nullable=False)
+    is_completed = db.Column(db.Boolean, default=False)
+    attempts_count = db.Column(db.Integer, default=0)
+    score = db.Column(db.Integer, nullable=True)
+    time_spent_seconds = db.Column(db.Integer, default=0)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint('learner_id', 'courseware_id', 'block_id', name='uq_learner_block'),
+    )
+

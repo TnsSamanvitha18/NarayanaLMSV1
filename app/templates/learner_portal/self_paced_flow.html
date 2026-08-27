@@ -455,13 +455,27 @@
                                     const feedbackBox = document.getElementById(`qc-feedback-${blockIdx}`);
                                     feedbackBox.style.display = 'block';
                                     
-                                    if (selected === correct) {
+                                    const isCorrect = (selected === correct);
+                                    if (isCorrect) {
                                         feedbackBox.className = "p-3 rounded-3 text-xs border border-success bg-success-subtle text-success-emphasis mt-2";
                                         feedbackBox.innerHTML = `<strong><i class="fa-solid fa-circle-check me-1"></i> Correct!</strong> ${explanation}`;
                                     } else {
                                         feedbackBox.className = "p-3 rounded-3 text-xs border border-danger bg-danger-subtle text-danger-emphasis mt-2";
                                         feedbackBox.innerHTML = `<strong><i class="fa-solid fa-circle-xmark me-1"></i> Incorrect.</strong> Try again! ${explanation}`;
                                     }
+
+                                    fetch(`/courses/courseware/{{ cw.id }}/track`, {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'X-CSRFToken': '{{ csrf_token() }}'
+                                        },
+                                        body: JSON.stringify({
+                                            block_id: 'knowledge_check_' + blockIdx,
+                                            is_completed: isCorrect,
+                                            score: isCorrect ? 100 : 0
+                                        })
+                                    }).catch(err => console.error("Telemetry failed:", err));
                                 }
                                 </script>
 
