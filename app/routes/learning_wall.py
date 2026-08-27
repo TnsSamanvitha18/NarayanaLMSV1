@@ -3,6 +3,7 @@ from app.models import db
 from app.models.learning_wall import LearningWallPost, LearningWallReaction, LearningWallComment
 from app.models.user import Learner
 from app.models.course import Course
+from app.utils.tagging import process_tags_and_notify, format_tags_filter
 from app.services.learning_wall_service import (
     seed_sample_wall_posts_if_empty,
     check_and_generate_birthday_posts,
@@ -134,6 +135,8 @@ def create_post():
         badge_color='bg-teal-subtle text-teal'
     )
     db.session.add(post)
+    db.session.flush() # Generate post.id
+    process_tags_and_notify(content, 'L&D Admin', content)
     db.session.commit()
     flash(f"Announcement '{title}' posted to the Learning Wall.", "success")
     return redirect(url_for('learning_wall.index'))
@@ -179,6 +182,8 @@ def add_comment():
         content=content
     )
     db.session.add(comment)
+    db.session.flush()
+    process_tags_and_notify(content, user_name, content)
     db.session.commit()
     
     return jsonify({
@@ -186,7 +191,7 @@ def add_comment():
         'comment': {
             'id': comment.id,
             'user_name': comment.user_name,
-            'content': comment.content,
+            'content': format_tags_filter(comment.content),
             'created_at': comment.created_at.strftime('%d-%b-%Y %H:%M')
         }
     })
@@ -240,6 +245,8 @@ def create_moment():
         badge_color=badge_color
     )
     db.session.add(post)
+    db.session.flush()
+    process_tags_and_notify(content, user_name, content)
     db.session.commit()
     
     flash("Successfully posted your learning moment!", "success")
@@ -279,6 +286,8 @@ def share_course():
         badge_color='bg-primary-subtle text-primary border-primary-subtle'
     )
     db.session.add(post)
+    db.session.flush()
+    process_tags_and_notify(post.content, user_name, post.content)
     db.session.commit()
     
     flash(f"Recommended course '{course.name}' on the Learning Wall!", "success")

@@ -71,6 +71,9 @@ def create_app(config_class=Config):
         except Exception:
             return {}
 
+    from app.utils.tagging import format_tags_filter
+    app.template_filter('format_tags')(format_tags_filter)
+
     # Global context processors for templates
     @app.context_processor
     def inject_global_vars():

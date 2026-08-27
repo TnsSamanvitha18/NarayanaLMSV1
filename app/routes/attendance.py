@@ -14,7 +14,7 @@ def list_attendance():
     search_query = request.args.get('search', '').strip()
     class_filter = request.args.get('class_id', '').strip()
 
-    query = Attendance.query.join(Learner).join(LiveClass)
+    query = Attendance.query.join(Learner).join(LiveClass, Attendance.class_id == LiveClass.id)
 
     if search_query:
         query = query.filter((Learner.global_id.ilike(f'%{search_query}%')) | (Learner.name.ilike(f'%{search_query}%')))

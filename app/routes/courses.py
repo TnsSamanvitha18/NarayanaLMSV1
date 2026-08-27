@@ -100,8 +100,8 @@ def create_course():
                 thumb_file.save(os.path.join(thumb_dir, thumb_filename))
                 new_course.thumbnail_filename = thumb_filename
 
-        # Live Online duration set directly by admin at course level
-        if mode == 'Live Online':
+        # Live Online & Live In Person duration set directly by admin at course level
+        if mode in ['Live Online', 'Live In Person']:
             try:
                 new_course.duration_hours = float(request.form.get('duration_hours', 1.0))
             except Exception:
@@ -737,8 +737,8 @@ def edit_course(course_id):
                 thumb_file.save(os.path.join(thumb_dir, thumb_filename))
                 course.thumbnail_filename = thumb_filename
 
-        # Live Online duration defined directly by admin at course level
-        if course.mode == 'Live Online':
+        # Live Online & Live In Person duration defined directly by admin at course level
+        if course.mode in ['Live Online', 'Live In Person']:
             try:
                 course.duration_hours = float(request.form.get('duration_hours', course.duration_hours or 1.0))
             except Exception:

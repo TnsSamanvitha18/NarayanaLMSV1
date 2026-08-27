@@ -89,7 +89,7 @@
                     <small class="text-muted">Target completion date for learners (Optional)</small>
                 </div>
 
-                <div class="col-md-12">
+                <div class="col-md-12" id="sequential_container">
                     <div class="card p-3 bg-light border-0">
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
@@ -131,7 +131,7 @@
                 </div>
 
                 <!-- Pre & Post Assessment CSVs (ONLY FOR LIVE IN PERSON & LIVE ONLINE COURSES) -->
-                <div class="col-md-6" id="pre_csv_container">
+                <div class="col-md-6" id="pre_csv_container" style="display: none;">
                     <div class="card bg-light border-0 p-3">
                         <label for="pre_assessment_csv" class="form-label fw-bold text-navy"><i class="fa-solid fa-pen-nib text-primary me-1"></i> Pre Assessment CSV File <span class="badge bg-outline-secondary border text-muted">Live Courses Only</span></label>
                         <input type="file" class="form-control mb-2" id="pre_assessment_csv" name="pre_assessment_csv" accept=".csv,.xlsx,.xls">
@@ -139,7 +139,7 @@
                     </div>
                 </div>
 
-                <div class="col-md-6" id="post_csv_container">
+                <div class="col-md-6" id="post_csv_container" style="display: none;">
                     <div class="card bg-light border-0 p-3">
                         <label for="post_assessment_csv" class="form-label fw-bold text-navy"><i class="fa-solid fa-list-check text-success me-1"></i> Post Assessment CSV File <span class="badge bg-outline-secondary border text-muted">Live Courses Only</span></label>
                         <input type="file" class="form-control mb-2" id="post_assessment_csv" name="post_assessment_csv" accept=".csv,.xlsx,.xls">
@@ -162,6 +162,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     const modeSelect = document.getElementById('mode');
     const durationInput = document.getElementById('duration_hours');
+    const sequentialContainer = document.getElementById('sequential_container');
     const summativeContainer = document.getElementById('summative_csv_container');
     const preContainer = document.getElementById('pre_csv_container');
     const postContainer = document.getElementById('post_csv_container');
@@ -169,29 +170,23 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateModeVisibility() {
         const mode = modeSelect.value;
         if (mode === 'Self Paced') {
-            // Self-Paced: Course End Assessment ONLY (No Pre/Post)
+            // Self-Paced: Course End Assessment ONLY (No Pre/Post); Sequential Access Enabled
             summativeContainer.style.display = 'block';
             preContainer.style.display = 'none';
             postContainer.style.display = 'none';
+            sequentialContainer.style.display = 'block';
 
             durationInput.readOnly = true;
             durationInput.classList.add('bg-light');
-        } else if (mode === 'Live Online') {
-            // Live Online: Pre/Post ONLY (No Course End); Duration pre-defined by admin
+        } else {
+            // Live Online & Live In Person: Pre/Post ONLY (No Course End); Duration manual entry; Sequential Access Disabled
             summativeContainer.style.display = 'none';
             preContainer.style.display = 'block';
             postContainer.style.display = 'block';
+            sequentialContainer.style.display = 'none';
 
             durationInput.readOnly = false;
             durationInput.classList.remove('bg-light');
-        } else {
-            // Live In Person: Pre/Post ONLY (No Course End); Duration auto-calculated
-            summativeContainer.style.display = 'none';
-            preContainer.style.display = 'block';
-            postContainer.style.display = 'block';
-
-            durationInput.readOnly = true;
-            durationInput.classList.add('bg-light');
         }
     }
 

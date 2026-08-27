@@ -171,8 +171,8 @@
 
                     <!-- Post Body Content -->
                     <div class="card-body p-4 bg-surface">
-                        <div class="post-content text-dark fs-6 lh-base mb-3">
-                            {{ post.content|replace('\n', '<br>')|safe }}
+                        <div class="post-content text-dark fs-6 lh-base mb-3 pre-line">
+                            {{ post.content | format_tags }}
                         </div>
 
                         {% if post.course %}
@@ -268,7 +268,7 @@
                                             {% endif %}
                                         </div>
                                     </div>
-                                    <p class="text-dark text-xs mb-0 pre-line">{{ c.content }}</p>
+                                    <p class="text-dark text-xs mb-0 pre-line">{{ c.content | format_tags }}</p>
                                 </div>
                             </div>
                             {% endfor %}
