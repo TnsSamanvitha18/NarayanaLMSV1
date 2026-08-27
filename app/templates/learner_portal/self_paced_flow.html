@@ -446,6 +446,73 @@
                                                 
                                                 <div id="qc-feedback-{{ loop.index }}" class="p-3 rounded-3 text-xs border" style="display: none;"></div>
                                             </div>
+                                        {% elif block.type == 'video' %}
+                                            <div class="card border-0 shadow-xs overflow-hidden rounded-3">
+                                                <div class="ratio ratio-16x9">
+                                                    <iframe src="{{ block.video_url }}" title="Video Block" allowfullscreen></iframe>
+                                                </div>
+                                            </div>
+                                        {% elif block.type == 'image_carousel' %}
+                                            <div id="carouselImage-{{ loop.index }}" class="carousel slide shadow-xs rounded-3 overflow-hidden bg-dark" data-bs-ride="carousel">
+                                                <div class="carousel-inner" style="max-height: 400px;">
+                                                    {% for item in block.items %}
+                                                        <div class="carousel-item {% if loop.first %}active{% endif %} text-center">
+                                                            <img src="{{ item.url }}" class="d-inline-block img-fluid" style="max-height: 400px; object-fit: contain;" alt="{{ item.caption }}">
+                                                            <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-75 rounded py-1 px-3">
+                                                                <p class="mb-0 small text-white">{{ item.caption }}</p>
+                                                            </div>
+                                                        </div>
+                                                    {% endfor %}
+                                                </div>
+                                                <button class="carousel-control-prev" type="button" data-bs-target="#carouselImage-{{ loop.index }}" data-bs-slide="prev">
+                                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                                    <span class="visually-hidden">Previous</span>
+                                                </button>
+                                                <button class="carousel-control-next" type="button" data-bs-target="#carouselImage-{{ loop.index }}" data-bs-slide="next">
+                                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                                    <span class="visually-hidden">Next</span>
+                                                </button>
+                                            </div>
+                                        {% elif block.type == 'video_carousel' %}
+                                            <div id="carouselVideo-{{ loop.index }}" class="carousel slide shadow-xs rounded-3 overflow-hidden bg-black" data-bs-interval="false">
+                                                <div class="carousel-inner">
+                                                    {% for item in block.items %}
+                                                        <div class="carousel-item {% if loop.first %}active{% endif %}">
+                                                            <div class="ratio ratio-16x9">
+                                                                <iframe src="{{ item.url }}" title="{{ item.title }}" allowfullscreen></iframe>
+                                                            </div>
+                                                            <div class="bg-dark text-white p-2.5 text-center">
+                                                                <span class="small fw-semibold">{{ item.title }}</span>
+                                                            </div>
+                                                        </div>
+                                                    {% endfor %}
+                                                </div>
+                                                <button class="carousel-control-prev" type="button" data-bs-target="#carouselVideo-{{ loop.index }}" data-bs-slide="prev">
+                                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                                    <span class="visually-hidden">Previous</span>
+                                                </button>
+                                                <button class="carousel-control-next" type="button" data-bs-target="#carouselVideo-{{ loop.index }}" data-bs-slide="next">
+                                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                                    <span class="visually-hidden">Next</span>
+                                                </button>
+                                            </div>
+                                        {% elif block.type == 'animated_backdrop' %}
+                                            {% if block.animation_type == 'particles' %}
+                                                <div class="animated-particles-box p-5 text-white text-center rounded-3 position-relative overflow-hidden shadow-sm animate-card" style="min-height: 200px;">
+                                                    <div class="bubbles-overlay"></div>
+                                                    <div class="position-relative" style="z-index: 2;">
+                                                        <h3 class="fw-bold mb-2">{{ block.title }}</h3>
+                                                        <div class="opacity-90 fs-6 text-start mx-auto" style="max-width: 480px;">{{ block.body | safe }}</div>
+                                                    </div>
+                                                </div>
+                                            {% else %}
+                                                <div class="animated-gradient-box p-5 text-white text-center rounded-3 position-relative overflow-hidden shadow-sm animate-card" style="min-height: 200px;">
+                                                    <div class="position-relative" style="z-index: 2;">
+                                                        <h3 class="fw-bold mb-2">{{ block.title }}</h3>
+                                                        <div class="opacity-90 fs-6 text-start mx-auto" style="max-width: 480px;">{{ block.body | safe }}</div>
+                                                    </div>
+                                                </div>
+                                            {% endif %}
                                         {% endif %}
                                     {% endfor %}
                                 </div>
@@ -1008,5 +1075,41 @@
     });
 });
 </script>
+
+<style>
+.animated-gradient-box {
+    background: linear-gradient(270deg, #0A4B5C, #00A896, #6f42c1);
+    background-size: 600% 600%;
+    animation: gradientShift 10s ease infinite;
+}
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+.animated-particles-box {
+    background: radial-gradient(circle, #0A4B5C 10%, #062b35 90%);
+}
+.bubbles-overlay {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: radial-gradient(circle, rgba(255,255,255,0.15) 20%, transparent 20%),
+                radial-gradient(circle, rgba(255,255,255,0.1) 15%, transparent 15%);
+    background-size: 30px 30px;
+    background-position: 0 0, 15px 15px;
+    animation: particlesMove 4s linear infinite;
+    z-index: 1;
+}
+@keyframes particlesMove {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-30px); }
+}
+.animate-card {
+    transition: transform 0.3s;
+}
+.animate-card:hover {
+    transform: scale(1.01);
+}
+</style>
 {% endif %}
 {% endblock %}

@@ -1605,3 +1605,74 @@ def track_rise_telemetry(courseware_id):
         
     db.session.commit()
     return jsonify({'status': 'success'})
+
+
+@courses_bp.route('/lesson/<int:lesson_id>/deploy', methods=['POST'])
+@admin_required
+def deploy_rise_course(lesson_id):
+    """
+    Auto-Deploy: Package the RISE lesson courseware and deploy it as a new self-paced course.
+    """
+    lesson = CourseLesson.query.get_or_404(lesson_id)
+    cw = LessonCourseware.query.filter_by(lesson_id=lesson.id, courseware_type='Text').first()
+    
+    if not cw or not cw.content_text:
+        return jsonify({'status': 'error', 'message': 'No RISE courseware contents found to deploy.'}), 400
+        
+    # Generate unique course parameters
+    import random
+    suffix = random.randint(1000, 9999)
+    new_course_id = f"CRS-RISE-{suffix}"
+    
+    # 1. Create a new course
+    new_course = Course(
+        course_id=new_course_id,
+        name=f"Deployed Course: {lesson.title}",
+        duration_hours=lesson.duration_hours or 1.0,
+        description=f"Automatically deployed self-paced course from RISE Lesson: {lesson.title}.",
+        mode='Self Paced',
+        pass_percentage=80.0,
+        has_certificate=True,
+        is_sequential=True
+    )
+    db.session.add(new_course)
+    db.session.commit()
+    
+    # 2. Copy lesson
+    new_lesson = CourseLesson(
+        course_id=new_course.id,
+        lesson_number=1,
+        title=lesson.title,
+        summary=lesson.summary,
+        duration_hours=lesson.duration_hours,
+        min_time_minutes=lesson.min_time_minutes
+    )
+    db.session.add(new_lesson)
+    db.session.commit()
+    
+    # 3. Copy text courseware blocks content
+    new_cw = LessonCourseware(
+        lesson_id=new_lesson.id,
+        title=cw.title,
+        courseware_type='Text',
+        content_text=cw.content_text
+    )
+    db.session.add(new_cw)
+    
+    # 4. Copy draft version if available
+    draft = RiseCoursewareVersion.query.filter_by(courseware_id=cw.id, status='Draft').first()
+    if draft:
+        new_draft = RiseCoursewareVersion(
+            courseware_id=new_cw.id,
+            status='Draft',
+            blocks_json=draft.blocks_json
+        )
+        db.session.add(new_draft)
+        
+    db.session.commit()
+    
+    return jsonify({
+        'status': 'success',
+        'message': f'Course successfully deployed as {new_course_id}!',
+        'redirect_url': url_for('courses.view_course', course_id=new_course.id)
+    })
