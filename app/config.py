@@ -12,6 +12,7 @@ class Config:
         _db_url = _db_url.replace("postgres://", "postgresql://", 1)
     SQLALCHEMY_DATABASE_URI = _db_url or f'sqlite:///{os.path.join(BASE_DIR, "lms.db")}'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    ENABLE_CONTENT_AUTHORING = os.environ.get('ENABLE_CONTENT_AUTHORING', 'True') == 'True'
     
     # Upload Directories
     UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')

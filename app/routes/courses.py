@@ -1406,3 +1406,131 @@ def download_attendance(class_id):
         as_attachment=True,
         download_name=filename
     )
+
+
+@courses_bp.route('/<int:course_id>/lessons/<int:lesson_id>/author', methods=['GET', 'POST'])
+@admin_required
+def author_lesson(course_id, lesson_id):
+    """
+    Admin Course Authoring: Visual editor for lesson slides and document embeds.
+    """
+    if not current_app.config.get('ENABLE_CONTENT_AUTHORING', True):
+        flash("Content authoring tool is currently disabled by system configuration.", "warning")
+        return redirect(url_for('courses.view_course', course_id=course_id))
+
+    course = Course.query.get_or_404(course_id)
+    lesson = CourseLesson.query.get_or_404(lesson_id)
+
+    # Find or create a default text courseware for this lesson
+    cw = LessonCourseware.query.filter_by(lesson_id=lesson.id, courseware_type='Text').first()
+    if not cw:
+        cw = LessonCourseware(
+            lesson_id=lesson.id,
+            title=f"Slides for {lesson.title}",
+            courseware_type='Text',
+            content_text=json.dumps([
+                {
+                    "title": "Welcome to " + lesson.title,
+                    "layout": "full",
+                    "body": "<p>Start writing your lesson slides here. You can add text, headers, and bullet points!</p>",
+                    "theme": "navy"
+                }
+            ])
+        )
+        db.session.add(cw)
+        db.session.commit()
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+
+        if action == 'upload_doc':
+            # Handle local PDF/Excel/Word document upload and add as new courseware
+            doc_file = request.files.get('doc_file')
+            doc_title = request.form.get('doc_title', 'Lesson Document').strip()
+            
+            if doc_file and doc_file.filename:
+                # Save to uploads folder
+                filename = f"doc_{uuid.uuid4().hex}_{doc_file.filename}"
+                upload_dir = os.path.join(current_app.root_path, '..', 'uploads', 'materials')
+                os.makedirs(upload_dir, exist_ok=True)
+                doc_file.save(os.path.join(upload_dir, filename))
+                
+                # Determine courseware type
+                ext = doc_file.filename.split('.')[-1].lower()
+                cw_type = 'PDF'
+                if ext in ['xls', 'xlsx', 'csv']:
+                    cw_type = 'Excel'
+                elif ext in ['ppt', 'pptx']:
+                    cw_type = 'PPT'
+                elif ext in ['doc', 'docx']:
+                    cw_type = 'Doc'
+
+                new_cw = LessonCourseware(
+                    lesson_id=lesson.id,
+                    title=doc_title,
+                    courseware_type=cw_type,
+                    filename=filename
+                )
+                db.session.add(new_cw)
+                db.session.commit()
+                flash(f"Successfully uploaded and added document: {doc_title}", "success")
+            else:
+                flash("Please choose a valid file to upload.", "warning")
+            return redirect(url_for('courses.author_lesson', course_id=course.id, lesson_id=lesson.id))
+
+        elif action == 'embed_url':
+            # Handle Google Drive/External document embeds
+            embed_url = request.form.get('embed_url', '').strip()
+            embed_title = request.form.get('embed_title', 'Embedded Content').strip()
+            embed_type = request.form.get('embed_type', 'PDF') # 'PDF', 'Excel', 'Doc', 'PPT'
+
+            if embed_url:
+                new_cw = LessonCourseware(
+                    lesson_id=lesson.id,
+                    title=embed_title,
+                    courseware_type=embed_type,
+                    external_url=embed_url
+                )
+                db.session.add(new_cw)
+                db.session.commit()
+                flash(f"Successfully embedded document: {embed_title}", "success")
+            else:
+                flash("Please enter a valid URL.", "warning")
+            return redirect(url_for('courses.author_lesson', course_id=course.id, lesson_id=lesson.id))
+
+        else:
+            # Handle saving interactive slide content
+            slides_data = request.form.get('slides_json')
+            if slides_data:
+                try:
+                    # Validate JSON
+                    json.loads(slides_data)
+                    cw.content_text = slides_data
+                    db.session.commit()
+                    return jsonify({'status': 'success', 'message': 'Lesson slides saved successfully!'})
+                except Exception as e:
+                    return jsonify({'status': 'error', 'message': f'Invalid slides data: {str(e)}'}), 400
+            
+            return jsonify({'status': 'error', 'message': 'No slides data provided.'}), 400
+
+    # Get all other uploaded files/embeds for this lesson
+    materials = LessonCourseware.query.filter(
+        LessonCourseware.lesson_id == lesson.id,
+        LessonCourseware.id != cw.id
+    ).all()
+
+    # Load slides structure
+    slides = []
+    try:
+        slides = json.loads(cw.content_text) if cw.content_text else []
+    except Exception:
+        pass
+
+    return render_template(
+        'courses/author.html',
+        course=course,
+        lesson=lesson,
+        cw=cw,
+        slides=slides,
+        materials=materials
+    )

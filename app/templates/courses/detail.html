@@ -310,6 +310,11 @@
                                         <span class="badge bg-navy text-white me-2">Lesson {{ les.lesson_number }}</span> {{ les.title }}
                                         <span class="badge bg-secondary font-monospace ms-2"><i class="fa-regular fa-clock me-1"></i>{{ les.duration_hours or 1.0 }} hrs</span>
                                     </button>
+                                    {% if enable_content_authoring %}
+                                    <a href="{{ url_for('courses.author_lesson', course_id=course.id, lesson_id=les.id) }}" class="btn btn-sm btn-outline-primary px-2 py-1 ms-2" title="Author Slide Content">
+                                        <i class="fa-solid fa-pen-nib me-1"></i> Author Content
+                                    </a>
+                                    {% endif %}
                                     <form action="{{ url_for('courses.delete_lesson', lesson_id=les.id) }}" method="POST" class="d-inline ms-2" onsubmit="return confirm('Are you sure you want to delete Lesson #{{ les.lesson_number }} completely?');">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="btn btn-sm btn-outline-danger px-2 py-1" title="Delete Lesson">

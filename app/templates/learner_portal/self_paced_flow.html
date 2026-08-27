@@ -311,15 +311,115 @@
                             </div>
                             {% endif %}
 
-                        {% elif cw.courseware_type == 'PPT' or (cw.filename and cw.filename.split('.')[-1]|lower in ['ppt', 'pptx']) %}
-                            <div class="rounded-0 overflow-hidden bg-black" style="height: 620px; width: 100%;">
-                                <iframe src="{{ url_for('courses.stream_courseware', courseware_id=cw.id) }}" class="w-100 h-100 border-0" allowfullscreen></iframe>
+                        {% elif cw.courseware_type in ['PDF', 'PPT', 'Excel', 'Doc'] or (cw.filename and cw.filename.split('.')[-1]|lower in ['pdf', 'ppt', 'pptx', 'xls', 'xlsx', 'doc', 'docx', 'csv']) %}
+                            <div class="bg-white border">
+                                {% set is_gd, emb_url, g_type, file_id = parse_gdrive_url(cw.external_url) if cw.external_url else (False, '', '', '') %}
+                                {% if is_gd %}
+                                    <iframe src="{{ emb_url }}" class="w-100" style="height: 580px; border: none;" allowfullscreen></iframe>
+                                {% elif cw.external_url %}
+                                    <iframe src="{{ cw.external_url }}" class="w-100" style="height: 580px; border: none;" allowfullscreen></iframe>
+                                {% else %}
+                                    <iframe src="{{ url_for('courses.stream_courseware', courseware_id=cw.id) }}#toolbar=0" class="w-100" style="height: 580px; border: none;" allowfullscreen></iframe>
+                                {% endif %}
                             </div>
 
-                        {% elif cw.courseware_type == 'PDF' or (cw.filename and cw.filename.split('.')[-1]|lower == 'pdf') %}
-                            <div class="bg-white">
-                                <iframe src="{{ url_for('courses.stream_courseware', courseware_id=cw.id) }}#toolbar=0" class="w-100" style="height: 580px; border: none;"></iframe>
-                            </div>
+                        {% elif cw.courseware_type == 'Text' %}
+                            {% set is_slides = False %}
+                            {% set slides_deck = [] %}
+                            {% if enable_content_authoring and cw.content_text %}
+                                {% set slides_deck = cw.content_text | from_json %}
+                                {% if slides_deck is sequence and slides_deck|length > 0 %}
+                                    {% set is_slides = True %}
+                                {% endif %}
+                            {% endif %}
+
+                            {% if is_slides %}
+                                <!-- Visual Authoring Interactive Slide Deck -->
+                                <div class="slide-deck-viewer bg-dark py-4 text-white position-relative rounded-0" id="deck-viewer-{{ cw.id }}" style="min-height: 380px;">
+                                    <div class="container" style="max-width: 600px;">
+                                        {% for slide in slides_deck %}
+                                        <div class="authored-slide-card p-4 rounded-3 shadow text-center position-relative my-2" id="slide-{{ cw.id }}-{{ loop.index0 }}" 
+                                             style="display: {% if loop.first %}block{% else %}none{% endif %}; min-height: 280px; transition: opacity 0.5s; 
+                                             background: {% if slide.theme == 'emerald' %}linear-gradient(135deg, #198754, #12633d){% elif slide.theme == 'sunset' %}linear-gradient(135deg, #fd7e14, #ffc107){% elif slide.theme == 'plum' %}linear-gradient(135deg, #6f42c1, #dc3545){% elif slide.theme == 'dark' %}linear-gradient(135deg, #212529, #111111){% elif slide.theme == 'light' %}#ffffff{% else %}linear-gradient(135deg, #0A4B5C, #062b35){% endif %};
+                                             color: {% if slide.theme == 'light' or slide.theme == 'sunset' %}#212529{% else %}#ffffff{% endif %};">
+                                            
+                                            <div class="d-flex justify-content-between align-items-center mb-3 opacity-75">
+                                                <span class="badge bg-white-50 text-xxs font-monospace text-dark">Slide {{ loop.index }} of {{ slides_deck|length }}</span>
+                                                <i class="fa-solid fa-graduation-cap"></i>
+                                            </div>
+                                            <div class="my-auto py-3">
+                                                <h4 class="fw-bold mb-3">{{ slide.title }}</h4>
+                                                <div class="slide-body text-start lh-base mx-auto" style="max-width: 480px; font-size: 0.95rem;">
+                                                    {{ slide.body | safe }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+
+                                        <!-- Navigation Controls -->
+                                        <div class="d-flex justify-content-between align-items-center mt-4 px-3">
+                                            <button type="button" class="btn btn-outline-light btn-sm rounded-pill px-3" id="prev-btn-{{ cw.id }}" disabled onclick="navigateDeck({{ cw.id }}, -1)">
+                                                <i class="fa-solid fa-chevron-left me-1"></i> Prev
+                                            </button>
+                                            <span class="text-xs font-monospace text-white-50" id="indicator-{{ cw.id }}">Slide 1 / {{ slides_deck|length }}</span>
+                                            <button type="button" class="btn btn-teal text-white btn-sm rounded-pill px-3" id="next-btn-{{ cw.id }}" onclick="navigateDeck({{ cw.id }}, 1)">
+                                                Next <i class="fa-solid fa-chevron-right ms-1"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <script>
+                                (function() {
+                                    window.deckStates = window.deckStates || {};
+                                    window.deckStates[{{ cw.id }}] = {
+                                        current: 0,
+                                        total: {{ slides_deck|length }}
+                                    };
+                                })();
+
+                                function navigateDeck(cwId, dir) {
+                                    const state = window.deckStates[cwId];
+                                    const oldIdx = state.current;
+                                    
+                                    // Hide old slide
+                                    document.getElementById(`slide-${cwId}-${oldIdx}`).style.display = 'none';
+                                    
+                                    state.current += dir;
+                                    const newIdx = state.current;
+                                    
+                                    // Show new slide
+                                    document.getElementById(`slide-${cwId}-${newIdx}`).style.display = 'block';
+                                    
+                                    // Update buttons
+                                    document.getElementById(`prev-btn-${cwId}`).disabled = (newIdx === 0);
+                                    
+                                    const nextBtn = document.getElementById(`next-btn-${cwId}`);
+                                    if (newIdx === state.total - 1) {
+                                        nextBtn.innerHTML = '<i class="fa-solid fa-check me-1"></i> Finish';
+                                    } else {
+                                        nextBtn.innerHTML = 'Next <i class="fa-solid fa-chevron-right ms-1"></i>';
+                                    }
+                                    
+                                    if (newIdx >= state.total) {
+                                        // Auto loop back or finish
+                                        state.current = state.total - 1;
+                                        document.getElementById(`slide-${cwId}-${state.current}`).style.display = 'block';
+                                        return;
+                                    }
+                                    
+                                    document.getElementById(`indicator-${cwId}`).innerText = `Slide ${newIdx + 1} / ${state.total}`;
+                                }
+                                </script>
+                            {% else %}
+                                <!-- Plain Text Reading Block -->
+                                <div class="p-4 bg-white border rounded">
+                                    <h5 class="fw-bold text-navy mb-3">{{ cw.title }}</h5>
+                                    <div class="lh-base" style="font-size: 0.95rem;">
+                                        {{ cw.content_text | safe }}
+                                    </div>
+                                </div>
+                            {% endif %}
                         {% elif cw.courseware_type == 'SCORM' %}
                             <div class="scorm-player-wrapper border-0" style="height: 600px; width: 100%; background: #fff; position: relative;">
                                 <script>

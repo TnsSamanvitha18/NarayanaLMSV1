@@ -1,5 +1,5 @@
 import os
-from flask import Flask, session, g, request
+from flask import Flask, session, g, request, current_app
 from flask_wtf.csrf import CSRFProtect
 from flask_migrate import Migrate
 from app.config import Config
@@ -117,7 +117,8 @@ def create_app(config_class=Config):
             'parse_gdrive_url': parse_gdrive_url,
             'user_notifications': user_notifications,
             'unread_notif_count': unread_notif_count,
-            'safe_endpoint': request.endpoint or ''
+            'safe_endpoint': request.endpoint or '',
+            'enable_content_authoring': current_app.config.get('ENABLE_CONTENT_AUTHORING', True)
         }
 
     # Custom error handlers
