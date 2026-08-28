@@ -39,7 +39,9 @@ def init_db_and_seed(app):
             "ALTER TABLE learners ADD COLUMN last_active_date DATE;",
             "ALTER TABLE learners ADD COLUMN designation VARCHAR(120);",
             "ALTER TABLE learners ADD COLUMN location VARCHAR(120);",
-            "ALTER TABLE learners ADD COLUMN branch VARCHAR(120);"
+            "ALTER TABLE learners ADD COLUMN branch VARCHAR(120);",
+            "ALTER TABLE learner_notifications ADD COLUMN course_id INTEGER;",
+            "ALTER TABLE learner_notifications ADD COLUMN lesson_id INTEGER;"
         ]
 
         for stmt in alter_statements:

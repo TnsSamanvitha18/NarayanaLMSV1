@@ -29,6 +29,14 @@ def db_debug():
             res['wall_posts_columns_error'] = str(e)
             res['wall_posts_columns_trace'] = traceback.format_exc()
         
+        # 2. Query columns of learner_notifications
+        try:
+            db.session.execute(text("SELECT id, learner_id, title, message, notification_type, is_read, created_at, course_id, lesson_id FROM learner_notifications LIMIT 1"))
+            res['notifications_columns'] = 'Success'
+        except Exception as e:
+            res['notifications_columns_error'] = str(e)
+            res['notifications_columns_trace'] = traceback.format_exc()
+        
         # 3. Simulate course sharing operation
         try:
             from app.models.course import Course
