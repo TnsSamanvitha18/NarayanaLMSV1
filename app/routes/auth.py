@@ -29,12 +29,32 @@ def db_debug():
             res['wall_posts_columns_error'] = str(e)
             res['wall_posts_columns_trace'] = traceback.format_exc()
         
-        # 2. Query columns of learners
+        # 3. Simulate course sharing operation
         try:
-            db.session.execute(text("SELECT points, designation, location, branch FROM learners LIMIT 1"))
-            res['learners_columns'] = 'Success'
+            from app.models.course import Course
+            from app.models.learning_wall import LearningWallPost
+            from app.utils.tagging import process_tags_and_notify
+            course = Course.query.first()
+            if course:
+                post = LearningWallPost(
+                    post_type='COURSE_RECOMMENDATION',
+                    title=f"Debug recommends: {course.name}",
+                    content=f"Check out this interesting course: {course.name}.",
+                    learner_id=None,
+                    course_id=course.id,
+                    icon='fa-share-nodes',
+                    badge_color='bg-primary-subtle text-primary border-primary-subtle'
+                )
+                db.session.add(post)
+                db.session.flush()
+                process_tags_and_notify(post.content, "Debug", post.content)
+                db.session.rollback() # Rollback so we don't pollute database
+                res['share_course_simulation'] = 'Success'
+            else:
+                res['share_course_simulation'] = 'No courses to test'
         except Exception as e:
-            res['learners_columns_error'] = str(e)
+            res['share_course_simulation_error'] = str(e)
+            res['share_course_simulation_trace'] = traceback.format_exc()
             
         return res
     except Exception as e:
