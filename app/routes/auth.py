@@ -10,6 +10,25 @@ def index():
     return redirect(url_for('auth.admin_login'))
 
 
+@auth_bp.route('/db_debug')
+def db_debug():
+    import traceback
+    from app.services.report_service import generate_report_dataframe
+    try:
+        df = generate_report_dataframe()
+        return {
+            'status': 'success',
+            'rows_count': len(df),
+            'columns': list(df.columns)
+        }
+    except Exception as e:
+        return {
+            'status': 'error',
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }
+
+
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def admin_login():
     if session.get('admin_logged_in'):
