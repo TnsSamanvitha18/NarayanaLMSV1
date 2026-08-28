@@ -27,11 +27,12 @@ class Course(db.Model):
 
     @staticmethod
     def generate_course_id():
-        last_course = Course.query.order_by(Course.id.desc()).first()
-        if not last_course:
-            return "CRS-000001"
-        last_num = int(last_course.course_id.split('-')[1])
-        return f"CRS-{last_num + 1:06d}"
+        all_courses = Course.query.order_by(Course.id.desc()).all()
+        for c in all_courses:
+            parts = c.course_id.split('-')
+            if len(parts) == 2 and parts[1].isdigit():
+                return f"CRS-{int(parts[1]) + 1:06d}"
+        return "CRS-000001"
 
     def __repr__(self):
         return f'<Course {self.course_id} - {self.name}>'
