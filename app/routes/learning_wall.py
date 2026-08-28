@@ -298,7 +298,7 @@ def share_course():
         learner_id=learner_id if not session.get('admin_logged_in') else None,
         course_id=course.id,
         icon='fa-share-nodes',
-        badge_color='bg-primary-subtle text-primary border-primary-subtle'
+        badge_color='bg-primary-subtle text-primary'
     )
     db.session.add(post)
     db.session.flush()

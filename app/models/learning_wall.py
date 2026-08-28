@@ -13,7 +13,7 @@ class LearningWallPost(db.Model):
     course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=True)
     
     icon = db.Column(db.String(50), default='fa-bullhorn')
-    badge_color = db.Column(db.String(50), default='bg-teal-subtle text-teal')
+    badge_color = db.Column(db.String(255), default='bg-teal-subtle text-teal')
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
