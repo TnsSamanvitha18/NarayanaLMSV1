@@ -132,4 +132,8 @@ def create_app(config_class=Config):
         from flask import render_template
         return render_template('errors/500.html'), 500
 
+    # Auto-initialize database tables and seed files on startup (Render/Waitress support)
+    from app.seed import init_db_and_seed
+    init_db_and_seed(app)
+
     return app
