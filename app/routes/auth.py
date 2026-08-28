@@ -10,65 +10,6 @@ def index():
     return redirect(url_for('auth.admin_login'))
 
 
-@auth_bp.route('/db_debug')
-def db_debug():
-    import traceback
-    from sqlalchemy import text
-    from app.models import db
-    try:
-        dialect = db.engine.dialect.name
-        res = {
-            'dialect': dialect,
-            'tables': list(db.metadata.tables.keys())
-        }
-        # 1. Query columns of learning_wall_posts
-        try:
-            db.session.execute(text("SELECT id, post_type, title, content, learner_id, course_id, icon, badge_color FROM learning_wall_posts LIMIT 1"))
-            res['wall_posts_columns'] = 'Success'
-        except Exception as e:
-            res['wall_posts_columns_error'] = str(e)
-            res['wall_posts_columns_trace'] = traceback.format_exc()
-        
-        # 2. Query columns of learner_notifications
-        try:
-            db.session.execute(text("SELECT id, learner_id, title, message, notification_type, is_read, created_at, course_id, lesson_id FROM learner_notifications LIMIT 1"))
-            res['notifications_columns'] = 'Success'
-        except Exception as e:
-            res['notifications_columns_error'] = str(e)
-            res['notifications_columns_trace'] = traceback.format_exc()
-        
-        # 3. Simulate course sharing operation
-        try:
-            from app.models.course import Course
-            from app.models.learning_wall import LearningWallPost
-            from app.utils.tagging import process_tags_and_notify
-            course = Course.query.first()
-            if course:
-                post = LearningWallPost(
-                    post_type='COURSE_RECOMMENDATION',
-                    title=f"Debug recommends: {course.name}",
-                    content=f"Check out this interesting course: {course.name}.",
-                    learner_id=None,
-                    course_id=course.id,
-                    icon='fa-share-nodes',
-                    badge_color='bg-primary-subtle text-primary border-primary-subtle'
-                )
-                db.session.add(post)
-                db.session.flush()
-                process_tags_and_notify(post.content, "Debug", post.content)
-                db.session.rollback() # Rollback so we don't pollute database
-                res['share_course_simulation'] = 'Success'
-            else:
-                res['share_course_simulation'] = 'No courses to test'
-        except Exception as e:
-            res['share_course_simulation_error'] = str(e)
-            res['share_course_simulation_trace'] = traceback.format_exc()
-            
-        return res
-    except Exception as e:
-        return {'error': str(e), 'trace': traceback.format_exc()}
-
-
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def admin_login():
     if session.get('admin_logged_in'):
