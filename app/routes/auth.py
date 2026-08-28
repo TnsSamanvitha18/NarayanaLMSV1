@@ -13,20 +13,32 @@ def index():
 @auth_bp.route('/db_debug')
 def db_debug():
     import traceback
-    from app.services.report_service import generate_report_dataframe
+    from sqlalchemy import text
+    from app.models import db
     try:
-        df = generate_report_dataframe()
-        return {
-            'status': 'success',
-            'rows_count': len(df),
-            'columns': list(df.columns)
+        dialect = db.engine.dialect.name
+        res = {
+            'dialect': dialect,
+            'tables': list(db.metadata.tables.keys())
         }
+        # 1. Query columns of learning_wall_posts
+        try:
+            db.session.execute(text("SELECT id, post_type, title, content, learner_id, course_id, icon, badge_color FROM learning_wall_posts LIMIT 1"))
+            res['wall_posts_columns'] = 'Success'
+        except Exception as e:
+            res['wall_posts_columns_error'] = str(e)
+            res['wall_posts_columns_trace'] = traceback.format_exc()
+        
+        # 2. Query columns of learners
+        try:
+            db.session.execute(text("SELECT points, designation, location, branch FROM learners LIMIT 1"))
+            res['learners_columns'] = 'Success'
+        except Exception as e:
+            res['learners_columns_error'] = str(e)
+            
+        return res
     except Exception as e:
-        return {
-            'status': 'error',
-            'error': str(e),
-            'traceback': traceback.format_exc()
-        }
+        return {'error': str(e), 'trace': traceback.format_exc()}
 
 
 @auth_bp.route('/login', methods=['GET', 'POST'])

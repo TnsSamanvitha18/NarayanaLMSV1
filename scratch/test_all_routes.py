@@ -49,6 +49,31 @@ def inspect_all_routes():
                 print(f"[CRASH] Endpoint: {ep} failed with exception: {e}")
                 failed_endpoints.append((ep, str(e)))
 
+        # Parameterized Custom Endpoints for Super Admin and Learners
+        parameterized_tests = [
+            ('super_admin.view_table', {'table_name': 'learners'}),
+            ('super_admin.view_table', {'table_name': 'courses'}),
+            ('learners.learner_detail', {'learner_id': 1}),
+            ('learners.self_paced_flow', {'course_id_str': 'CRS-000001'}),
+            ('learners.take_assessment', {'course_id': 1, 'assessment_type': 'PRE'}),
+            ('learners.submit_feedback', {'repo_id': 1})
+        ]
+
+        print("\nTesting parameterized custom endpoints for Super Admin and Learners...")
+        for ep, args in parameterized_tests:
+            try:
+                with app.test_request_context():
+                    url = url_for(ep, **args)
+                res = client.get(url, follow_redirects=True)
+                if res.status_code != 200:
+                    print(f"[FAIL] Parameterized Endpoint: {ep} ({url}) returned Status: {res.status_code}")
+                    failed_endpoints.append((ep, url, res.status_code))
+                else:
+                    print(f"[PASS] Parameterized Endpoint: {ep} ({url}) - 200 OK")
+            except Exception as e:
+                print(f"[CRASH] Parameterized Endpoint: {ep} failed with exception: {e}")
+                failed_endpoints.append((ep, str(e)))
+
         print("\n--- INSPECTION SUMMARY ---")
         if not failed_endpoints:
             print("ALL MONITORED ENDPOINTS PASSED SITE-WIDE INSPECTION SUCCESSFULLY!")
