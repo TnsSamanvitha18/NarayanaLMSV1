@@ -10,39 +10,6 @@ def index():
     return redirect(url_for('auth.admin_login'))
 
 
-@auth_bp.route('/db_debug')
-def db_debug():
-    import traceback
-    from sqlalchemy import text
-    from app.models import db
-    try:
-        dialect = db.engine.dialect.name
-        res = {
-            'dialect': dialect,
-            'tables': list(db.metadata.tables.keys())
-        }
-        try:
-            db.session.execute(text("SELECT id, global_id, name FROM learners LIMIT 1"))
-            res['learners_query_simple'] = 'Success'
-        except Exception as e:
-            res['learners_query_simple_error'] = str(e)
-        try:
-            db.session.execute(text("SELECT points, designation, location, branch FROM learners LIMIT 1"))
-            res['learners_query_columns'] = 'Success'
-        except Exception as e:
-            res['learners_query_columns_error'] = str(e)
-            res['learners_query_columns_trace'] = traceback.format_exc()
-        try:
-            db.session.execute(text("SELECT * FROM rise_courseware_versions LIMIT 1"))
-            res['rise_query'] = 'Success'
-        except Exception as e:
-            res['rise_query_error'] = str(e)
-            res['rise_query_trace'] = traceback.format_exc()
-        return res
-    except Exception as e:
-        return {'error': str(e), 'trace': traceback.format_exc()}
-
-
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def admin_login():
     if session.get('admin_logged_in'):
