@@ -11,4 +11,5 @@ from app.models.badge import LearnerBadge
 from app.models.feedback import FeedbackRepository, FeedbackQuestion, FeedbackResponse
 from app.models.learning_wall import LearningWallPost, LearningWallReaction
 from app.models.notification import LearnerNotification
+from app.models.issue import LmsIssue
 

@@ -34,6 +34,7 @@ class Learner(db.Model):
     points = db.Column(db.Integer, nullable=False, default=0, index=True)
     current_streak = db.Column(db.Integer, nullable=False, default=0)
     last_active_date = db.Column(db.Date, nullable=True)
+    theme = db.Column(db.String(50), nullable=False, default='navy')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     subordinates = db.relationship('Learner', backref=db.backref('manager', remote_side=[id]), lazy=True)

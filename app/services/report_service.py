@@ -29,7 +29,7 @@ ALL_REPORT_COLUMNS = {
     'feedback_status': 'Feedback Submitted'
 }
 
-def generate_report_dataframe(selected_columns=None, search_query=None, mode_filter=None, date_from=None, date_to=None):
+def generate_report_dataframe(selected_columns=None, search_query=None, mode_filter=None, date_from=None, date_to=None, class_id_filter=None, course_id_filter=None):
     """
     Queries DB for learner enrollments, builds flat data records,
     and returns a Pandas DataFrame with selected columns.
@@ -57,9 +57,18 @@ def generate_report_dataframe(selected_columns=None, search_query=None, mode_fil
             if not match:
                 continue
 
-        # Check mode filter
         if mode_filter and mode_filter != 'ALL':
             if course.mode != mode_filter:
+                continue
+
+        # Check course filter
+        if course_id_filter and course_id_filter != 'ALL':
+            if str(course.id) != str(course_id_filter):
+                continue
+
+        # Check class filter
+        if class_id_filter and class_id_filter != 'ALL':
+            if not live_cls or str(live_cls.id) != str(class_id_filter):
                 continue
 
         # Check date range filter (enrolled_at)

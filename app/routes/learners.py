@@ -1072,4 +1072,58 @@ def complete_flashcards(course_id):
     return jsonify({
         'status': 'success',
         'message': 'Congratulations! You earned 20 points and unlocked the Flashcard Pro badge!'
-    })
+    })
+
+
+@learners_bp.route('/set_theme', methods=['POST'])
+def set_theme():
+    """
+    Learner Portal: Route to save layout theme choice.
+    """
+    learner_id = session.get('learner_id')
+    if not learner_id:
+        return jsonify({'status': 'error', 'message': 'Not logged in'}), 401
+        
+    theme = request.json.get('theme', 'navy').strip()
+    valid_themes = ['navy', 'emerald', 'sunset', 'purple', 'dark']
+    if theme not in valid_themes:
+        return jsonify({'status': 'error', 'message': 'Invalid theme selection'}), 400
+        
+    learner = Learner.query.get(learner_id)
+    if learner:
+        learner.theme = theme
+        db.session.commit()
+        session['learner_theme'] = theme
+        return jsonify({'status': 'success', 'theme': theme})
+    return jsonify({'status': 'error', 'message': 'Learner not found'}), 404
+
+
+@learners_bp.route('/raise_issue', methods=['POST'])
+def raise_issue():
+    """
+    Learner Portal: Submit a technical or content support issue.
+    """
+    learner_id = session.get('learner_id')
+    if not learner_id:
+        flash("Please log in to submit an issue.", "danger")
+        return redirect(url_for('auth.learner_login'))
+        
+    category = request.form.get('category', 'Technical').strip()
+    description = request.form.get('description', '').strip()
+    
+    if not description:
+        flash("Description is required.", "danger")
+        return redirect(url_for('learners.my_portal'))
+        
+    from app.models.issue import LmsIssue
+    issue = LmsIssue(
+        learner_id=learner_id,
+        category=category,
+        description=description,
+        status='Open'
+    )
+    db.session.add(issue)
+    db.session.commit()
+    
+    flash("Your support ticket has been submitted successfully. L&D Admin has been notified!", "success")
+    return redirect(url_for('learners.my_portal'))

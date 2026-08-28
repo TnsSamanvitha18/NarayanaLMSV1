@@ -108,6 +108,18 @@ def create_app(config_class=Config):
             except Exception:
                 pass
 
+        # Resolve learner theme preference
+        learner_theme = 'navy'
+        if learner_id:
+            if 'learner_theme' in session:
+                learner_theme = session['learner_theme']
+            else:
+                from app.models.user import Learner
+                learner = Learner.query.get(learner_id)
+                if learner and learner.theme:
+                    learner_theme = learner.theme
+                    session['learner_theme'] = learner_theme
+
         return {
             'admin_logged_in': session.get('admin_logged_in', False),
             'admin_username': session.get('admin_username', 'admin'),
@@ -118,7 +130,8 @@ def create_app(config_class=Config):
             'user_notifications': user_notifications,
             'unread_notif_count': unread_notif_count,
             'safe_endpoint': request.endpoint or '',
-            'enable_content_authoring': current_app.config.get('ENABLE_CONTENT_AUTHORING', True)
+            'enable_content_authoring': current_app.config.get('ENABLE_CONTENT_AUTHORING', True),
+            'learner_theme': learner_theme
         }
 
     # Custom error handlers

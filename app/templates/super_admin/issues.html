@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block title %}Support Tickets Helpdesk - Admin Panel{% endblock %}
+
+{% block public_content %}
+<div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+    <div class="card-header bg-navy text-white py-3 px-4 d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+            <i class="fa-solid fa-headset fs-5 text-teal"></i>
+            <h5 class="mb-0 fw-bold">Support Tickets & Issues Queue</h5>
+        </div>
+        <span class="badge bg-teal-subtle text-teal border border-teal-subtle">{{ issues|length }} Tickets Logged</span>
+    </div>
+    
+    <div class="card-body p-4">
+        {% if issues %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle border-0">
+                <thead class="table-light text-uppercase text-xs fw-semibold text-muted">
+                    <tr>
+                        <th class="border-0 px-3 py-3" style="width: 80px;">ID</th>
+                        <th class="border-0 px-3 py-3">Learner</th>
+                        <th class="border-0 px-3 py-3">Category</th>
+                        <th class="border-0 px-3 py-3">Description</th>
+                        <th class="border-0 px-3 py-3" style="width: 120px;">Status</th>
+                        <th class="border-0 px-3 py-3">Logged Date</th>
+                        <th class="border-0 px-3 py-3 text-end" style="width: 150px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="text-xs">
+                    {% for issue in issues %}
+                    <tr class="border-bottom">
+                        <td class="px-3 py-3 fw-bold text-muted">#{{ issue.id }}</td>
+                        <td class="px-3 py-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="avatar-xs bg-teal-subtle text-teal rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                    {{ issue.learner.name[0] | upper }}
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-dark">{{ issue.learner.name }}</div>
+                                    <small class="text-muted">ID: {{ issue.learner.global_id }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-3 py-3">
+                            <span class="badge 
+                                {% if issue.category == 'Technical' %}bg-danger-subtle text-danger border-danger-subtle
+                                {% elif issue.category == 'Content' %}bg-warning-subtle text-warning border-warning-subtle
+                                {% elif issue.category == 'Certificate' %}bg-success-subtle text-success border-success-subtle
+                                {% else %}bg-primary-subtle text-primary border-primary-subtle{% endif %} border px-2.5 py-1 rounded-pill">
+                                {{ issue.category }}
+                            </span>
+                        </td>
+                        <td class="px-3 py-3 text-wrap" style="max-width: 300px;">
+                            {{ issue.description }}
+                        </td>
+                        <td class="px-3 py-3">
+                            {% if issue.status == 'Open' %}
+                            <span class="badge bg-danger text-white fw-bold"><i class="fa-solid fa-spinner fa-spin me-1"></i> Open</span>
+                            {% else %}
+                            <span class="badge bg-success text-white fw-bold"><i class="fa-solid fa-circle-check me-1"></i> Resolved</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-3 py-3 text-muted">
+                            {{ issue.created_at.strftime('%d-%b-%Y %I:%M %p') }}
+                        </td>
+                        <td class="px-3 py-3 text-end">
+                            {% if issue.status == 'Open' %}
+                            <form action="{{ url_for('super_admin.resolve_issue', issue_id=issue.id) }}" method="POST" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-xs btn-success fw-bold py-1 px-2.5 rounded-3 shadow-xs">
+                                    <i class="fa-solid fa-check me-1"></i> Mark Cleared
+                                </button>
+                            </form>
+                            {% else %}
+                            <span class="text-success text-xs fw-bold"><i class="fa-solid fa-circle-check"></i> Cleared</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <div class="avatar-lg bg-teal-subtle text-teal rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 64px; height: 64px;">
+                <i class="fa-solid fa-circle-check fs-3"></i>
+            </div>
+            <h6 class="fw-bold text-dark">No support tickets found</h6>
+            <p class="text-muted text-xs mb-0">All clear! Learners have not logged any support tickets.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

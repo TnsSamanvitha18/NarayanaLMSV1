@@ -55,9 +55,89 @@
             }
         })();
     </script>
+    <style>
+        .theme-navy {
+            --primary-color: #0A4B5C;
+            --primary-gradient: linear-gradient(135deg, #0A4B5C, #00A896);
+            --primary-accent: #00A896;
+            --primary-accent-rgb: 0, 168, 150;
+        }
+        .theme-emerald {
+            --primary-color: #1b4d3e;
+            --primary-gradient: linear-gradient(135deg, #1b4d3e, #2ecc71);
+            --primary-accent: #2ecc71;
+            --primary-accent-rgb: 46, 204, 113;
+        }
+        .theme-sunset {
+            --primary-color: #d35400;
+            --primary-gradient: linear-gradient(135deg, #d35400, #f1c40f);
+            --primary-accent: #e67e22;
+            --primary-accent-rgb: 230, 126, 34;
+        }
+        .theme-purple {
+            --primary-color: #4a2c6d;
+            --primary-gradient: linear-gradient(135deg, #4a2c6d, #9b59b6);
+            --primary-accent: #8e44ad;
+            --primary-accent-rgb: 142, 68, 173;
+        }
+        .theme-dark {
+            --primary-color: #212529;
+            --primary-gradient: linear-gradient(135deg, #343a40, #111111);
+            --primary-accent: #e74c3c;
+            --primary-accent-rgb: 231, 76, 60;
+        }
+        
+        body[class*="theme-"] .text-teal, 
+        body[class*="theme-"] .brand-icon,
+        body[class*="theme-"] .brand-icon i,
+        body[class*="theme-"] .fa-graduation-cap {
+            color: var(--primary-accent) !important;
+        }
+        body[class*="theme-"] .btn-teal, 
+        body[class*="theme-"] .bg-teal,
+        body[class*="theme-"] .btn-outline-teal:hover {
+            background-color: var(--primary-color) !important;
+            border-color: var(--primary-color) !important;
+            color: #ffffff !important;
+        }
+        body[class*="theme-"] .btn-outline-teal {
+            color: var(--primary-color) !important;
+            border-color: var(--primary-color) !important;
+        }
+        body[class*="theme-"] .text-navy {
+            color: var(--primary-color) !important;
+        }
+        body[class*="theme-"] .card-header.bg-navy {
+            background: var(--primary-gradient) !important;
+        }
+        body[class*="theme-"] .badge.bg-teal-subtle {
+            background-color: rgba(var(--primary-accent-rgb), 0.15) !important;
+            color: var(--primary-accent) !important;
+        }
+        body[class*="theme-"] .badge.bg-teal {
+            background-color: var(--primary-color) !important;
+            color: #ffffff !important;
+        }
+        body[class*="theme-"] .badge.text-teal {
+            color: var(--primary-accent) !important;
+        }
+        body[class*="theme-"] .navbar,
+        body[class*="theme-"] .nav-tabs .nav-link.active {
+            border-bottom-color: var(--primary-accent) !important;
+        }
+        body[class*="theme-"] .ls-navbar-capsule {
+            border: 1px solid rgba(var(--primary-accent-rgb), 0.2) !important;
+        }
+        body[class*="theme-"] .text-teal-emphasis {
+            color: var(--primary-color) !important;
+        }
+        body[class*="theme-"] .border-teal-subtle {
+            border-color: rgba(var(--primary-accent-rgb), 0.3) !important;
+        }
+    </style>
     {% block extra_head %}{% endblock %}
 </head>
-<body>
+<body class="theme-{{ learner_theme or 'navy' }}">
 
     <!-- SVG Teal & Cyan Donut Ring Gradient Definitions -->
     <svg width="0" height="0" style="position: absolute;">
@@ -108,6 +188,9 @@
                         </a>
                         <a href="{{ url_for('learning_wall.index') }}" class="ls-nav-tab {% if 'learning_wall' in safe_endpoint %}active{% endif %}">
                             <i class="fa-solid fa-bullhorn me-1 text-warning"></i> Learning Wall
+                        </a>
+                        <a href="{{ url_for('super_admin.list_issues') }}" class="ls-nav-tab {% if 'issues' in safe_endpoint %}active{% endif %}">
+                            <i class="fa-solid fa-headset me-1 text-danger"></i> Tickets
                         </a>
                         {% else %}
                         <a href="{{ url_for('learners.my_portal') }}" class="ls-nav-tab {% if safe_endpoint == 'learners.my_portal' %}active{% endif %}">
@@ -296,6 +379,9 @@
                 </a>
                 <a href="{{ url_for('learning_wall.index') }}" class="mobile-nav-item {% if 'learning_wall' in safe_endpoint %}active{% endif %}">
                     <i class="fa-solid fa-bullhorn me-3 text-warning"></i> Learning Wall Feed
+                </a>
+                <a href="{{ url_for('super_admin.list_issues') }}" class="mobile-nav-item {% if 'issues' in safe_endpoint %}active{% endif %}">
+                    <i class="fa-solid fa-headset me-3 text-danger"></i> Tickets Helpdesk
                 </a>
                 {% else %}
                 <a href="{{ url_for('learners.my_portal') }}" class="mobile-nav-item {% if safe_endpoint == 'learners.my_portal' %}active{% endif %}">

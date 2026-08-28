@@ -436,4 +436,84 @@ def guide():
     return render_template('super_admin/guide.html')
 
 
+@super_admin_bp.route('/issues')
+@super_admin_required
+def list_issues():
+    from app.models.issue import LmsIssue
+    issues = LmsIssue.query.order_by(LmsIssue.created_at.desc()).all()
+    return render_template('super_admin/issues.html', issues=issues)
+
+
+@super_admin_bp.route('/issues/resolve/<int:issue_id>', methods=['POST'])
+@super_admin_required
+def resolve_issue(issue_id):
+    from app.models.issue import LmsIssue
+    from app.models.notification import LearnerNotification
+    from datetime import datetime
+    
+    issue = LmsIssue.query.get_or_404(issue_id)
+    issue.status = 'Resolved'
+    issue.resolved_at = datetime.utcnow()
+    
+    # Notify learner
+    notif = LearnerNotification(
+        learner_id=issue.learner_id,
+        title="Support Issue Resolved! ✅",
+        message=f"Your support ticket #{issue.id} regarding '{issue.category}' has been marked as resolved by the Administrator. Let us know if you need anything else!",
+        notification_type='SYSTEM_UPDATE'
+    )
+    db.session.add(notif)
+    db.session.commit()
+    
+    flash(f"Support issue #{issue.id} marked as resolved, and learner notified.", "success")
+    return redirect(url_for('super_admin.list_issues'))
+
+
+@super_admin_bp.route('/broadcast_notification', methods=['POST'])
+@super_admin_required
+def broadcast_notification():
+    from app.models.notification import LearnerNotification
+    from app.models.user import Learner
+    
+    audience = request.form.get('audience', 'all')
+    title = request.form.get('title', '').strip()
+    message = request.form.get('message', '').strip()
+    
+    if not title or not message:
+        flash("Title and Message are required.", "danger")
+        return redirect(url_for('dashboard.index'))
+        
+    if audience == 'specific':
+        gid = request.form.get('global_id', '').strip()
+        learner = Learner.query.filter_by(global_id=gid).first()
+        if not learner:
+            flash(f"Learner with Global ID '{gid}' not found.", "danger")
+            return redirect(url_for('dashboard.index'))
+        
+        notif = LearnerNotification(
+            learner_id=learner.id,
+            title=title,
+            message=message,
+            notification_type='SYSTEM_UPDATE'
+        )
+        db.session.add(notif)
+        db.session.commit()
+        flash(f"Notification sent to learner {learner.name} successfully.", "success")
+    else:
+        # Broadcast to all learners
+        learners = Learner.query.all()
+        for learner in learners:
+            notif = LearnerNotification(
+                learner_id=learner.id,
+                title=title,
+                message=message,
+                notification_type='SYSTEM_UPDATE'
+            )
+            db.session.add(notif)
+        db.session.commit()
+        flash(f"Notification broadcasted to all {len(learners)} learners successfully.", "success")
+        
+    return redirect(url_for('dashboard.index'))
+
+
 

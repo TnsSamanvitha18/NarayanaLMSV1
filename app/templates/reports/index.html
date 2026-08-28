@@ -9,7 +9,7 @@
         <p class="text-muted mb-0">Customize report columns, filter datasets, and export CSV reports using Pandas.</p>
     </div>
     {% if records %}
-    <a href="{{ url_for('reports.export_csv', search=search_query, mode=mode_filter, cols=selected_cols, date_from=date_from_str, date_to=date_to_str) }}" class="btn btn-success fw-bold shadow-sm px-4 btn-mobile-full text-nowrap">
+    <a href="{{ url_for('reports.export_csv', search=search_query, mode=mode_filter, cols=selected_cols, date_from=date_from_str, date_to=date_to_str, course_id=course_filter, class_id=class_filter) }}" class="btn btn-success fw-bold shadow-sm px-4 btn-mobile-full text-nowrap">
         <i class="fa-solid fa-file-csv me-2"></i> Export to CSV File
     </a>
     {% endif %}
@@ -41,7 +41,7 @@
             <hr class="my-3 opacity-25">
 
             <div class="row g-3 align-items-end">
-                <div class="col-12 col-md-6">
+                <div class="col-12 col-md-4">
                     <label class="form-label fw-bold text-teal">Search Keywords</label>
                     <div class="ls-search-box">
                         <i class="fa-solid fa-magnifying-glass ls-search-icon"></i>
@@ -49,12 +49,30 @@
                         <button type="button" class="ls-search-clear" title="Clear Search" style="display: none;"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                 </div>
-                <div class="col-12 col-md-3">
+                <div class="col-12 col-md-2">
                     <label class="form-label fw-bold text-teal">Course Mode Filter</label>
                     <select name="mode" class="form-select ls-filter-select">
                         <option value="ALL" {% if mode_filter == 'ALL' %}selected{% endif %}>All Course Modes</option>
                         <option value="Live" {% if mode_filter == 'Live' %}selected{% endif %}>Live Courses Only</option>
                         <option value="Self Paced" {% if mode_filter == 'Self Paced' %}selected{% endif %}>Self Paced Courses Only</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label fw-bold text-teal">Filter by Course</label>
+                    <select name="course_id" class="form-select ls-filter-select">
+                        <option value="ALL" {% if course_filter == 'ALL' %}selected{% endif %}>All Courses</option>
+                        {% for c in courses %}
+                        <option value="{{ c.id }}" {% if course_filter == c.id|string %}selected{% endif %}>{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label fw-bold text-teal">Filter by Class</label>
+                    <select name="class_id" class="form-select ls-filter-select">
+                        <option value="ALL" {% if class_filter == 'ALL' %}selected{% endif %}>All Batches/Classes</option>
+                        {% for cls in classes %}
+                        <option value="{{ cls.id }}" {% if class_filter == cls.id|string %}selected{% endif %}>{{ cls.class_name }} ({{ cls.class_id }})</option>
+                        {% endfor %}
                     </select>
                 </div>
                 <div class="col-6 col-md-2">

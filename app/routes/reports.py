@@ -14,6 +14,8 @@ def index():
     selected_cols = request.args.getlist('cols')
     date_from_str = request.args.get('date_from', '').strip()
     date_to_str = request.args.get('date_to', '').strip()
+    course_filter = request.args.get('course_id', 'ALL').strip()
+    class_filter = request.args.get('class_id', 'ALL').strip()
 
     date_from = None
     date_to = None
@@ -28,10 +30,23 @@ def index():
     if not selected_cols:
         selected_cols = list(ALL_REPORT_COLUMNS.keys())
 
-    df = generate_report_dataframe(selected_columns=selected_cols, search_query=search_query, mode_filter=mode_filter, date_from=date_from, date_to=date_to)
+    df = generate_report_dataframe(
+        selected_columns=selected_cols, 
+        search_query=search_query, 
+        mode_filter=mode_filter, 
+        date_from=date_from, 
+        date_to=date_to,
+        course_id_filter=course_filter,
+        class_id_filter=class_filter
+    )
 
     records = df.to_dict(orient='records')
     headers = list(df.columns)
+
+    from app.models.course import Course
+    from app.models.live_class import LiveClass
+    courses = Course.query.order_by(Course.name).all()
+    classes = LiveClass.query.order_by(LiveClass.class_name).all()
 
     return render_template(
         'reports/index.html',
@@ -42,7 +57,11 @@ def index():
         search_query=search_query,
         mode_filter=mode_filter,
         date_from_str=date_from_str,
-        date_to_str=date_to_str
+        date_to_str=date_to_str,
+        course_filter=course_filter,
+        class_filter=class_filter,
+        courses=courses,
+        classes=classes
     )
 
 
@@ -54,6 +73,8 @@ def export_csv():
     selected_cols = request.args.getlist('cols')
     date_from_str = request.args.get('date_from', '').strip()
     date_to_str = request.args.get('date_to', '').strip()
+    course_filter = request.args.get('course_id', 'ALL').strip()
+    class_filter = request.args.get('class_id', 'ALL').strip()
 
     date_from = None
     date_to = None
@@ -68,7 +89,15 @@ def export_csv():
     if not selected_cols:
         selected_cols = list(ALL_REPORT_COLUMNS.keys())
 
-    df = generate_report_dataframe(selected_columns=selected_cols, search_query=search_query, mode_filter=mode_filter, date_from=date_from, date_to=date_to)
+    df = generate_report_dataframe(
+        selected_columns=selected_cols, 
+        search_query=search_query, 
+        mode_filter=mode_filter, 
+        date_from=date_from, 
+        date_to=date_to,
+        course_id_filter=course_filter,
+        class_id_filter=class_filter
+    )
     csv_buffer = export_report_csv(df)
 
     return send_file(
