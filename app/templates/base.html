@@ -84,8 +84,8 @@
             --primary-accent-rgb: 142, 68, 173;
         }
         .theme-dark {
-            --primary-color: #212529;
-            --primary-gradient: linear-gradient(135deg, #343a40, #111111);
+            --primary-color: #ff6b6b;
+            --primary-gradient: linear-gradient(135deg, #e74c3c, #c0392b);
             --primary-accent: #e74c3c;
             --primary-accent-rgb: 231, 76, 60;
         }
@@ -142,6 +142,23 @@
         }
         body[class*="theme-"] .border-teal-subtle {
             border-color: rgba(var(--primary-accent-rgb), 0.3) !important;
+        }
+        
+        /* High Contrast Dark Mode overrides for form labels and generic elements */
+        [data-theme="dark"] .form-check-label,
+        [data-theme="dark"] .form-label,
+        [data-theme="dark"] .text-secondary,
+        [data-theme="dark"] label {
+            color: var(--text-secondary, #E2E8F0) !important;
+        }
+        [data-theme="dark"] .text-muted {
+            color: var(--text-muted, #94A3B8) !important;
+        }
+        [data-theme="dark"] .form-control,
+        [data-theme="dark"] .form-select {
+            color: var(--text-primary, #FAFAF9) !important;
+            background-color: var(--input-bg, #091214) !important;
+            border-color: var(--input-border, #23464B) !important;
         }
         
         .tag-autocomplete-dropdown {
@@ -673,6 +690,14 @@
                         const instance = bootstrap.Dropdown.getOrCreateInstance(toggle);
                         instance.hide();
                     }
+                });
+            });
+
+            // Prevent clicks from toggling the menu state on desktop
+            document.querySelectorAll('.dropdown [data-bs-toggle="dropdown"]').forEach(toggle => {
+                toggle.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                 });
             });
         }
