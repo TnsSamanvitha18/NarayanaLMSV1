@@ -45,6 +45,9 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
         (function() {
+            if (document.documentElement.hasAttribute('data-theme') && document.documentElement.getAttribute('data-theme')) {
+                return;
+            }
             const savedTheme = localStorage.getItem('theme');
             if (savedTheme) {
                 document.documentElement.setAttribute('data-theme', savedTheme);
@@ -107,8 +110,14 @@
         body[class*="theme-"] .text-navy {
             color: var(--primary-color) !important;
         }
-        body[class*="theme-"] .card-header.bg-navy {
+        body[class*="theme-"] .card-header.bg-navy,
+        body[class*="theme-"] .bg-navy,
+        body[class*="theme-"] .btn-navy,
+        body[class*="theme-"] .btn-primary,
+        body[class*="theme-"] .ls-nav-tab.active {
             background: var(--primary-gradient) !important;
+            border-color: var(--primary-color) !important;
+            color: #ffffff !important;
         }
         body[class*="theme-"] .badge.bg-teal-subtle {
             background-color: rgba(var(--primary-accent-rgb), 0.15) !important;
@@ -677,6 +686,7 @@
     });
 
     function changeGlobalTheme(themeName) {
+        localStorage.setItem('theme', themeName === 'dark' ? 'dark' : 'light');
         fetch('/learners/set_theme', {
             method: 'POST',
             headers: {
