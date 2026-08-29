@@ -176,6 +176,12 @@
                 padding: 0.4rem 0.75rem !important;
             }
         }
+        @media (min-width: 1200px) {
+            .dropdown:hover > .dropdown-menu {
+                display: block;
+                margin-top: 0;
+            }
+        }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
@@ -213,26 +219,38 @@
                         <a href="{{ url_for('dashboard.index') }}" class="ls-nav-tab {% if safe_endpoint == 'dashboard.index' %}active{% endif %}">
                             Home
                         </a>
-                        <a href="{{ url_for('courses.list_courses') }}" class="ls-nav-tab {% if 'courses' in safe_endpoint or 'classes' in safe_endpoint %}active{% endif %}">
-                            Course & Classes
-                        </a>
-                        <a href="{{ url_for('learners.list_learners') }}" class="ls-nav-tab {% if 'learners' in safe_endpoint and safe_endpoint != 'learners.my_portal' %}active{% endif %}">
-                            Learners
-                        </a>
-                        <a href="{{ url_for('attendance.list_attendance') }}" class="ls-nav-tab {% if 'attendance' in safe_endpoint %}active{% endif %}">
-                            Attendance
-                        </a>
-                        <a href="{{ url_for('certificates.list_certificates') }}" class="ls-nav-tab {% if 'certificates' in safe_endpoint %}active{% endif %}">
-                            Certificates
-                        </a>
+                        
+                        <!-- Courses Hover Dropdown -->
+                        <div class="dropdown d-inline-block">
+                            <a href="#" class="ls-nav-tab dropdown-toggle {% if 'courses' in safe_endpoint or 'classes' in safe_endpoint %}active{% endif %}" data-bs-toggle="dropdown" aria-expanded="false">
+                                Courses
+                            </a>
+                            <ul class="dropdown-menu shadow-lg border-0 mt-2 p-1.5" style="font-size: 0.8rem;">
+                                <li><a class="dropdown-item rounded-3 py-2 fw-semibold" href="{{ url_for('courses.list_courses') }}"><i class="fa-solid fa-book me-2 text-teal"></i> Course & Classes</a></li>
+                                <li><a class="dropdown-item rounded-3 py-2 fw-semibold" href="{{ url_for('courses.list_courses') }}?tab=authoring"><i class="fa-solid fa-wand-magic-sparkles me-2 text-teal"></i> Authoring Tools</a></li>
+                            </ul>
+                        </div>
+                        
+                        <!-- Learners Hover Dropdown -->
+                        <div class="dropdown d-inline-block">
+                            <a href="#" class="ls-nav-tab dropdown-toggle {% if 'learners' in safe_endpoint or 'attendance' in safe_endpoint or 'certificates' in safe_endpoint %}active{% endif %}" data-bs-toggle="dropdown" aria-expanded="false">
+                                Learners
+                            </a>
+                            <ul class="dropdown-menu shadow-lg border-0 mt-2 p-1.5" style="font-size: 0.8rem;">
+                                <li><a class="dropdown-item rounded-3 py-2 fw-semibold" href="{{ url_for('learners.list_learners') }}"><i class="fa-solid fa-users me-2 text-teal"></i> Learners Directory</a></li>
+                                <li><a class="dropdown-item rounded-3 py-2 fw-semibold" href="{{ url_for('attendance.list_attendance') }}"><i class="fa-solid fa-calendar-check me-2 text-teal"></i> Attendance Logs</a></li>
+                                <li><a class="dropdown-item rounded-3 py-2 fw-semibold" href="{{ url_for('certificates.list_certificates') }}"><i class="fa-solid fa-award me-2 text-teal"></i> Certificates Registry</a></li>
+                            </ul>
+                        </div>
+                        
                         <a href="{{ url_for('reports.index') }}" class="ls-nav-tab {% if 'reports' in safe_endpoint %}active{% endif %}">
                             Reports
                         </a>
                         <a href="{{ url_for('learning_wall.index') }}" class="ls-nav-tab {% if 'learning_wall' in safe_endpoint %}active{% endif %}">
-                            <i class="fa-solid fa-bullhorn me-1 text-warning"></i> Learning Wall
+                            Learning Wall
                         </a>
                         <a href="{{ url_for('super_admin.list_issues') }}" class="ls-nav-tab {% if 'issues' in safe_endpoint %}active{% endif %}">
-                            <i class="fa-solid fa-headset me-1 text-danger"></i> Tickets
+                            Tickets
                         </a>
                         {% else %}
                         <a href="{{ url_for('learners.my_portal') }}" class="ls-nav-tab {% if safe_endpoint == 'learners.my_portal' %}active{% endif %}">
@@ -262,7 +280,7 @@
                         <i class="fa-solid fa-magnifying-glass fs-5 text-teal"></i>
                     </button>
 
-                    {% if learner_id %}
+                    {% if learner_id and not admin_logged_in %}
                     <!-- Gamification Points Badge -->
                     <div class="d-none d-md-flex align-items-center bg-warning-subtle text-warning-emphasis px-3 py-1 rounded-pill fw-bold border border-warning shadow-sm" title="Your Learning Points">
                         <i class="fa-solid fa-star me-2 text-warning"></i>
@@ -270,6 +288,7 @@
                     </div>
                     {% endif %}
 
+                    {% if learner_id and not admin_logged_in %}
                     <!-- Notifications Bell Dropdown -->
                     <div class="dropdown position-relative d-inline-flex align-items-center">
                         <button type="button" class="btn btn-link text-muted p-1 text-decoration-none dropdown-toggle hide-arrow d-inline-flex align-items-center justify-content-center" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications" style="height: 38px; width: 38px; border-radius: 50%; transition: background-color 0.2s;">
@@ -349,11 +368,21 @@
                         </script>
                     </div>
                     {% endif %}
+                    {% endif %}
 
-                    <!-- Theme Switcher -->
-                    <button type="button" class="theme-toggle-btn ms-1 d-inline-flex align-items-center justify-content-center" title="Toggle Light/Dark Theme" style="height: 38px;">
-                        <i class="fa-solid fa-moon text-primary me-0"></i> <span class="d-none d-xxl-inline ms-1">Dark Mode</span>
-                    </button>
+                    <!-- Themes Switcher Dropdown -->
+                    <div class="dropdown d-inline-flex align-items-center ms-1">
+                        <button class="btn btn-outline-teal btn-sm dropdown-toggle rounded-pill fw-bold d-flex align-items-center px-3" type="button" id="themeDropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false" style="height: 36px;">
+                            <i class="fa-solid fa-palette me-1.5 text-teal"></i> <span class="d-none d-md-inline">Themes</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-2 p-1.5" aria-labelledby="themeDropdownMenuButton" style="min-width: 170px;">
+                            <li><button class="dropdown-item rounded-3 py-1.5 text-xs fw-semibold d-flex align-items-center gap-2" onclick="changeGlobalTheme('navy')"><span style="width: 12px; height: 12px; border-radius: 50%; background: linear-gradient(135deg, #0A4B5C, #00A896); display: inline-block;"></span> Midnight Navy</button></li>
+                            <li><button class="dropdown-item rounded-3 py-1.5 text-xs fw-semibold d-flex align-items-center gap-2" onclick="changeGlobalTheme('emerald')"><span style="width: 12px; height: 12px; border-radius: 50%; background: linear-gradient(135deg, #1b4d3e, #2ecc71); display: inline-block;"></span> Forest Emerald</button></li>
+                            <li><button class="dropdown-item rounded-3 py-1.5 text-xs fw-semibold d-flex align-items-center gap-2" onclick="changeGlobalTheme('sunset')"><span style="width: 12px; height: 12px; border-radius: 50%; background: linear-gradient(135deg, #d35400, #f1c40f); display: inline-block;"></span> Sunset Crimson</button></li>
+                            <li><button class="dropdown-item rounded-3 py-1.5 text-xs fw-semibold d-flex align-items-center gap-2" onclick="changeGlobalTheme('purple')"><span style="width: 12px; height: 12px; border-radius: 50%; background: linear-gradient(135deg, #4a2c6d, #9b59b6); display: inline-block;"></span> Royal Violet</button></li>
+                            <li><button class="dropdown-item rounded-3 py-1.5 text-xs fw-semibold d-flex align-items-center gap-2" onclick="changeGlobalTheme('dark')"><span style="width: 12px; height: 12px; border-radius: 50%; background: linear-gradient(135deg, #212529, #111111); display: inline-block;"></span> Cyberpunk Dark</button></li>
+                        </ul>
+                    </div>
 
                     {% if is_user_logged_in and not is_auth_page %}
                     <!-- Account Dropdown -->
@@ -632,6 +661,25 @@
             }
         });
     });
+
+    function changeGlobalTheme(themeName) {
+        fetch('/learners/set_theme', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ theme: themeName })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                document.body.className = document.body.className.replace(/\btheme-\S+/g, '');
+                document.body.classList.add('theme-' + themeName);
+                window.location.reload();
+            }
+        });
+    }
     </script>
     {% block extra_js %}{% endblock %}
 </body>
