@@ -86,6 +86,7 @@ def learner_login():
                 session['learner_id'] = learner.id
                 session['learner_global_id'] = learner.global_id
                 session['learner_name'] = learner.name
+                session['learner_theme'] = learner.theme or 'navy'
 
                 # Daily Streak Logic
                 from datetime import date, timedelta
