@@ -52,11 +52,11 @@
                 <form action="{{ url_for('learning_wall.create_moment') }}" method="POST">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="row g-3">
-                        <div class="col-md-6">
+                        <div class="col-md-9">
                             <label class="form-label fw-semibold text-xs text-uppercase text-muted">Title / Topic</label>
                             <input type="text" name="title" class="form-control rounded-3" placeholder="E.g., Finished Python fundamentals or Tip of the day..." required maxlength="100">
                         </div>
-                        <div class="col-md-3 col-sm-6">
+                        <div class="col-md-3 col-sm-12">
                             <label class="form-label fw-semibold text-xs text-uppercase text-muted">Select Icon</label>
                             <select name="icon" class="form-select rounded-3">
                                 <option value="fa-lightbulb">💡 Idea / Concept</option>
@@ -64,16 +64,6 @@
                                 <option value="fa-rocket">🚀 Milestone</option>
                                 <option value="fa-graduation-cap">🎓 Graduation</option>
                                 <option value="fa-bullhorn">📢 Announcement</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3 col-sm-6">
-                            <label class="form-label fw-semibold text-xs text-uppercase text-muted">Theme Color</label>
-                            <select name="badge_color" class="form-select rounded-3">
-                                <option value="bg-teal-subtle text-teal">Teal (Standard)</option>
-                                <option value="bg-primary-subtle text-primary border-primary-subtle">Blue (Highlight)</option>
-                                <option value="bg-warning-subtle text-warning">Amber (Alert)</option>
-                                <option value="bg-danger-subtle text-danger">Pink (Celebration)</option>
-                                <option value="bg-dark-subtle text-dark">Gray (Casual)</option>
                             </select>
                         </div>
                         <div class="col-12">
