@@ -181,6 +181,15 @@
                 display: block;
                 margin-top: 0;
             }
+            .dropdown-menu::before {
+                content: '';
+                position: absolute;
+                top: -12px;
+                left: 0;
+                right: 0;
+                height: 14px;
+                background: transparent;
+            }
         }
     </style>
     {% block extra_head %}{% endblock %}
@@ -222,7 +231,7 @@
                         
                         <!-- Courses Hover Dropdown -->
                         <div class="dropdown d-inline-block">
-                            <a href="#" class="ls-nav-tab dropdown-toggle {% if 'courses' in safe_endpoint or 'classes' in safe_endpoint %}active{% endif %}" data-bs-toggle="dropdown" aria-expanded="false">
+                            <a href="#" class="ls-nav-tab dropdown-toggle {% if 'courses' in safe_endpoint or 'classes' in safe_endpoint %}active{% endif %}" aria-expanded="false">
                                 Courses
                             </a>
                             <ul class="dropdown-menu shadow-lg border-0 mt-2 p-1.5" style="font-size: 0.8rem;">
@@ -233,7 +242,7 @@
                         
                         <!-- Learners Hover Dropdown -->
                         <div class="dropdown d-inline-block">
-                            <a href="#" class="ls-nav-tab dropdown-toggle {% if 'learners' in safe_endpoint or 'attendance' in safe_endpoint or 'certificates' in safe_endpoint %}active{% endif %}" data-bs-toggle="dropdown" aria-expanded="false">
+                            <a href="#" class="ls-nav-tab dropdown-toggle {% if 'learners' in safe_endpoint or 'attendance' in safe_endpoint or 'certificates' in safe_endpoint %}active{% endif %}" aria-expanded="false">
                                 Learners
                             </a>
                             <ul class="dropdown-menu shadow-lg border-0 mt-2 p-1.5" style="font-size: 0.8rem;">
