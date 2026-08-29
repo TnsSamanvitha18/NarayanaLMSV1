@@ -22,45 +22,36 @@
                 <hr class="my-2 text-muted opacity-25">
             </div>
             
-            <!-- Quick Stats Container -->
+            <!-- Combined Stats Row -->
+            <div class="row g-2 mb-3 text-center">
+                <div class="col-4">
+                    <div class="p-2 rounded-3 bg-light border">
+                        <div class="text-muted text-xxs font-bold text-uppercase mb-1" style="font-size: 0.62rem;"><i class="fa-solid fa-book text-teal"></i> Courses</div>
+                        <div class="fw-extrabold text-dark fs-6">{{ enrollments|length }}</div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="p-2 rounded-3 bg-light border">
+                        <div class="text-muted text-xxs font-bold text-uppercase mb-1" style="font-size: 0.62rem;"><i class="fa-solid fa-user-check text-teal"></i> Sessions</div>
+                        <div class="fw-extrabold text-dark fs-6">{{ learner.attendances|length }}</div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="p-2 rounded-3 bg-light border">
+                        <div class="text-muted text-xxs font-bold text-uppercase mb-1" style="font-size: 0.62rem;"><i class="fa-solid fa-award text-teal"></i> Awards</div>
+                        <div class="fw-extrabold text-dark fs-6">{{ learner.certificates|length }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar Items Container -->
             <div class="sidebar-stats-container d-flex flex-column gap-2 mb-2 text-start" id="sidebarStatsContainer">
-                <div class="p-2.5 rounded-3 bg-light border">
-                    <div class="fw-bold text-dark text-xs text-uppercase mb-1">
-                        <i class="fa-solid fa-book-open text-teal me-1"></i> Enrolled Courses
-                    </div>
-                    <div class="d-flex align-items-center justify-content-between">
-                        <small class="text-muted text-xs">Active Enrollments</small>
-                        <span class="badge bg-teal-subtle text-teal border border-teal-subtle fw-bold">{{ enrollments|length }} Courses</span>
-                    </div>
-                </div>
-
-                <div class="p-2.5 rounded-3 bg-light border">
-                    <div class="fw-bold text-dark text-xs text-uppercase mb-1">
-                        <i class="fa-solid fa-user-check text-teal me-1"></i> Attendance Log
-                    </div>
-                    <div class="d-flex align-items-center justify-content-between">
-                        <small class="text-muted text-xs">Classes Attended</small>
-                        <span class="badge bg-success-subtle text-success border border-success-subtle fw-bold">{{ learner.attendances|length }} Sessions</span>
-                    </div>
-                </div>
-
-                <div class="p-2.5 rounded-3 bg-light border">
-                    <div class="fw-bold text-dark text-xs text-uppercase mb-1">
-                        <i class="fa-solid fa-award text-teal me-1"></i> Certificates
-                    </div>
-                    <div class="d-flex align-items-center justify-content-between">
-                        <small class="text-muted text-xs">PDF Downloads</small>
-                        <span class="badge bg-success text-white fw-bold">{{ learner.certificates|length }} Issued</span>
-                    </div>
-                </div>
-
-
                 <!-- Badges -->
-                <div class="p-2.5 rounded-3 bg-light border text-start mt-2">
+                <div class="p-2.5 rounded-3 bg-light border text-start">
                     <div class="fw-bold text-dark text-xs text-uppercase mb-2">
                         <i class="fa-solid fa-medal text-teal me-1"></i> Unlocked Badges ({{ learner.badges|length }})
                     </div>
-                    <div class="d-flex flex-wrap gap-2 badge-container">
+                    <div class="d-flex flex-wrap gap-1.5 badge-container">
                         {% for badge in learner.badges %}
                         <span class="badge bg-teal-subtle text-teal border border-teal-subtle d-inline-flex align-items-center gap-1 text-xxs" title="{{ badge.description }}">
                             <i class="fa-solid {{ badge.icon or 'fa-award' }} text-xs"></i> {{ badge.badge_name }}
@@ -72,7 +63,7 @@
                 </div>
 
                 <!-- Theme Customizer Swatches -->
-                <div class="p-2.5 rounded-3 bg-light border text-start mt-2">
+                <div class="p-2.5 rounded-3 bg-light border text-start">
                     <div class="fw-bold text-dark text-xs text-uppercase mb-2">
                         <i class="fa-solid fa-palette text-teal me-1"></i> Dashboard Theme
                     </div>
@@ -91,7 +82,6 @@
                         <i class="fa-solid fa-circle-exclamation me-1"></i> Raise an Issue
                     </button>
                 </div>
-
             </div>
         </div>
     </div>
@@ -100,7 +90,7 @@
     <!-- Main Content Area: Enrolled Programs & Available Courses -->
     <div class="col-12 col-lg-6 col-xl-6 main-content-col" id="mainContentCol">
         <!-- Hero Welcome Banner -->
-        <div class="card p-4 mb-4 border-0 text-white shadow-sm overflow-hidden position-relative" style="background: linear-gradient(135deg, #0D9488 0%, #06B6D4 100%); border-radius: 20px;">
+        <div class="card card-gradient-primary p-4 mb-4 border-0 text-white shadow-sm overflow-hidden position-relative" style="border-radius: 20px;">
             <div class="row align-items-center">
                 <div class="col-md-8">
                     <h3 class="fw-extrabold mb-1">Welcome back, {{ learner.name }}! 👋</h3>
@@ -550,49 +540,6 @@
         }
         </script>
 
-        <!-- Learning Wall Highlights Widget -->
-        <div class="card p-3 mb-4 border-0 shadow-sm rounded-4 card-gradient-teal">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-                <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-1.5">
-                    <i class="fa-solid fa-bullhorn text-warning"></i> Learning Wall
-                </h6>
-                <a href="{{ url_for('learning_wall.index') }}" class="btn btn-sm btn-outline-teal text-teal py-0 px-2 fw-bold text-xs">
-                    View Feed <i class="fa-solid fa-arrow-right ms-1"></i>
-                </a>
-            </div>
-            <p class="text-muted text-xs mb-3">Live system news bulletin: course completions, birthdays, and learning milestones!</p>
-            <a href="{{ url_for('learning_wall.index') }}" class="btn btn-teal text-white btn-sm w-100 fw-bold shadow-xs">
-                <i class="fa-solid fa-newspaper me-1"></i> Open Learning Wall Feed
-            </a>
-        </div>
-
-        <!-- Certificate Quick Download Widget -->
-        <div class="card p-3 mb-4 border-0 shadow-sm text-center">
-            <div class="bg-teal-subtle text-teal rounded-circle p-3 d-inline-flex mx-auto mb-2">
-                <i class="fa-solid fa-award fs-3"></i>
-            </div>
-            <h6 class="fw-bold text-dark mb-1">My Certificates</h6>
-            {% if learner.certificates %}
-                {% set latest_cert = learner.certificates[-1] %}
-                <p class="text-muted small mb-3">Issued: <strong>{{ latest_cert.course.name }}</strong></p>
-                <a href="{{ url_for('certificates.download_certificate', cert_id_str=latest_cert.certificate_id) }}" class="btn btn-teal text-white btn-sm w-100 fw-bold">
-                    <i class="fa-solid fa-download me-1"></i> Download PDF ({{ latest_cert.certificate_id }})
-                </a>
-            {% else %}
-                <p class="text-muted small mb-3">Complete course assessments and submit feedback to earn verified certificates.</p>
-                <button class="btn btn-light border text-muted btn-sm w-100 fw-bold" disabled>No Certificates Yet</button>
-            {% endif %}
-        </div>
-
-        <!-- Quick Attendance Summary Widget -->
-        <div class="card p-3 border-0 shadow-sm text-center">
-            <div class="bg-success-subtle text-success rounded-circle p-3 d-inline-flex mx-auto mb-2">
-                <i class="fa-solid fa-qrcode fs-3"></i>
-            </div>
-            <h6 class="fw-bold text-dark mb-1">Attendance Record</h6>
-            <p class="text-muted small mb-3">You have attended <strong>{{ learner.attendances|length }}</strong> class session(s).</p>
-            <span class="badge bg-success py-2 px-3 fs-6 rounded-pill"><i class="fa-solid fa-check-circle me-1"></i> Verified Account</span>
-        </div>
     </div>
 </div>
 
