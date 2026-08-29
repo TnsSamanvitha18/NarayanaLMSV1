@@ -54,16 +54,6 @@
                     </div>
                 </div>
 
-                <!-- Streak & Points -->
-                <div class="p-2.5 rounded-3 bg-warning-subtle border border-warning text-center mt-2">
-                    <div class="fw-bold text-dark text-xs text-uppercase mb-1">
-                        <i class="fa-solid fa-fire text-warning me-1"></i> Active Streak
-                    </div>
-                    <div class="kpi-number text-warning fs-3 my-1">
-                        {{ learner.current_streak or 0 }} Days
-                    </div>
-                    <small class="text-muted text-xxs block">Points Balance: <strong>{{ learner.points or 0 }} pts</strong></small>
-                </div>
 
                 <!-- Badges -->
                 <div class="p-2.5 rounded-3 bg-light border text-start mt-2">
@@ -442,7 +432,7 @@
                     <div class="leaderboard-list">
                         {% for tl in dept_top_learners %}
                         <div class="d-flex align-items-center mb-2 p-2 rounded-3 {% if tl.id == learner.id %}bg-warning-subtle border border-warning{% else %}bg-light{% endif %}">
-                            <div class="fw-bold text-muted me-2" style="width: 20px;">#{{ loop.index }}</div>
+                            <div class="fw-bold text-muted me-2 text-nowrap" style="width: 28px;">#{{ loop.index }}</div>
                             <div class="avatar-profile bg-teal text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm me-2" style="width: 32px; height: 32px; font-size: 0.9rem; font-weight: bold;">
                                 {{ tl.name[0] | upper if tl.name else 'L' }}
                             </div>
@@ -467,7 +457,7 @@
                     <div class="leaderboard-list">
                         {% for tl in top_learners %}
                         <div class="d-flex align-items-center mb-2 p-2 rounded-3 {% if tl.id == learner.id %}bg-warning-subtle border border-warning{% else %}bg-light{% endif %}">
-                            <div class="fw-bold text-muted me-2" style="width: 20px;">#{{ loop.index }}</div>
+                            <div class="fw-bold text-muted me-2 text-nowrap" style="width: 28px;">#{{ loop.index }}</div>
                             <div class="avatar-profile bg-teal text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm me-2" style="width: 32px; height: 32px; font-size: 0.9rem; font-weight: bold;">
                                 {{ tl.name[0] | upper if tl.name else 'L' }}
                             </div>
