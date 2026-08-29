@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file, current_app, session
-from app.utils.decorators import super_admin_required
+from app.utils.decorators import super_admin_required, admin_required
 from app.models import db
 import os
 import sqlite3
@@ -467,7 +467,7 @@ def guide():
 
 
 @super_admin_bp.route('/issues')
-@super_admin_required
+@admin_required
 def list_issues():
     from app.models.issue import LmsIssue
     issues = LmsIssue.query.order_by(LmsIssue.created_at.desc()).all()
@@ -475,7 +475,7 @@ def list_issues():
 
 
 @super_admin_bp.route('/issues/resolve/<int:issue_id>', methods=['POST'])
-@super_admin_required
+@admin_required
 def resolve_issue(issue_id):
     from app.models.issue import LmsIssue
     from app.models.notification import LearnerNotification
