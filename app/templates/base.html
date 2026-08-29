@@ -730,8 +730,23 @@
 
         // JS-based exclusive hover dropdown management for desktop viewports
         if (window.innerWidth >= 1200) {
+            let hideTimeout = null;
+
             document.querySelectorAll('.dropdown').forEach(dropdown => {
                 dropdown.addEventListener('mouseenter', () => {
+                    clearTimeout(hideTimeout);
+                    
+                    // Close all other dropdowns immediately
+                    document.querySelectorAll('.dropdown').forEach(other => {
+                        if (other !== dropdown) {
+                            const otherToggle = other.querySelector('[data-bs-toggle="dropdown"]');
+                            if (otherToggle) {
+                                const instance = bootstrap.Dropdown.getInstance(otherToggle);
+                                if (instance) instance.hide();
+                            }
+                        }
+                    });
+
                     const toggle = dropdown.querySelector('[data-bs-toggle="dropdown"]');
                     if (toggle) {
                         const instance = bootstrap.Dropdown.getOrCreateInstance(toggle);
@@ -741,8 +756,10 @@
                 dropdown.addEventListener('mouseleave', () => {
                     const toggle = dropdown.querySelector('[data-bs-toggle="dropdown"]');
                     if (toggle) {
-                        const instance = bootstrap.Dropdown.getOrCreateInstance(toggle);
-                        instance.hide();
+                        hideTimeout = setTimeout(() => {
+                            const instance = bootstrap.Dropdown.getInstance(toggle);
+                            if (instance) instance.hide();
+                        }, 200); // 200ms debounce buffer lets vertical mouse movement cross spacing gap
                     }
                 });
             });
