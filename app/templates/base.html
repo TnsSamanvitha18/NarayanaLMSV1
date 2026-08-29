@@ -134,6 +134,35 @@
         body[class*="theme-"] .border-teal-subtle {
             border-color: rgba(var(--primary-accent-rgb), 0.3) !important;
         }
+        
+        .tag-autocomplete-dropdown {
+            position: absolute;
+            z-index: 1060;
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 0.5rem;
+            box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1);
+            max-height: 180px;
+            overflow-y: auto;
+            width: 250px;
+        }
+        .tag-autocomplete-item {
+            padding: 0.5rem 0.75rem;
+            cursor: pointer;
+            font-size: 0.75rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            transition: background 0.15s ease;
+        }
+        .tag-autocomplete-item:last-child {
+            border-bottom: none;
+        }
+        .tag-autocomplete-item:hover, .tag-autocomplete-item.active {
+            background-color: var(--primary-color, #0A4B5C) !important;
+            color: #ffffff !important;
+        }
+        .tag-autocomplete-item:hover .text-muted, .tag-autocomplete-item.active .text-muted {
+            color: rgba(255, 255, 255, 0.7) !important;
+        }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
@@ -463,6 +492,134 @@
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    <!-- Global Tag Autocomplete Controller -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        let activeTextarea = null;
+        let dropdown = null;
+        let tagStartPos = -1;
+
+        // Create global dropdown container
+        dropdown = document.createElement('div');
+        dropdown.className = 'tag-autocomplete-dropdown d-none';
+        document.body.appendChild(dropdown);
+
+        function initAutocomplete(textarea) {
+            textarea.addEventListener('input', function(e) {
+                const val = textarea.value;
+                const selectionStart = textarea.selectionStart;
+                const textBeforeCursor = val.slice(0, selectionStart);
+                const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+
+                if (lastAtIndex !== -1 && lastAtIndex >= textBeforeCursor.lastIndexOf(' ')) {
+                    const searchStr = textBeforeCursor.slice(lastAtIndex + 1);
+                    if (!searchStr.includes(' ')) {
+                        activeTextarea = textarea;
+                        tagStartPos = lastAtIndex;
+                        fetchSuggestions(searchStr);
+                        return;
+                    }
+                }
+                hideDropdown();
+            });
+
+            textarea.addEventListener('keydown', function(e) {
+                if (dropdown.classList.contains('d-none')) return;
+
+                const items = dropdown.querySelectorAll('.tag-autocomplete-item');
+                if (!items.length) return;
+
+                let activeItemIndex = -1;
+                items.forEach((item, index) => {
+                    if (item.classList.contains('active')) activeItemIndex = index;
+                });
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (activeItemIndex !== -1) items[activeItemIndex].classList.remove('active');
+                    const nextIndex = (activeItemIndex + 1) % items.length;
+                    items[nextIndex].classList.add('active');
+                    items[nextIndex].scrollIntoView({ block: 'nearest' });
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (activeItemIndex !== -1) items[activeItemIndex].classList.remove('active');
+                    const prevIndex = (activeItemIndex - 1 + items.length) % items.length;
+                    items[prevIndex].classList.add('active');
+                    items[prevIndex].scrollIntoView({ block: 'nearest' });
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const activeItem = dropdown.querySelector('.tag-autocomplete-item.active') || items[0];
+                    if (activeItem) activeItem.click();
+                } else if (e.key === 'Escape') {
+                    hideDropdown();
+                }
+            });
+        }
+
+        function fetchSuggestions(query) {
+            fetch(`/learners/tag_suggestions?q=${encodeURIComponent(query)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (!data.length) {
+                        hideDropdown();
+                        return;
+                    }
+                    renderDropdown(data);
+                })
+                .catch(() => hideDropdown());
+        }
+
+        function renderDropdown(suggestions) {
+            dropdown.innerHTML = '';
+            suggestions.forEach((s, index) => {
+                const item = document.createElement('div');
+                item.className = 'tag-autocomplete-item';
+                if (index === 0) item.className += ' active';
+                item.innerHTML = `<strong>${s.name}</strong> <span class="text-muted text-xxs block">(${s.department})</span>`;
+                item.addEventListener('click', function() {
+                    insertTag(s.global_id);
+                });
+                dropdown.appendChild(item);
+            });
+
+            const rect = activeTextarea.getBoundingClientRect();
+            dropdown.style.left = `${window.scrollX + rect.left}px`;
+            dropdown.style.top = `${window.scrollY + rect.top + activeTextarea.offsetHeight}px`;
+            dropdown.classList.remove('d-none');
+        }
+
+        function insertTag(globalId) {
+            const val = activeTextarea.value;
+            const cursor = activeTextarea.selectionStart;
+            const before = val.slice(0, tagStartPos);
+            const after = val.slice(cursor);
+            
+            activeTextarea.value = `${before}@${globalId} ${after}`;
+            activeTextarea.focus();
+            const newCursorPos = tagStartPos + globalId.length + 2; 
+            activeTextarea.setSelectionRange(newCursorPos, newCursorPos);
+            hideDropdown();
+        }
+
+        function hideDropdown() {
+            dropdown.classList.add('d-none');
+        }
+
+        document.addEventListener('click', function(e) {
+            if (dropdown && !dropdown.contains(e.target) && e.target !== activeTextarea) {
+                hideDropdown();
+            }
+        });
+
+        document.addEventListener('focusin', function(e) {
+            if (e.target.tagName === 'TEXTAREA' && !e.target.dataset.tagAutocompleted) {
+                e.target.dataset.tagAutocompleted = 'true';
+                initAutocomplete(e.target);
+            }
+        });
+    });
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

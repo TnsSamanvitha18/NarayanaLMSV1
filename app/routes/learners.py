@@ -1126,4 +1126,42 @@ def raise_issue():
     db.session.commit()
     
     flash("Your support ticket has been submitted successfully. L&D Admin has been notified!", "success")
-    return redirect(url_for('learners.my_portal'))
+    return redirect(url_for('learners.my_portal'))
+
+
+@learners_bp.route('/tag_suggestions')
+def tag_suggestions():
+    """
+    Returns autocomplete suggestions for learner names,
+    prioritizing colleagues from the same department/team.
+    """
+    query = request.args.get('q', '').strip().lower()
+    if not query:
+        return jsonify([])
+        
+    current_learner_id = session.get('learner_id')
+    current_dept = None
+    if current_learner_id:
+        current_learner = Learner.query.get(current_learner_id)
+        if current_learner:
+            current_dept = current_learner.department
+            
+    # Fetch matching learners
+    matches = Learner.query.filter(Learner.name.ilike(f'%{query}%')).all()
+    
+    # Sort: same department first, then alphabetical
+    def sort_key(learner):
+        is_same_dept = (current_dept and learner.department == current_dept)
+        return (0 if is_same_dept else 1, learner.name.lower())
+        
+    matches.sort(key=sort_key)
+    
+    results = []
+    for l in matches:
+        results.append({
+            'global_id': l.global_id,
+            'name': l.name,
+            'department': l.department or 'L&D'
+        })
+        
+    return jsonify(results)
