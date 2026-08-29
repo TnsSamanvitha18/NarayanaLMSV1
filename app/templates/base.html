@@ -64,30 +64,63 @@
             --primary-gradient: linear-gradient(135deg, #0A4B5C, #00A896);
             --primary-accent: #00A896;
             --primary-accent-rgb: 0, 168, 150;
+            --bg-app: radial-gradient(at 10% 10%, rgba(10, 75, 92, 0.12) 0px, transparent 55%),
+                      radial-gradient(at 90% 10%, rgba(0, 168, 150, 0.12) 0px, transparent 55%),
+                      #F2F8F8;
+            --bg-surface: #FFFFFF;
+            --bg-surface-elevated: #F8FAFC;
         }
         .theme-emerald {
             --primary-color: #1b4d3e;
             --primary-gradient: linear-gradient(135deg, #1b4d3e, #2ecc71);
             --primary-accent: #2ecc71;
             --primary-accent-rgb: 46, 204, 113;
+            --bg-app: radial-gradient(at 10% 10%, rgba(27, 77, 62, 0.12) 0px, transparent 55%),
+                      radial-gradient(at 90% 10%, rgba(46, 204, 113, 0.12) 0px, transparent 55%),
+                      #F0F7F4;
+            --bg-surface: #FFFFFF;
+            --bg-surface-elevated: #F4FAF7;
         }
         .theme-sunset {
             --primary-color: #d35400;
             --primary-gradient: linear-gradient(135deg, #d35400, #f1c40f);
             --primary-accent: #e67e22;
             --primary-accent-rgb: 230, 126, 34;
+            --bg-app: radial-gradient(at 10% 10%, rgba(211, 84, 0, 0.1) 0px, transparent 55%),
+                      radial-gradient(at 90% 10%, rgba(241, 196, 15, 0.1) 0px, transparent 55%),
+                      #FAF6F0;
+            --bg-surface: #FFFFFF;
+            --bg-surface-elevated: #FDFBF7;
         }
         .theme-purple {
             --primary-color: #4a2c6d;
             --primary-gradient: linear-gradient(135deg, #4a2c6d, #9b59b6);
             --primary-accent: #8e44ad;
             --primary-accent-rgb: 142, 68, 173;
+            --bg-app: radial-gradient(at 10% 10%, rgba(74, 44, 109, 0.1) 0px, transparent 55%),
+                      radial-gradient(at 90% 10%, rgba(155, 89, 182, 0.1) 0px, transparent 55%),
+                      #FAF5FC;
+            --bg-surface: #FFFFFF;
+            --bg-surface-elevated: #FAF8FD;
         }
         .theme-dark {
             --primary-color: #ff6b6b;
             --primary-gradient: linear-gradient(135deg, #e74c3c, #c0392b);
             --primary-accent: #e74c3c;
             --primary-accent-rgb: 231, 76, 60;
+            --bg-app: radial-gradient(at 10% 10%, rgba(231, 76, 60, 0.25) 0px, transparent 55%),
+                      radial-gradient(at 90% 10%, rgba(192, 41, 43, 0.2) 0px, transparent 55%),
+                      #0A0E17;
+            --bg-surface: #101622;
+            --bg-surface-elevated: #162030;
+            --bg-capsule: rgba(16, 22, 34, 0.95);
+            --text-primary: #FAFAF9;
+            --text-secondary: #E2E8F0;
+            --text-muted: #94A3B8;
+            --border-color: #1F293D;
+            --border-subtle: #172030;
+            --input-bg: #0B0F19;
+            --input-border: #23354F;
         }
         
         body[class*="theme-"] .text-teal, 
@@ -142,6 +175,27 @@
         }
         body[class*="theme-"] .border-teal-subtle {
             border-color: rgba(var(--primary-accent-rgb), 0.3) !important;
+        }
+        body[class*="theme-"] .card {
+            background-color: var(--bg-surface) !important;
+            color: var(--text-primary) !important;
+        }
+        body[class*="theme-"] .form-control,
+        body[class*="theme-"] .form-select {
+            background-color: var(--input-bg, #FFFFFF) !important;
+            border-color: var(--input-border, #CBD5E1) !important;
+            color: var(--text-primary, #0F172A) !important;
+        }
+        body[class*="theme-"] .dropdown-menu {
+            background-color: var(--bg-surface-elevated, #FFFFFF) !important;
+            border-color: var(--border-color, #CBD5E1) !important;
+        }
+        body[class*="theme-"] .dropdown-item {
+            color: var(--text-primary, #0F172A) !important;
+        }
+        body[class*="theme-"] .dropdown-item:hover {
+            background-color: var(--bg-surface, #F8FAFC) !important;
+            color: var(--primary-accent, #0D9488) !important;
         }
         
         /* High Contrast Dark Mode overrides for form labels and generic elements */
