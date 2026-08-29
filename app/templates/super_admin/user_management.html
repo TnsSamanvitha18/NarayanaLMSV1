@@ -46,7 +46,22 @@
         <h5 class="fw-bold text-white mb-0"><i class="fa-solid fa-users text-info me-2"></i> User Registry (Learners & Roles)</h5>
         <span class="badge bg-secondary">{{ learners|length }} users registered</span>
     </div>
-    <div class="card-body p-0">
+    <div class="card-body p-3">
+        <!-- Skills Search Bar -->
+        <form method="GET" action="{{ url_for('super_admin.users_dashboard') }}" class="mb-4">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-9 col-lg-10">
+                    <div class="input-group">
+                        <span class="input-group-text bg-dark border-secondary text-info"><i class="fa-solid fa-layer-group"></i></span>
+                        <input type="text" name="skills" class="form-control bg-dark border-secondary text-white" placeholder="Search Skill Repository (comma separated, e.g. Python, SQL, Leadership)..." value="{{ skill_search or '' }}">
+                    </div>
+                </div>
+                <div class="col-md-3 col-lg-2">
+                    <button type="submit" class="btn btn-info text-white w-100 fw-bold"><i class="fa-solid fa-filter me-1"></i> Search Skills</button>
+                </div>
+            </div>
+        </form>
+
         <div class="table-responsive-card">
             <table class="table table-hover table-dark align-middle mb-0" style="--bs-table-bg: transparent; --bs-table-border-color: rgba(255,255,255,0.06);">
                 <thead class="text-muted text-uppercase small">

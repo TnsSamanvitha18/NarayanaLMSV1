@@ -119,8 +119,16 @@
                         <i class="fa-solid fa-play me-1"></i> View My Programs
                     </a>
                 </div>
-                <div class="col-md-4 text-center d-none d-md-block">
-                    <i class="fa-solid fa-laptop-code display-3 text-white-50"></i>
+                <div class="col-md-4 text-end d-flex justify-content-md-end justify-content-center mt-3 mt-md-0">
+                    <div class="bg-white-10 backdrop-blur border border-white-20 rounded-4 p-3 d-inline-flex align-items-center gap-3 shadow-sm" style="background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px);">
+                        <div class="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center text-center shadow-sm" style="width: 48px; height: 48px;">
+                            <i class="fa-solid fa-fire fs-3 text-white"></i>
+                        </div>
+                        <div class="text-start">
+                            <span class="d-block text-xxs text-uppercase tracking-wider text-white-50 fw-bold">Active Streak</span>
+                            <span class="fs-4 fw-extrabold text-white">{{ learner.current_streak or 0 }} Days</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -408,80 +416,76 @@
             {% endif %}
         </div>
 
-        <!-- Available Courses Catalog -->
-        <div class="d-flex justify-content-between align-items-center mb-3" id="availableCatalog">
-            <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-layer-group me-2 text-teal"></i> Available Courses Catalog</h5>
-            <span class="text-muted small fw-semibold">{{ all_courses|length }} Courses</span>
-        </div>
-
-        <div class="row g-3 mb-4">
-            {% for c in all_courses %}
-            <div class="col-12 col-sm-6">
-                <div class="card border-0 shadow-sm h-100 p-3">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <span class="badge font-monospace bg-secondary text-white">{{ c.course_id }}</span>
-                        <span class="badge {% if c.mode == 'Self Paced' %}bg-info-subtle text-info border border-info-subtle{% else %}bg-success-subtle text-success border border-success-subtle{% endif %}">{{ c.mode }}</span>
-                    </div>
-                    <h6 class="fw-bold text-dark mb-1">{{ c.name }}</h6>
-                    <p class="text-muted text-xs mb-3 text-truncate-2">{{ c.description or 'Course catalog module.' }}</p>
-
-                    <div class="d-flex gap-2 mt-auto">
-                        {% if c.mode == 'Self Paced' %}
-                        <a href="{{ url_for('learners.self_paced_flow', course_id_str=c.course_id) }}" class="btn btn-outline-teal btn-sm flex-grow-1 fw-bold">
-                            Start Learning <i class="fa-solid fa-arrow-right ms-1"></i>
-                        </a>
-                        {% else %}
-                            {% set cls_id = c.classes[0].class_id if c.classes else '' %}
-                            {% if cls_id %}
-                            <a href="{{ url_for('learners.class_flow', class_id_str=cls_id) }}" class="btn btn-outline-teal btn-sm flex-grow-1 fw-bold">
-                                View Class <i class="fa-solid fa-arrow-right ms-1"></i>
-                            </a>
-                            {% else %}
-                            <button class="btn btn-light border btn-sm flex-grow-1 text-muted" disabled>Batch Scheduling</button>
-                            {% endif %}
-                        {% endif %}
-                        <button type="button" class="btn btn-outline-teal btn-sm px-2.5" title="Recommend to Learning Wall" onclick="openRecommendModal({{ c.id }}, '{{ c.name|escape }}')">
-                            <i class="fa-solid fa-share-nodes"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-            {% else %}
-            <div class="col-12 text-muted text-center py-3">No courses available in catalog.</div>
-            {% endfor %}
-        </div>
     </div>
 
     <!-- Right Side Widgets Area (3 Cols) -->
     <div class="col-12 col-lg-3 col-xl-3">
         <!-- Gamification Leaderboard Widget -->
         <div class="card p-3 mb-4 border-warning shadow-sm text-start" style="border-width: 2px;">
-            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-warning-subtle">
-                <h6 class="fw-bold text-dark mb-0">
-                    <i class="fa-solid fa-trophy text-warning me-1"></i> Top Learners
+            <div class="pb-2 border-bottom border-warning-subtle mb-3">
+                <h6 class="fw-bold text-dark mb-2">
+                    <i class="fa-solid fa-trophy text-warning me-1"></i> Top Learners Leaderboard
                 </h6>
+                <ul class="nav nav-pills nav-fill bg-light p-1 rounded-pill" id="leaderboardTab" role="tablist" style="font-size: 0.75rem;">
+                    <li class="nav-item">
+                        <button class="nav-link active fw-bold py-1 rounded-pill text-xs" data-bs-toggle="pill" data-bs-target="#leaderboard-team" type="button">My Team</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link fw-bold py-1 rounded-pill text-xs" data-bs-toggle="pill" data-bs-target="#leaderboard-global" type="button">Global</button>
+                    </li>
+                </ul>
             </div>
             
-            <div class="leaderboard-list">
-                {% for top_learner in top_learners %}
-                <div class="d-flex align-items-center mb-2 p-2 rounded-3 {% if top_learner.id == learner.id %}bg-warning-subtle border border-warning{% else %}bg-light{% endif %}">
-                    <div class="fw-bold text-muted me-2" style="width: 20px;">#{{ loop.index }}</div>
-                    <div class="avatar-profile bg-teal text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm me-2" style="width: 32px; height: 32px; font-size: 0.9rem; font-weight: bold;">
-                        {{ top_learner.name[0] | upper if top_learner.name else 'L' }}
-                    </div>
-                    <div class="flex-grow-1 min-w-0">
-                        <div class="fw-bold text-dark text-xs text-truncate">{{ top_learner.name }}</div>
-                        <div class="text-muted text-xxs">{{ top_learner.department }}</div>
-                    </div>
-                    <div class="fw-bold text-warning ms-2 text-nowrap">
-                        {{ top_learner.points }} <i class="fa-solid fa-star text-xs"></i>
+            <div class="tab-content">
+                <!-- Team Tab -->
+                <div class="tab-pane fade show active" id="leaderboard-team">
+                    <div class="leaderboard-list">
+                        {% for tl in dept_top_learners %}
+                        <div class="d-flex align-items-center mb-2 p-2 rounded-3 {% if tl.id == learner.id %}bg-warning-subtle border border-warning{% else %}bg-light{% endif %}">
+                            <div class="fw-bold text-muted me-2" style="width: 20px;">#{{ loop.index }}</div>
+                            <div class="avatar-profile bg-teal text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm me-2" style="width: 32px; height: 32px; font-size: 0.9rem; font-weight: bold;">
+                                {{ tl.name[0] | upper if tl.name else 'L' }}
+                            </div>
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="fw-bold text-dark text-xs text-truncate">{{ tl.name }}</div>
+                                <div class="text-muted text-xxs">{{ tl.department }}</div>
+                            </div>
+                            <div class="fw-bold text-warning ms-2 text-nowrap">
+                                {{ tl.points }} <i class="fa-solid fa-star text-xs"></i>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-3 text-muted text-xs">
+                            No team members logged.
+                        </div>
+                        {% endfor %}
                     </div>
                 </div>
-                {% else %}
-                <div class="text-center py-3 text-muted text-xs">
-                    No points awarded yet. Be the first!
+                
+                <!-- Global Tab -->
+                <div class="tab-pane fade" id="leaderboard-global">
+                    <div class="leaderboard-list">
+                        {% for tl in top_learners %}
+                        <div class="d-flex align-items-center mb-2 p-2 rounded-3 {% if tl.id == learner.id %}bg-warning-subtle border border-warning{% else %}bg-light{% endif %}">
+                            <div class="fw-bold text-muted me-2" style="width: 20px;">#{{ loop.index }}</div>
+                            <div class="avatar-profile bg-teal text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm me-2" style="width: 32px; height: 32px; font-size: 0.9rem; font-weight: bold;">
+                                {{ tl.name[0] | upper if tl.name else 'L' }}
+                            </div>
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="fw-bold text-dark text-xs text-truncate">{{ tl.name }}</div>
+                                <div class="text-muted text-xxs">{{ tl.department }}</div>
+                            </div>
+                            <div class="fw-bold text-warning ms-2 text-nowrap">
+                                {{ tl.points }} <i class="fa-solid fa-star text-xs"></i>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-3 text-muted text-xs">
+                            No points awarded yet.
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
-                {% endfor %}
             </div>
         </div>
 

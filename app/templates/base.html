@@ -163,6 +163,19 @@
         .tag-autocomplete-item:hover .text-muted, .tag-autocomplete-item.active .text-muted {
             color: rgba(255, 255, 255, 0.7) !important;
         }
+        
+        @media (max-width: 1440px) {
+            .brand-title {
+                display: none !important;
+            }
+            .ls-nav-tab {
+                font-size: 12px !important;
+                padding: 0.35rem 0.65rem !important;
+            }
+            .ls-navbar-capsule {
+                padding: 0.4rem 0.75rem !important;
+            }
+        }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
@@ -228,7 +241,7 @@
                         <a href="{{ url_for('learning_wall.index') }}" class="ls-nav-tab {% if 'learning_wall' in safe_endpoint %}active{% endif %}">
                             <i class="fa-solid fa-bullhorn me-1 text-warning"></i> Learning Wall
                         </a>
-                        <a href="{{ url_for('learners.my_portal') }}#availableCatalog" class="ls-nav-tab">
+                        <a href="{{ url_for('learners.catalog') }}" class="ls-nav-tab {% if safe_endpoint == 'learners.catalog' %}active{% endif %}">
                             Catalog
                         </a>
                         <a href="{{ url_for('certificates.my_certificates') }}" class="ls-nav-tab {% if 'certificates' in safe_endpoint %}active{% endif %}">
@@ -419,7 +432,7 @@
                 <a href="{{ url_for('learning_wall.index') }}" class="mobile-nav-item {% if 'learning_wall' in safe_endpoint %}active{% endif %}">
                     <i class="fa-solid fa-bullhorn me-3 text-warning"></i> Learning Wall Feed
                 </a>
-                <a href="{{ url_for('learners.my_portal') }}#availableCatalog" class="mobile-nav-item">
+                <a href="{{ url_for('learners.catalog') }}" class="mobile-nav-item {% if safe_endpoint == 'learners.catalog' %}active{% endif %}">
                     <i class="fa-solid fa-layer-group me-3 text-teal"></i> Course Catalog
                 </a>
                 <a href="{{ url_for('certificates.my_certificates') }}" class="mobile-nav-item {% if 'certificates' in safe_endpoint %}active{% endif %}">

@@ -12,4 +12,5 @@ from app.models.feedback import FeedbackRepository, FeedbackQuestion, FeedbackRe
 from app.models.learning_wall import LearningWallPost, LearningWallReaction
 from app.models.notification import LearnerNotification
 from app.models.issue import LmsIssue
+from app.models.external_certificate import ExternalCertificate
 

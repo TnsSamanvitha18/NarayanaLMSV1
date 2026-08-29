@@ -271,8 +271,25 @@ def my_portal():
         return redirect(url_for('auth.learner_login'))
 
     learner = Learner.query.get_or_404(learner_id)
+    
+    # Update active streak
+    today = datetime.utcnow().date()
+    if learner.last_active_date:
+        delta = (today - learner.last_active_date).days
+        if delta == 1:
+            learner.current_streak += 1
+            learner.last_active_date = today
+            db.session.commit()
+        elif delta > 1:
+            learner.current_streak = 1
+            learner.last_active_date = today
+            db.session.commit()
+    else:
+        learner.current_streak = 1
+        learner.last_active_date = today
+        db.session.commit()
+
     enrollments = LearnerEnrollment.query.filter_by(learner_id=learner.id).all()
-    all_courses = Course.query.all()
     
     from app.models.notification import LearnerNotification
     from app.models.certificate import Certificate
@@ -340,18 +357,21 @@ def my_portal():
 
     # Leaderboard (Top 5 Learners)
     top_learners = Learner.query.order_by(Learner.points.desc()).limit(5).all()
+    dept_top_learners = []
+    if learner.department:
+        dept_top_learners = Learner.query.filter_by(department=learner.department).order_by(Learner.points.desc()).limit(5).all()
 
     return render_template(
         'learner_portal/portal.html',
         learner=learner,
         enrollments=enrollments,
-        all_courses=all_courses,
         notifications=notifications,
         certificates=certificates,
         progress_map=progress_map,
         is_manager=is_manager,
         subordinate_data=subordinate_data,
-        top_learners=top_learners
+        top_learners=top_learners,
+        dept_top_learners=dept_top_learners
     )
 
 
@@ -1033,7 +1053,17 @@ def request_extension(enrollment_id):
         return redirect(url_for('learners.my_portal'))
 
     if not learner.manager_id:
-        flash("You do not have a reporting manager assigned to approve this request. Please contact L&D.", "warning")
+        enrollment.extension_requested = True
+        from app.models.issue import LmsIssue
+        issue = LmsIssue(
+            learner_id=learner.id,
+            category='Technical',
+            description=f"[Escalation] Extension requested for course '{enrollment.course.name}' (Enrollment ID: {enrollment.id}) by learner {learner.name} (Global ID: {learner.global_id}) due to no mapped manager.",
+            status='Open'
+        )
+        db.session.add(issue)
+        db.session.commit()
+        flash(f"Extension request for '{enrollment.course.name}' has been escalated to the L&D Administrator because you do not have a reporting manager mapped.", "success")
         return redirect(url_for('learners.my_portal'))
 
     enrollment.extension_requested = True
@@ -1164,4 +1194,48 @@ def tag_suggestions():
             'department': l.department or 'L&D'
         })
         
-    return jsonify(results)
+    return jsonify(results)
+
+
+@learners_bp.route('/catalog')
+def catalog():
+    """
+    Learner Portal: Standalone Course Catalog page with search & filters.
+    """
+    learner_id = session.get('learner_id')
+    if not learner_id:
+        flash("Please log in to view the Course Catalog.", "warning")
+        return redirect(url_for('auth.learner_login'))
+        
+    learner = Learner.query.get_or_404(learner_id)
+    search_query = request.args.get('search', '').strip().lower()
+    mode_filter = request.args.get('mode', 'ALL').strip()
+    
+    # Retrieve all courses
+    query = Course.query
+    if mode_filter and mode_filter != 'ALL':
+        query = query.filter_by(mode=mode_filter)
+        
+    courses = query.order_by(Course.name).all()
+    
+    # Filter by search string in python for simplicity
+    filtered_courses = []
+    for c in courses:
+        if search_query:
+            if search_query not in c.name.lower() and (c.description and search_query not in c.description.lower()):
+                continue
+        filtered_courses.append(c)
+        
+    # Get active enrollments to flag "Enrolled" courses
+    from app.models.enrollment import LearnerEnrollment
+    enrolls = LearnerEnrollment.query.filter_by(learner_id=learner_id).all()
+    enrolled_course_ids = {e.course_id for e in enrolls}
+    
+    return render_template(
+        'learner_portal/catalog.html',
+        learner=learner,
+        courses=filtered_courses,
+        enrolled_course_ids=enrolled_course_ids,
+        search_query=search_query,
+        mode_filter=mode_filter
+    )

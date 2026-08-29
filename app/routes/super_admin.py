@@ -260,14 +260,44 @@ def restore_db():
 def users_dashboard():
     from app.models.user import Learner, AdminUser
     page = request.args.get('page', 1, type=int)
-    learners = Learner.query.order_by(Learner.name.asc()).paginate(page=page, per_page=50, error_out=False)
+    skill_search = request.args.get('skills', '').strip().lower()
+    
+    matching_learner_ids = None
+    if skill_search:
+        matching_learner_ids = set()
+        terms = [t.strip() for t in skill_search.split(',') if t.strip()]
+        for term in terms:
+            # 1. Matches in ExternalCertificate skills
+            from app.models.external_certificate import ExternalCertificate
+            ext_certs = ExternalCertificate.query.filter(ExternalCertificate.skills.ilike(f'%{term}%')).all()
+            for cert in ext_certs:
+                matching_learner_ids.add(cert.learner_id)
+                
+            # 2. Matches in completed internal course name/description
+            from app.models.enrollment import LearnerEnrollment
+            from app.models.course import Course
+            completed_enrollments = LearnerEnrollment.query.filter_by(completion_status='Completed').join(Course).filter(
+                (Course.name.ilike(f'%{term}%')) | (Course.description.ilike(f'%{term}%'))
+            ).all()
+            for en in completed_enrollments:
+                matching_learner_ids.add(en.learner_id)
+                
+    query = Learner.query
+    if matching_learner_ids is not None:
+        if len(matching_learner_ids) > 0:
+            query = query.filter(Learner.id.in_(list(matching_learner_ids)))
+        else:
+            query = query.filter(db.false()) # No matches
+            
+    learners = query.order_by(Learner.name.asc()).paginate(page=page, per_page=50, error_out=False)
     admins = AdminUser.query.all()
     admin_usernames = {a.username for a in admins}
     
     return render_template(
         'super_admin/user_management.html',
         learners=learners,
-        admin_usernames=admin_usernames
+        admin_usernames=admin_usernames,
+        skill_search=skill_search
     )
 
 @super_admin_bp.route('/users/promote', methods=['POST'])
@@ -449,23 +479,37 @@ def list_issues():
 def resolve_issue(issue_id):
     from app.models.issue import LmsIssue
     from app.models.notification import LearnerNotification
-    from datetime import datetime
+    from datetime import datetime, timedelta
     
     issue = LmsIssue.query.get_or_404(issue_id)
     issue.status = 'Resolved'
     issue.resolved_at = datetime.utcnow()
     
+    # Auto-grant extension if it's a manager fallback escalation ticket
+    extension_msg = ""
+    if issue.description and '[Escalation] Extension requested for course' in issue.description:
+        import re
+        match = re.search(r'Enrollment ID:\s*(\d+)', issue.description)
+        if match:
+            enrollment_id = int(match.group(1))
+            from app.models.enrollment import LearnerEnrollment
+            enrollment = LearnerEnrollment.query.get(enrollment_id)
+            if enrollment:
+                enrollment.extended_deadline = datetime.utcnow() + timedelta(days=30)
+                enrollment.extension_requested = False
+                extension_msg = f" Also granted a 30-day course extension for '{enrollment.course.name}'."
+    
     # Notify learner
     notif = LearnerNotification(
         learner_id=issue.learner_id,
         title="Support Issue Resolved! ✅",
-        message=f"Your support ticket #{issue.id} regarding '{issue.category}' has been marked as resolved by the Administrator. Let us know if you need anything else!",
+        message=f"Your support ticket #{issue.id} regarding '{issue.category}' has been marked as resolved by the Administrator.{extension_msg} Let us know if you need anything else!",
         notification_type='SYSTEM_UPDATE'
     )
     db.session.add(notif)
     db.session.commit()
     
-    flash(f"Support issue #{issue.id} marked as resolved, and learner notified.", "success")
+    flash(f"Support issue #{issue.id} marked as resolved, and learner notified.{extension_msg}", "success")
     return redirect(url_for('super_admin.list_issues'))
 
 

@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block title %}Course Catalog - Narayana Learning Hub{% endblock %}
+
+{% block public_content %}
+<div class="container-fluid px-2 px-md-4 py-3">
+    <!-- Catalog Header -->
+    <div class="card card-gradient-teal border-0 shadow-sm p-4 mb-4 rounded-4 position-relative overflow-hidden" style="background: linear-gradient(135deg, #0D9488 0%, #06B6D4 100%);">
+        <div class="position-relative z-index-2 text-white">
+            <span class="badge bg-white-50 text-white text-uppercase font-monospace mb-2 px-3 py-1.5 rounded-pill shadow-xs">
+                <i class="fa-solid fa-graduation-cap me-1"></i> Catalog Repository
+            </span>
+            <h2 class="fw-bold mb-1"><i class="fa-solid fa-layer-group me-2"></i> L&D Course Catalog</h2>
+            <p class="mb-0 text-white-50">Browse all available internal training materials, certification programs, and live cohorts.</p>
+        </div>
+    </div>
+
+    <!-- Search & Filters Toolbar -->
+    <div class="card border-0 shadow-sm p-3 mb-4 rounded-4">
+        <form method="GET" action="{{ url_for('learners.catalog') }}">
+            <div class="row g-3 align-items-center">
+                <!-- Search bar -->
+                <div class="col-12 col-lg-6">
+                    <div class="ls-search-box">
+                        <i class="fa-solid fa-magnifying-glass ls-search-icon"></i>
+                        <input type="text" name="search" class="ls-search-input" placeholder="Search by course name or tags..." value="{{ search_query }}">
+                    </div>
+                </div>
+                <!-- Mode filter -->
+                <div class="col-12 col-sm-8 col-lg-4">
+                    <div class="d-flex align-items-center gap-1.5">
+                        <a href="{{ url_for('learners.catalog', search=search_query, mode='ALL') }}" class="btn btn-sm {% if mode_filter == 'ALL' %}btn-teal text-white{% else %}btn-light border{% endif %} rounded-pill px-3 fw-bold">All Modes</a>
+                        <a href="{{ url_for('learners.catalog', search=search_query, mode='Self Paced') }}" class="btn btn-sm {% if mode_filter == 'Self Paced' %}btn-teal text-white{% else %}btn-light border{% endif %} rounded-pill px-3 fw-bold">Self Paced</a>
+                        <a href="{{ url_for('learners.catalog', search=search_query, mode='Live') }}" class="btn btn-sm {% if mode_filter == 'Live' %}btn-teal text-white{% else %}btn-light border{% endif %} rounded-pill px-3 fw-bold">Live Classes</a>
+                    </div>
+                </div>
+                <!-- Submit -->
+                <div class="col-12 col-sm-4 col-lg-2">
+                    <button type="submit" class="btn btn-navy text-white btn-sm fw-bold w-100 py-2 rounded-3 shadow-xs">
+                        <i class="fa-solid fa-filter me-1"></i> Apply Filter
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Catalog Course Grid -->
+    <div class="row g-4">
+        {% for c in courses %}
+        <div class="col-12 col-md-6 col-lg-4 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden course-card position-relative transition-all" style="transition: transform 0.2s ease;">
+                <div class="position-relative">
+                    {% if c.thumbnail_filename %}
+                    <img src="{{ url_for('static', filename='uploads/' + c.thumbnail_filename) }}" class="card-img-top object-fit-cover" style="height: 160px;" alt="{{ c.name }}">
+                    {% else %}
+                    <div class="bg-teal-subtle text-teal d-flex align-items-center justify-content-center" style="height: 160px; font-size: 3rem;">
+                        <i class="fa-solid {% if c.mode == 'Live' %}fa-users{% else %}fa-laptop-code{% endif %}"></i>
+                    </div>
+                    {% endif %}
+                    <span class="badge position-absolute top-0 end-0 m-3 shadow-sm {% if c.mode == 'Live' %}bg-info text-white{% else %}bg-teal text-white{% endif %}">
+                        {{ c.mode }}
+                    </span>
+                </div>
+                
+                <div class="card-body p-3.5 d-flex flex-column justify-content-between">
+                    <div>
+                        <h6 class="fw-bold text-dark mb-2 text-truncate-2" style="font-size: 0.95rem; min-height: 44px;">{{ c.name }}</h6>
+                        <p class="text-muted text-xs text-truncate-3 mb-3">{{ c.description or 'No description provided.' }}</p>
+                    </div>
+                    
+                    <div class="pt-3 border-top d-flex align-items-center justify-content-between mt-auto">
+                        <span class="text-muted text-xs"><i class="fa-regular fa-clock me-1 text-teal"></i> {{ c.duration_hours or 0 }} hrs</span>
+                        {% if c.id in enrolled_course_ids %}
+                        <a href="{{ url_for('learners.self_paced_flow', course_id_str=c.course_id) }}" class="btn btn-sm btn-teal text-white fw-bold px-3">
+                            <i class="fa-solid fa-play me-1"></i> Resume
+                        </a>
+                        {% else %}
+                        <span class="badge bg-light text-muted border px-2.5 py-1.5 rounded-pill"><i class="fa-solid fa-lock me-1"></i> Locked</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12 text-center py-5">
+            <div class="avatar-lg bg-teal-subtle text-teal rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 64px; height: 64px;">
+                <i class="fa-solid fa-folder-open fs-3"></i>
+            </div>
+            <h6 class="fw-bold text-dark">No courses found matching filters</h6>
+            <p class="text-muted text-xs">Try modifying search keyword or filtering constraints above.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
