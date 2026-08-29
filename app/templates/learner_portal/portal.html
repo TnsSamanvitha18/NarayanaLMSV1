@@ -631,23 +631,21 @@ function openRecommendModal(courseId, courseName) {
 }
 
 function changeTheme(themeName) {
+    localStorage.setItem('theme', themeName === 'dark' ? 'dark' : 'light');
     fetch("{{ url_for('learners.set_theme') }}", {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
         },
         body: JSON.stringify({ theme: themeName })
     })
     .then(res => res.json())
     .then(data => {
         if (data.status === 'success') {
-            document.body.className = '';
+            document.body.className = document.body.className.replace(/\btheme-\S+/g, '');
             document.body.classList.add('theme-' + themeName);
-            
-            document.querySelectorAll('.theme-swatch').forEach(sw => {
-                sw.style.borderColor = 'transparent';
-            });
-            event.target.style.borderColor = '#000000';
+            window.location.reload();
         }
     })
     .catch(err => console.error("Theme set error:", err));
