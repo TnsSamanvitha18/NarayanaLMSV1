@@ -110,15 +110,14 @@ def create_app(config_class=Config):
 
         # Resolve learner theme preference
         learner_theme = 'navy'
-        if learner_id:
-            if 'learner_theme' in session:
-                learner_theme = session['learner_theme']
-            else:
-                from app.models.user import Learner
-                learner = Learner.query.get(learner_id)
-                if learner and learner.theme:
-                    learner_theme = learner.theme
-                    session['learner_theme'] = learner_theme
+        if 'learner_theme' in session:
+            learner_theme = session['learner_theme']
+        elif learner_id:
+            from app.models.user import Learner
+            learner = Learner.query.get(learner_id)
+            if learner and learner.theme:
+                learner_theme = learner.theme
+                session['learner_theme'] = learner_theme
 
         return {
             'admin_logged_in': session.get('admin_logged_in', False),

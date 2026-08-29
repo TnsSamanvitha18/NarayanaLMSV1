@@ -1110,21 +1110,21 @@ def set_theme():
     """
     Learner Portal: Route to save layout theme choice.
     """
-    learner_id = session.get('learner_id')
-    if not learner_id:
-        return jsonify({'status': 'error', 'message': 'Not logged in'}), 401
-        
     theme = request.json.get('theme', 'navy').strip()
     valid_themes = ['navy', 'emerald', 'sunset', 'purple', 'dark']
     if theme not in valid_themes:
         return jsonify({'status': 'error', 'message': 'Invalid theme selection'}), 400
         
-    learner = Learner.query.get(learner_id)
-    if learner:
-        learner.theme = theme
-        db.session.commit()
-        session['learner_theme'] = theme
-        return jsonify({'status': 'success', 'theme': theme})
+    session['learner_theme'] = theme
+    
+    learner_id = session.get('learner_id')
+    if learner_id:
+        learner = Learner.query.get(learner_id)
+        if learner:
+            learner.theme = theme
+            db.session.commit()
+            
+    return jsonify({'status': 'success', 'theme': theme})
     return jsonify({'status': 'error', 'message': 'Learner not found'}), 404
 
 

@@ -2,6 +2,9 @@
 
 // Theme Initialization & Management
 (function () {
+    if (document.documentElement.hasAttribute('data-theme') && document.documentElement.getAttribute('data-theme')) {
+        return;
+    }
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) {
         document.documentElement.setAttribute('data-theme', savedTheme);
