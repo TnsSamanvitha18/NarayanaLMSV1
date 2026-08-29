@@ -2,6 +2,7 @@ import os
 import datetime
 from app.models import db
 from app.models.user import AdminUser, Learner
+from app.models.issue import LmsIssue
 from app.models.course import Course, CourseAssessment, CourseMaterial
 from app.models.live_class import LiveClass
 from app.models.enrollment import LearnerEnrollment
@@ -190,6 +191,22 @@ def init_db_and_seed(app):
                 en2 = LearnerEnrollment(learner_id=l1.id, course_id=c2.id, class_id=cls_in1.id, completion_status='Enrolled')
                 en3 = LearnerEnrollment(learner_id=l1.id, course_id=c3.id, class_id=cls_on1.id, completion_status='Enrolled')
                 db.session.add_all([en1, en2, en3])
+                db.session.commit()
+
+                # Seed mock helpdesk support tickets
+                issue1 = LmsIssue(learner_id=l1.id, category='Technical', description='Cannot load flashcards for Python course. Page shows blank white card.', status='Open')
+                
+                # Fetch other learners
+                l2 = Learner.query.filter_by(global_id='10002').first()
+                l3 = Learner.query.filter_by(global_id='10003').first()
+                
+                l2_id = l2.id if l2 else l1.id
+                l3_id = l3.id if l3 else l1.id
+                
+                issue2 = LmsIssue(learner_id=l2_id, category='Content', description='The lesson slides for ML models has typo on slide 5: learning rate parameter was spelled wrong.', status='Open')
+                issue3 = LmsIssue(learner_id=l3_id, category='Certificate', description=f'[Escalation] Extension requested for course Python Data Structures & Algorithms Masterclass. Enrollment ID: {en1.id}', status='Open')
+                
+                db.session.add_all([issue1, issue2, issue3])
 
             db.session.commit()
             print("Database initialized successfully!")
