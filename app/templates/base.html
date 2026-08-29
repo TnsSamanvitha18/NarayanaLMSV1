@@ -126,38 +126,55 @@
         body[class*="theme-"] .text-teal, 
         body[class*="theme-"] .brand-icon,
         body[class*="theme-"] .brand-icon i,
+        body[class*="theme-"] .text-primary,
         body[class*="theme-"] .fa-graduation-cap {
             color: var(--primary-accent) !important;
         }
         body[class*="theme-"] .btn-teal, 
         body[class*="theme-"] .bg-teal,
-        body[class*="theme-"] .btn-outline-teal:hover {
-            background-color: var(--primary-color) !important;
-            border-color: var(--primary-color) !important;
-            color: #ffffff !important;
-        }
-        body[class*="theme-"] .btn-outline-teal {
-            color: var(--primary-color) !important;
-            border-color: var(--primary-color) !important;
-        }
-        body[class*="theme-"] .text-navy {
-            color: var(--primary-color) !important;
-        }
+        body[class*="theme-"] .btn-primary,
+        body[class*="theme-"] .btn-navy,
+        body[class*="theme-"] .active-filter,
+        body[class*="theme-"] .btn-filter.active-filter,
+        body[class*="theme-"] .nav-pills .nav-link.active,
         body[class*="theme-"] .card-header.bg-navy,
         body[class*="theme-"] .bg-navy,
-        body[class*="theme-"] .btn-navy,
-        body[class*="theme-"] .btn-primary,
-        body[class*="theme-"] .ls-nav-tab.active {
+        body[class*="theme-"] .ls-nav-tab.active,
+        body[class*="theme-"] .card-gradient-primary,
+        body[class*="theme-"] .card-gradient-teal,
+        body[class*="theme-"] .card-gradient-gold {
             background: var(--primary-gradient) !important;
             border-color: var(--primary-color) !important;
             color: #ffffff !important;
         }
-        body[class*="theme-"] .badge.bg-teal-subtle {
+        body[class*="theme-"] .text-gradient-primary {
+            background: var(--primary-gradient) !important;
+            -webkit-background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
+        }
+        body[class*="theme-"] .btn-outline-teal,
+        body[class*="theme-"] .btn-outline-primary {
+            color: var(--primary-color) !important;
+            border-color: var(--primary-color) !important;
+            background: transparent !important;
+        }
+        body[class*="theme-"] .btn-outline-teal:hover,
+        body[class*="theme-"] .btn-outline-primary:hover {
+            background: var(--primary-gradient) !important;
+            color: #ffffff !important;
+        }
+        body[class*="theme-"] .text-navy {
+            color: var(--primary-color) !important;
+        }
+        body[class*="theme-"] .badge.bg-teal-subtle,
+        body[class*="theme-"] .badge.bg-warning-subtle {
             background-color: rgba(var(--primary-accent-rgb), 0.15) !important;
             color: var(--primary-accent) !important;
+            border-color: rgba(var(--primary-accent-rgb), 0.3) !important;
         }
-        body[class*="theme-"] .badge.bg-teal {
-            background-color: var(--primary-color) !important;
+        body[class*="theme-"] .badge.bg-teal,
+        body[class*="theme-"] .badge.bg-primary {
+            background: var(--primary-gradient) !important;
             color: #ffffff !important;
         }
         body[class*="theme-"] .badge.text-teal {
