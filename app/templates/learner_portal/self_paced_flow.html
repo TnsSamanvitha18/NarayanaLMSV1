@@ -996,7 +996,10 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        {% for les in course.lessons %}
+        {% if sel_les_id %}
+        {% set active_les_id = sel_les_id|int %}
+        {% set les = (course.lessons | selectattr('id', 'equalto', active_les_id) | list | first) %}
+        {% if les %}
         {% set is_cw_reviewed = (les.id in reviewed_lesson_ids) %}
         {% set les_pre_att = lesson_pre_attempts.get(les.id) or lesson_pre_attempts.get(les.lesson_number) %}
         {% set has_pre = les.assessments | selectattr('assessment_type', 'equalto', 'LESSON_PRE') | list | length > 0 %}
@@ -1007,63 +1010,64 @@
         (function () {
             let lessonId = {{ les.id }};
             let reqSecs = {{ ((les.min_time_minutes or 1.0) * 60) | int }};
-    let elapsed = 0;
+            let elapsed = 0;
 
-    let interval = setInterval(function () {
-        if (document.hidden) return; // Count active visible viewing time
-        elapsed++;
+            let interval = setInterval(function () {
+                if (document.hidden) return; // Count active visible viewing time
+                elapsed++;
 
-        let curMin = Math.floor(elapsed / 60);
-        let curSec = elapsed % 60;
-        let reqMin = Math.floor(reqSecs / 60);
-        let reqSec = reqSecs % 60;
+                let curMin = Math.floor(elapsed / 60);
+                let curSec = elapsed % 60;
+                let reqMin = Math.floor(reqSecs / 60);
+                let reqSec = reqSecs % 60;
 
-        let curStr = String(curMin).padStart(2, '0') + ':' + String(curSec).padStart(2, '0');
-        let reqStr = String(reqMin).padStart(2, '0') + ':' + String(reqSec).padStart(2, '0');
+                let curStr = String(curMin).padStart(2, '0') + ':' + String(curSec).padStart(2, '0');
+                let reqStr = String(reqMin).padStart(2, '0') + ':' + String(reqSec).padStart(2, '0');
 
-        let timerTextElem = document.getElementById('timer_text_' + lessonId);
-        if (timerTextElem) {
-            timerTextElem.innerText = curStr + ' / ' + reqStr;
-        }
-
-        if (elapsed >= reqSecs) {
-            clearInterval(interval);
-
-            // Auto-record completion on server
-            fetch("{{ url_for('learners.record_courseware_time', lesson_id=les.id) }}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token() }}'
+                let timerTextElem = document.getElementById('timer_text_' + lessonId);
+                if (timerTextElem) {
+                    timerTextElem.innerText = curStr + ' / ' + reqStr;
                 }
-            }).then(res => res.json()).then(data => {
-                if (data.status === 'success') {
-                    let tracker = document.getElementById('cw_tracker_' + lessonId);
-                    if (tracker) {
-                        tracker.className = 'mt-3 p-3 rounded-3 border bg-success-subtle border-success-subtle d-flex justify-content-between align-items-center';
-                        tracker.innerHTML = `
-                                <div>
-                                    <span class="fw-bold text-success"><i class="fa-solid fa-circle-check me-1"></i> Minimum Viewing Time Completed!</span>
-                                    <div class="small text-muted">Required minimum viewing time completed. Post-Assessment is unlocked!</div>
-                                </div>
-                                <div class="text-end">
-                                    <span class="badge bg-success p-2 fs-6"><i class="fa-solid fa-unlock me-1"></i> Unlocked</span>
-                                </div>`;
-                    }
 
-                    let lockBtn = document.getElementById('post_lock_btn_' + lessonId);
-                    let activeBtn = document.getElementById('post_active_btn_' + lessonId);
-                    if (lockBtn && activeBtn) {
-                        lockBtn.classList.add('d-none');
-                        activeBtn.classList.remove('d-none');
-                    }
+                if (elapsed >= reqSecs) {
+                    clearInterval(interval);
+
+                    // Auto-record completion on server
+                    fetch("{{ url_for('learners.record_courseware_time', lesson_id=les.id) }}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token() }}'
+                        }
+                    }).then(res => res.json()).then(data => {
+                        if (data.status === 'success') {
+                            let tracker = document.getElementById('cw_tracker_' + lessonId);
+                            if (tracker) {
+                                tracker.className = 'mt-3 p-3 rounded-3 border bg-success-subtle border-success-subtle d-flex justify-content-between align-items-center';
+                                tracker.innerHTML = `
+                                        <div>
+                                            <span class="fw-bold text-success"><i class="fa-solid fa-circle-check me-1"></i> Minimum Viewing Time Completed!</span>
+                                            <div class="small text-muted">Required minimum viewing time completed. Post-Assessment is unlocked!</div>
+                                        </div>
+                                        <div class="text-end">
+                                            <span class="badge bg-success p-2 fs-6"><i class="fa-solid fa-unlock me-1"></i> Unlocked</span>
+                                        </div>`;
+                            }
+
+                            let lockBtn = document.getElementById('post_lock_btn_' + lessonId);
+                            let activeBtn = document.getElementById('post_active_btn_' + lessonId);
+                            if (lockBtn && activeBtn) {
+                                lockBtn.classList.add('d-none');
+                                activeBtn.classList.remove('d-none');
+                            }
+                        }
+                    }).catch(err => console.error('Failed to record time:', err));
                 }
-            }).catch(err => console.error('Failed to record time:', err));
-        }
-    }, 1000);
-    })();
-    {% endif %}
-    {% endfor %}
+            }, 1000);
+        })();
+        {% endif %}
+        {% endif %}
+        {% endif %}
 
     document.querySelectorAll('.modal').forEach(function(modal) {
         modal.addEventListener('show.bs.modal', function() {
