@@ -1077,6 +1077,29 @@
             }
         });
     });
+
+    // Auto-pause video players and reset video iframe streams when switching tabs/windows
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            // Pause HTML5 video elements
+            document.querySelectorAll('video').forEach(function(video) {
+                video.pause();
+            });
+
+            // Pause/Reset video iframes
+            document.querySelectorAll('iframe').forEach(function(iframe) {
+                try {
+                    iframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+                    iframe.contentWindow.postMessage('{"event":"command","func":"pause","args":""}', '*');
+                } catch (e) {}
+                let src = iframe.getAttribute('src');
+                if (src && (src.includes('youtube') || src.includes('vimeo') || src.includes('video') || src.includes('drive.google.com'))) {
+                    iframe.setAttribute('src', '');
+                    iframe.setAttribute('src', src);
+                }
+            });
+        }
+    });
 });
 </script>
 
