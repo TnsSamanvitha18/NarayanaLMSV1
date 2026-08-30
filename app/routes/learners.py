@@ -296,38 +296,71 @@ def my_portal():
     notifications = LearnerNotification.query.filter_by(learner_id=learner.id).order_by(LearnerNotification.created_at.desc()).all()
     certificates = Certificate.query.filter_by(learner_id=learner.id).order_by(Certificate.issue_date.desc()).all()
 
-    # Build lesson progress map: {enrollment_id: {done: int, total: int, pct: float}}
+    # Build lesson progress map: {enrollment_id: {done: int, total: int, pct: float, ...}}
     progress_map = {}
     from app.models.assessment import CourseAssessment, AssessmentAttempt
     from app.models.review import LessonReview
     
     for en in enrollments:
         total_lessons = len(en.course.lessons) if en.course.lessons else 0
-        if total_lessons > 0:
-            reviewed_reviews = LessonReview.query.filter_by(enrollment_id=en.id).all()
-            reviewed_lesson_ids = {r.lesson_id for r in reviewed_reviews}
-            
-            done_count = 0
-            for les in en.course.lessons:
-                has_les_post = CourseAssessment.query.filter_by(course_id=en.course.id, lesson_id=les.id, assessment_type='LESSON_POST').count() > 0
-                if has_les_post:
-                    post_att = AssessmentAttempt.query.filter(
-                        (AssessmentAttempt.enrollment_id == en.id) & 
-                        (AssessmentAttempt.assessment_type.in_(['LESSON_POST', 'POST'])) & 
-                        ((AssessmentAttempt.lesson_id == les.id) | (AssessmentAttempt.lesson_number == les.lesson_number)) & 
-                        (AssessmentAttempt.passed == True)
-                    ).first()
-                    if post_att:
-                        done_count += 1
-                else:
-                    if les.id in reviewed_lesson_ids:
-                        done_count += 1
-            
-            pct = round(min(done_count / total_lessons, 1.0) * 100)
+        
+        # 1. Pre Assessment Status
+        has_pre = CourseAssessment.query.filter_by(course_id=en.course.id, assessment_type='PRE').count() > 0
+        pre_att = AssessmentAttempt.query.filter_by(enrollment_id=en.id, assessment_type='PRE').first()
+        if not has_pre:
+            pre_status = "N/A"
+        elif pre_att:
+            pre_status = "Completed"
         else:
-            done_count = 0
-            pct = 100 if en.completion_status == 'Completed' else 0
-        progress_map[en.id] = {'done': done_count, 'total': total_lessons, 'pct': pct}
+            pre_status = "Pending"
+            
+        # 2. Lessons Status (done/total)
+        reviewed_reviews = LessonReview.query.filter_by(enrollment_id=en.id).all()
+        reviewed_lesson_ids = {r.lesson_id for r in reviewed_reviews}
+        done_count = 0
+        for les in en.course.lessons:
+            has_les_post = CourseAssessment.query.filter_by(course_id=en.course.id, lesson_id=les.id, assessment_type='LESSON_POST').count() > 0
+            if has_les_post:
+                post_att = AssessmentAttempt.query.filter(
+                    (AssessmentAttempt.enrollment_id == en.id) & 
+                    (AssessmentAttempt.assessment_type.in_(['LESSON_POST', 'POST'])) & 
+                    ((AssessmentAttempt.lesson_id == les.id) | (AssessmentAttempt.lesson_number == les.lesson_number)) & 
+                    (AssessmentAttempt.passed == True)
+                ).first()
+                if post_att:
+                    done_count += 1
+            else:
+                if les.id in reviewed_lesson_ids:
+                    done_count += 1
+        lessons_status = f"{done_count:02d}/{total_lessons:02d}"
+        
+        # 3. Post Assessment Status
+        course_end_att = AssessmentAttempt.query.filter_by(enrollment_id=en.id, assessment_type='COURSE_END').order_by(AssessmentAttempt.id.desc()).first()
+        if course_end_att:
+            post_status = "Passed" if course_end_att.passed else ("Failed" if en.attempts_count >= 3 else "Pending")
+        else:
+            if done_count == total_lessons:
+                post_status = "Pending"
+            else:
+                post_status = "Locked"
+                
+        # 4. Feedback Status
+        from app.models.feedback import FeedbackResponse, FeedbackRepository
+        fb_repo = en.course.feedback_repository or FeedbackRepository.query.first()
+        fb_resp = None
+        if fb_repo:
+            fb_resp = FeedbackResponse.query.filter_by(repo_id=fb_repo.id, learner_id=learner.id).first()
+        feedback_status = "Submitted" if fb_resp else "Pending"
+
+        progress_map[en.id] = {
+            'done': done_count,
+            'total': total_lessons,
+            'pct': round(min(done_count / total_lessons, 1.0) * 100) if total_lessons > 0 else 0,
+            'pre_status': pre_status,
+            'lessons_status': lessons_status,
+            'post_status': post_status,
+            'feedback_status': feedback_status
+        }
 
     # Check if this learner has subordinates (is a manager)
     subordinates = Learner.query.filter_by(manager_id=learner.id).all()
