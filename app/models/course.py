@@ -68,7 +68,21 @@ class CourseLesson(db.Model):
     title = db.Column(db.String(150), nullable=False)
     summary = db.Column(db.Text, nullable=True)
     content = db.Column(db.Text, nullable=True)
-    video_url = db.Column(db.String(500), nullable=True)
+    _video_url = db.Column('video_url', db.String(500), nullable=True)
+
+    @property
+    def video_url(self):
+        if self._video_url:
+            return self._video_url
+        for cw in self.courseware:
+            if cw.courseware_type in ['Video', 'Video File'] and cw.filename:
+                from flask import url_for
+                return url_for('courses.get_courseware_raw_file', courseware_id=cw.id)
+        return None
+
+    @video_url.setter
+    def video_url(self, value):
+        self._video_url = value
     duration_hours = db.Column(db.Float, nullable=False, default=1.0)
     min_time_minutes = db.Column(db.Float, nullable=False, default=1.0) # Admin minimum required time on courseware
     deadline = db.Column(db.DateTime, nullable=True) # Optional lesson completion deadline
