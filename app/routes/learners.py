@@ -298,8 +298,8 @@ def my_portal():
 
     # Build lesson progress map: {enrollment_id: {done: int, total: int, pct: float, ...}}
     progress_map = {}
-    from app.models.assessment import CourseAssessment, AssessmentAttempt
-    from app.models.review import LessonReview
+    from app.models.course import CourseAssessment
+    from app.models.enrollment import AssessmentAttempt, LessonReview
     
     for en in enrollments:
         total_lessons = len(en.course.lessons) if en.course.lessons else 0
