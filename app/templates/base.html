@@ -147,6 +147,18 @@
             border-color: var(--primary-color) !important;
             color: #ffffff !important;
         }
+        body[class*="theme-"] .card-gradient-primary *,
+        body[class*="theme-"] .card-gradient-teal *,
+        body[class*="theme-"] .card-gradient-gold *,
+        body[class*="theme-"] .bg-navy * {
+            color: #ffffff !important;
+        }
+        body[class*="theme-"] .card-gradient-primary .text-white-50,
+        body[class*="theme-"] .card-gradient-teal .text-white-50,
+        body[class*="theme-"] .card-gradient-gold .text-white-50,
+        body[class*="theme-"] .bg-navy .text-white-50 {
+            color: rgba(255, 255, 255, 0.5) !important;
+        }
         body[class*="theme-"] .text-gradient-primary {
             background: var(--primary-gradient) !important;
             -webkit-background-clip: text !important;
