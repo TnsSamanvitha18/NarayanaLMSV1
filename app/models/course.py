@@ -16,6 +16,7 @@ class Course(db.Model):
     thumbnail_filename = db.Column(db.String(255), nullable=True)
     is_sequential = db.Column(db.Boolean, nullable=False, default=True) # Course-level sequential lesson access toggle
     completion_date = db.Column(db.DateTime, nullable=True) # Optional course target completion date
+    is_archived = db.Column(db.Boolean, default=False, nullable=False) # Archived status flag
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     assessments = db.relationship('CourseAssessment', backref='course', lazy=True, cascade='all, delete-orphan')

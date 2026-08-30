@@ -44,7 +44,8 @@ def init_db_and_seed(app):
             "ALTER TABLE learner_notifications ADD COLUMN course_id INTEGER;",
             "ALTER TABLE learner_notifications ADD COLUMN lesson_id INTEGER;",
             "ALTER TABLE learning_wall_posts ALTER COLUMN badge_color TYPE VARCHAR(255);",
-            "ALTER TABLE learners ADD COLUMN theme VARCHAR(50) DEFAULT 'navy';"
+            "ALTER TABLE learners ADD COLUMN theme VARCHAR(50) DEFAULT 'navy';",
+            "ALTER TABLE courses ADD COLUMN is_archived BOOLEAN DEFAULT FALSE;"
         ]
 
         for stmt in alter_statements:

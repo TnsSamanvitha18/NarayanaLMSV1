@@ -1211,8 +1211,8 @@ def catalog():
     search_query = request.args.get('search', '').strip().lower()
     mode_filter = request.args.get('mode', 'ALL').strip()
     
-    # Retrieve all courses
-    query = Course.query
+    # Retrieve all non-archived courses
+    query = Course.query.filter_by(is_archived=False)
     if mode_filter and mode_filter != 'ALL':
         query = query.filter_by(mode=mode_filter)
         
@@ -1238,4 +1238,25 @@ def catalog():
         enrolled_course_ids=enrolled_course_ids,
         search_query=search_query,
         mode_filter=mode_filter
+    )
+
+
+@learners_bp.route('/profile')
+def view_learner_profile():
+    learner_id = session.get('learner_id')
+    if not learner_id:
+        flash("Please log in to view your profile.", "danger")
+        return redirect(url_for('auth.learner_login'))
+        
+    learner = Learner.query.get_or_404(learner_id)
+    
+    # Get active/completed enrollments count
+    total_enrollments = LearnerEnrollment.query.filter_by(learner_id=learner.id).count()
+    completed_enrollments = LearnerEnrollment.query.filter_by(learner_id=learner.id, completion_status='Completed').count()
+    
+    return render_template(
+        'learner_portal/profile.html',
+        learner=learner,
+        total_enrollments=total_enrollments,
+        completed_enrollments=completed_enrollments
     )

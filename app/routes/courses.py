@@ -32,7 +32,8 @@ def list_courses():
     mode_filter = request.args.get('mode', '').strip()
     page = request.args.get('page', 1, type=int)
 
-    query = Course.query
+    show_archived = request.args.get('show_archived', '0') == '1'
+    query = Course.query.filter_by(is_archived=show_archived)
 
     if search_query:
         query = query.filter(
@@ -46,7 +47,7 @@ def list_courses():
         query = query.filter_by(mode=mode_filter)
 
     courses = query.order_by(Course.id.desc()).paginate(page=page, per_page=20, error_out=False)
-    return render_template('courses/list.html', courses=courses, search_query=search_query, mode_filter=mode_filter)
+    return render_template('courses/list.html', courses=courses, search_query=search_query, mode_filter=mode_filter, show_archived=show_archived)
 
 
 @courses_bp.route('/create', methods=['GET', 'POST'])
@@ -816,22 +817,14 @@ def edit_course(course_id):
     return render_template('courses/create_edit.html', course=course, auto_id=course.course_id, feedback_repos=feedback_repos)
 
 
-@courses_bp.route('/<int:course_id>/delete', methods=['POST'])
+@courses_bp.route('/<int:course_id>/archive', methods=['POST'])
 @admin_required
-def delete_course(course_id):
+def archive_course(course_id):
 
     course = Course.query.get_or_404(course_id)
-    course_name = course.course_id
-    try:
-        from app.models.certificate import Certificate
-        Certificate.query.filter_by(course_id=course.id).delete(synchronize_session=False)
-        db.session.delete(course)
-        db.session.commit()
-        flash(f"Course {course_name} and all associated data deleted successfully.", "success")
-    except Exception as e:
-        db.session.rollback()
-        flash(f"Failed to delete course: {str(e)}", "danger")
-        
+    course.is_archived = True
+    db.session.commit()
+    flash(f"Course '{course.name}' ({course.course_id}) has been successfully archived. It will no longer be visible to learners or available for assignment.", "success")
     return redirect(url_for('courses.list_courses'))
 
 

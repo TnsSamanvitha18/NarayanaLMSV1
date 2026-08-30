@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}My Profile - Narayana Learning Hub{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('learners.my_portal') }}">Dashboard</a></li>
+            <li class="breadcrumb-item active">My Profile</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4">
+        <!-- Sidebar User Card -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm text-center p-4">
+                <div class="position-relative d-inline-block mx-auto mb-3">
+                    <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200" alt="Profile" class="rounded-circle border border-2 border-teal shadow" style="width: 120px; height: 120px; object-fit: cover;">
+                    <span class="position-absolute bottom-0 end-0 bg-success border border-white rounded-circle p-2" title="Active"></span>
+                </div>
+                <h4 class="fw-bold text-dark mb-1">{{ learner.name }}</h4>
+                <p class="text-muted small mb-3">@{{ learner.global_id }}</p>
+                <span class="badge bg-teal-light text-teal border border-teal-subtle px-3 py-1.5 rounded-pill fw-bold mb-4">{{ learner.designation or 'Associate Professional' }}</span>
+                
+                <div class="border-top pt-3 text-start">
+                    <div class="mb-2">
+                        <small class="text-muted d-block">Department</small>
+                        <strong class="text-dark">{{ learner.department or 'L&D' }}</strong>
+                    </div>
+                    <div class="mb-2">
+                        <small class="text-muted d-block">Branch Location</small>
+                        <strong class="text-dark">{{ learner.location or 'Narayana Headquarters' }}</strong>
+                    </div>
+                    {% if learner.manager %}
+                    <div>
+                        <small class="text-muted d-block">Reporting Manager</small>
+                        <strong class="text-dark">{{ learner.manager.name }}</strong>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Details & Stats Grid -->
+        <div class="col-lg-8">
+            <!-- Stats Counters -->
+            <div class="row g-3 mb-4">
+                <div class="col-sm-4">
+                    <div class="card border-0 shadow-sm p-3.5 text-center bg-warning-subtle border-warning">
+                        <i class="fa-solid fa-star text-warning fs-3 mb-2"></i>
+                        <h3 class="fw-bold text-dark mb-1">{{ learner.points }}</h3>
+                        <small class="text-muted font-monospace fw-bold">Earned Points</small>
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="card border-0 shadow-sm p-3.5 text-center bg-info-subtle border-info">
+                        <i class="fa-solid fa-fire text-danger fs-3 mb-2"></i>
+                        <h3 class="fw-bold text-dark mb-1">{{ learner.current_streak }} Days</h3>
+                        <small class="text-muted font-monospace fw-bold">Active Streak</small>
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="card border-0 shadow-sm p-3.5 text-center bg-success-subtle border-success">
+                        <i class="fa-solid fa-circle-check text-success fs-3 mb-2"></i>
+                        <h3 class="fw-bold text-dark mb-1">{{ completed_enrollments }} / {{ total_enrollments }}</h3>
+                        <small class="text-muted font-monospace fw-bold">Completed Courses</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trophy Room / Badges -->
+            <div class="card border-0 shadow-sm p-4">
+                <h5 class="fw-bold text-navy mb-3"><i class="fa-solid fa-trophy text-warning me-2"></i> Trophy Room & Achievement Badges</h5>
+                <div class="row g-3">
+                    {% for badge in learner.badges %}
+                    <div class="col-6 col-sm-4 col-md-3">
+                        <div class="p-3 border rounded-3 text-center bg-light h-100 d-flex flex-column align-items-center justify-content-center">
+                            <div class="rounded-circle bg-white shadow-sm p-3 mb-2 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                <i class="fa-solid {{ badge.badge_icon or 'fa-award' }} text-teal fs-4"></i>
+                            </div>
+                            <strong class="d-block text-dark small text-truncate w-100">{{ badge.badge_name }}</strong>
+                            <small class="text-muted text-xxs block mt-1">{{ badge.earned_at.strftime('%d %b %Y') if badge.earned_at else 'Earned' }}</small>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="col-12 text-center py-4 text-muted">
+                        <i class="fa-solid fa-medal opacity-50 display-6 mb-2"></i>
+                        <p class="mb-0">No badges earned yet. Complete courses and studies to unlock achievements!</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

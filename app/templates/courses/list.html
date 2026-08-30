@@ -32,9 +32,20 @@
         <h3 class="fw-bold mb-1" style="color: var(--teal-primary);"><span class="text-gradient-primary"><i class="fa-solid fa-book-open me-2 text-primary"></i> Course & Class Management</span></h3>
         <p class="text-muted mb-0">Create courses, schedule live classes inside courses, manage learning materials, and configure assessments.</p>
     </div>
-    <a href="{{ url_for('courses.create_course') }}" class="btn btn-navy text-white px-3.5 py-2 shadow-sm text-nowrap">
-        <i class="fa-solid fa-plus me-1"></i> Create New Course
-    </a>
+    <div class="d-flex gap-2">
+        {% if show_archived %}
+        <a href="{{ url_for('courses.list_courses', show_archived=0) }}" class="btn btn-outline-secondary px-3.5 py-2 shadow-sm text-nowrap text-dark">
+            <i class="fa-solid fa-folder-open me-1"></i> View Active
+        </a>
+        {% else %}
+        <a href="{{ url_for('courses.list_courses', show_archived=1) }}" class="btn btn-outline-secondary px-3.5 py-2 shadow-sm text-nowrap text-dark">
+            <i class="fa-solid fa-box-archive me-1"></i> View Archived
+        </a>
+        {% endif %}
+        <a href="{{ url_for('courses.create_course') }}" class="btn btn-navy text-white px-3.5 py-2 shadow-sm text-nowrap">
+            <i class="fa-solid fa-plus me-1"></i> Create New Course
+        </a>
+    </div>
 </div>
 
 <!-- Search & Filter Card -->
@@ -128,12 +139,16 @@
                             <a href="{{ url_for('courses.edit_course', course_id=c.id) }}" class="btn-action-edit me-1" title="Edit Course">
                                 <i class="fa-solid fa-pen-to-square me-1"></i> Edit
                             </a>
-                            <form action="{{ url_for('courses.delete_course', course_id=c.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete course {{ c.course_id }}?');">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn-action-delete" title="Delete Course">
-                                    <i class="fa-solid fa-trash-can me-1"></i> Delete
+                            {% if c.is_archived %}
+                            <span class="badge bg-secondary p-2"><i class="fa-solid fa-box-archive me-1"></i> Archived</span>
+                            {% else %}
+                            <form action="{{ url_for('courses.archive_course', course_id=c.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to archive course {{ c.course_id }}?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn-action-delete" title="Archive Course" style="background-color: #f59e0b !important; border-color: #f59e0b !important; color: #1e293b !important;">
+                                    <i class="fa-solid fa-box-archive me-1"></i> Archive
                                 </button>
                             </form>
+                            {% endif %}
                         </td>
                     </tr>
                     {% else %}

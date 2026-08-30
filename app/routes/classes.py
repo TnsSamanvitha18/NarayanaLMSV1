@@ -287,14 +287,15 @@ def assign_learners_to_class(class_id):
         return redirect(url_for('courses.view_course', course_id=course.id))
 
     assigned_count = 0
+    already_enrolled_count = 0
+    invalid_ids = []
     from app.models.user import Learner
     from app.models.enrollment import LearnerEnrollment
     for gid in parsed_global_ids:
         learner = Learner.query.filter_by(global_id=gid).first()
         if not learner:
-            learner = Learner(global_id=gid, name=f"Learner {gid}", department="L&D")
-            db.session.add(learner)
-            db.session.commit()
+            invalid_ids.append(gid)
+            continue
 
         existing_en = LearnerEnrollment.query.filter_by(learner_id=learner.id, course_id=course.id, class_id=live_class.id).first()
         if not existing_en:
@@ -306,7 +307,18 @@ def assign_learners_to_class(class_id):
             )
             db.session.add(en)
             assigned_count += 1
+        else:
+            already_enrolled_count += 1
 
     db.session.commit()
-    flash(f"Successfully assigned {assigned_count} learners to Live Class '{live_class.class_name}'.", "success")
+    
+    msg = f"Successfully assigned {assigned_count} learners to Live Class '{live_class.class_name}'."
+    if already_enrolled_count > 0:
+        msg += f" {already_enrolled_count} learner(s) were already enrolled."
+    if invalid_ids:
+        msg += f" {len(invalid_ids)} invalid/non-existing Global ID(s) could not be assigned: {', '.join(invalid_ids[:5])}{'...' if len(invalid_ids) > 5 else ''}."
+        flash(msg, "warning" if assigned_count == 0 else "info")
+    else:
+        flash(msg, "success")
+        
     return redirect(url_for('courses.view_course', course_id=course.id))

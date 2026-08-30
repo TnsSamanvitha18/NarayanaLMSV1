@@ -225,11 +225,55 @@
         [data-theme="dark"] .text-muted {
             color: var(--text-muted, #94A3B8) !important;
         }
+        [data-theme="dark"] .text-dark {
+            color: var(--text-primary, #FAFAF9) !important;
+        }
+        [data-theme="dark"] .bg-light {
+            background-color: var(--bg-surface-elevated, #162030) !important;
+            color: var(--text-primary, #FAFAF9) !important;
+        }
+        [data-theme="dark"] .border {
+            border-color: var(--border-color, #1F293D) !important;
+        }
         [data-theme="dark"] .form-control,
         [data-theme="dark"] .form-select {
             color: var(--text-primary, #FAFAF9) !important;
             background-color: var(--input-bg, #091214) !important;
             border-color: var(--input-border, #23464B) !important;
+        }
+
+        /* Enforce exact symmetry on rounded/circle components across the application */
+        .avatar-sm, .avatar-md, .avatar-lg, .rounded-circle, .theme-swatch, .profile-avatar, .admin-profile-btn, .admin-profile-avatar, [style*="border-radius: 50%"] {
+            aspect-ratio: 1 / 1 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+
+        /* Remove all dark/black border lines or map them to theme border/body color */
+        body[class*="theme-"] *,
+        body[class*="theme-"] .card,
+        body[class*="theme-"] .badge,
+        body[class*="theme-"] .btn,
+        body[class*="theme-"] .form-control,
+        body[class*="theme-"] .form-select,
+        body[class*="theme-"] .offcanvas,
+        body[class*="theme-"] .modal-content,
+        body[class*="theme-"] .table,
+        body[class*="theme-"] td,
+        body[class*="theme-"] th,
+        body[class*="theme-"] .border,
+        body[class*="theme-"] .border-bottom,
+        body[class*="theme-"] .border-top,
+        body[class*="theme-"] .border-start,
+        body[class*="theme-"] .border-end {
+            border-color: var(--border-color, #E2E8F0) !important;
+        }
+        
+        /* Ensure specific components don't have hardcoded black borders */
+        body[class*="theme-"] .border-dark,
+        body[class*="theme-"] .border-black {
+            border-color: var(--border-color, #E2E8F0) !important;
         }
         
         .tag-autocomplete-dropdown {
@@ -288,6 +332,9 @@
         </defs>
     </svg>
 
+    {% set is_user_logged_in = admin_logged_in or session.get('learner_id') %}
+    {% set is_auth_page = safe_endpoint and safe_endpoint.startswith('auth.') %}
+
     <!-- Floating Capsule Main Navigation -->
     <header class="ls-navbar sticky-top">
         <div class="container-fluid px-2 px-md-4">
@@ -295,9 +342,11 @@
                 <!-- Brand Logo & Mobile Toggle -->
                 <div class="d-flex align-items-center gap-2 gap-md-4">
                     <!-- Mobile Hamburger Button -->
+                    {% if is_user_logged_in and not is_auth_page %}
                     <button class="btn btn-link text-dark d-xl-none p-1 border-0 text-decoration-none me-1" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileNavDrawer" aria-controls="mobileNavDrawer" aria-label="Toggle navigation">
                         <i class="fa-solid fa-bars fs-4 text-teal"></i>
                     </button>
+                    {% endif %}
 
                     <a href="{{ url_for('dashboard.index') if admin_logged_in else url_for('learners.my_portal') }}" class="d-flex align-items-center text-decoration-none min-w-0 me-1">
                         <i class="fa-solid fa-graduation-cap text-teal me-1 me-md-2 fs-5 flex-shrink-0 brand-icon"></i>
@@ -305,6 +354,7 @@
                     </a>
 
                     <!-- Desktop Capsule Nav Tabs -->
+                    {% if is_user_logged_in and not is_auth_page %}
                     <div class="d-none d-xl-flex align-items-center gap-1">
                         {% if admin_logged_in %}
                         <a href="{{ url_for('dashboard.index') }}" class="ls-nav-tab {% if safe_endpoint == 'dashboard.index' %}active{% endif %}">
@@ -351,18 +401,13 @@
                         </a>
                         {% endif %}
                     </div>
+                    {% endif %}
                 </div>
 
                 <!-- Right Utility Bar -->
                 <div class="d-flex align-items-center gap-2 gap-md-3 flex-shrink-0 ms-auto me-0">
-                    {% set is_user_logged_in = admin_logged_in or session.get('learner_id') %}
-                    {% set is_auth_page = safe_endpoint and safe_endpoint.startswith('auth.') %}
                     
                     {% if is_user_logged_in and not is_auth_page %}
-                    <!-- Search Trigger Button -->
-                    <button type="button" class="btn btn-link text-muted p-1 text-decoration-none d-none d-sm-inline-flex align-items-center justify-content-center" title="Quick Search (Ctrl+K)" data-bs-toggle="modal" data-bs-target="#globalSearchModal" style="height: 38px; width: 38px; border-radius: 50%; transition: background-color 0.2s;">
-                        <i class="fa-solid fa-magnifying-glass fs-5 text-teal"></i>
-                    </button>
 
                     {% if learner_id and not admin_logged_in %}
                     <!-- Gamification Points Badge -->
@@ -480,9 +525,9 @@
                                 <span class="badge bg-teal-light text-teal border border-teal-subtle mt-1">{% if admin_logged_in %}L&D Administrator{% elif session.get('learner_global_id') %}Learner ID: {{ session.get('learner_global_id') }}{% else %}Learner Portal{% endif %}</span>
                             </li>
                             {% if not admin_logged_in %}
-                            <li><a class="dropdown-item fw-semibold py-2" href="{{ url_for('learners.my_portal') }}"><i class="fa-solid fa-id-badge me-2 text-teal fs-6"></i> My Profile & Portal</a></li>
+                            <li><a class="dropdown-item fw-semibold py-2" href="{{ url_for('learners.view_learner_profile') }}"><i class="fa-solid fa-id-badge me-2 text-teal fs-6"></i> My Profile & Portal</a></li>
                             {% else %}
-                            <li><a class="dropdown-item fw-semibold py-2" href="{{ url_for('dashboard.index') }}"><i class="fa-solid fa-user-shield me-2 text-teal fs-6"></i> Admin Profile</a></li>
+                            <li><a class="dropdown-item fw-semibold py-2" href="{{ url_for('super_admin.admin_profile') }}"><i class="fa-solid fa-user-shield me-2 text-teal fs-6"></i> Admin Profile</a></li>
                             {% endif %}
                             <li><hr class="dropdown-divider my-1"></li>
                             <li><a class="dropdown-item text-danger fw-semibold py-2" href="{{ url_for('auth.logout') }}"><i class="fa-solid fa-right-from-bracket me-2 text-danger fs-6"></i> Logout</a></li>
@@ -494,6 +539,7 @@
         </div>
     </header>
 
+    {% if is_user_logged_in and not is_auth_page %}
     <!-- Responsive Mobile Offcanvas Drawer -->
     <div class="offcanvas offcanvas-start mobile-nav-offcanvas d-xl-none" tabindex="-1" id="mobileNavDrawer" aria-labelledby="mobileNavDrawerLabel">
         <div class="offcanvas-header border-bottom py-3">
@@ -560,6 +606,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
     <!-- Main Content Container -->
     <main class="container-fluid py-3 py-md-4 px-2 px-sm-3 px-md-4">

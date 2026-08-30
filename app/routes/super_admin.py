@@ -560,4 +560,23 @@ def broadcast_notification():
     return redirect(url_for('dashboard.index'))
 
 
+@super_admin_bp.route('/profile')
+@super_admin_required
+def admin_profile():
+    from app.models.course import Course
+    from app.models.user import Learner
+    from app.models.issue import LmsIssue
+
+    total_courses = Course.query.count()
+    total_learners = Learner.query.count()
+    open_tickets = LmsIssue.query.filter_by(status='Open').count()
+
+    return render_template(
+        'super_admin/profile.html',
+        total_courses=total_courses,
+        total_learners=total_learners,
+        open_tickets=open_tickets
+    )
+
+
 
