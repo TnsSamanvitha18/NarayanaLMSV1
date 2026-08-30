@@ -179,24 +179,35 @@
                                     <strong class="text-navy font-monospace">{{ prog.feedback_status }}</strong>
                                 </div>
                             </div>
-                            {% else %}
                             <!-- Live Class Course Card Layout (Standard) -->
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <span class="badge font-monospace bg-dark text-gold">{{ en.course.course_id }}</span>
-                                <span class="status-pill pill-in-progress">{{ en.completion_status }}</span>
+                            <div class="text-center mb-2.5">
+                                <small class="text-uppercase fw-bold text-muted font-monospace letter-spacing-1 d-block mb-1" style="font-size: 0.72rem;">{{ en.course.course_id }}</small>
+                                <h6 class="fw-extrabold text-navy text-uppercase mb-2.5" style="font-size: 1rem; line-height: 1.3;">{{ en.course.name }}</h6>
+                                <div class="d-inline-block">
+                                    <span class="badge border border-2 border-teal bg-teal-subtle text-teal rounded-pill px-3 py-1 fw-extrabold text-uppercase font-monospace mb-3 shadow-xs" style="font-size: 0.75rem;">
+                                        {{ en.completion_status }}
+                                    </span>
+                                </div>
                             </div>
-                            <h6 class="fw-bold text-dark mb-1">{{ en.course.name }}</h6>
-                            <small class="text-muted d-block mb-2"><i class="fa-regular fa-clock me-1"></i> {{ en.course.mode }} ({{ en.course.duration_hours }} hrs)</small>
-                            {% if en.extended_deadline or en.course.completion_date %}
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <span class="text-muted text-xs"><i class="fa-regular fa-calendar me-1"></i> Target Deadline:</span>
-                                {% if en.extended_deadline %}
-                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle text-xxs">{{ en.extended_deadline.strftime('%d-%b-%Y') }}</span>
-                                {% else %}
-                                <span class="badge bg-light text-muted border text-xxs">{{ en.course.completion_date.strftime('%d-%b-%Y') }}</span>
-                                {% endif %}
+                            
+                            <div class="p-3 bg-light rounded-3 border mb-3 flex-grow-1" style="font-size: 0.85rem;">
+                                <div class="d-flex justify-content-between align-items-center mb-2 pb-1.5 border-bottom border-secondary-subtle">
+                                    <span class="text-muted"><i class="fa-solid fa-pen-nib me-1.5 text-teal"></i> Pre Assessment</span>
+                                    <strong class="text-navy font-monospace">{{ prog.pre_status }}</strong>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-2 pb-1.5 border-bottom border-secondary-subtle">
+                                    <span class="text-muted"><i class="fa-solid fa-clipboard-user me-1.5 text-teal"></i> Class Attendance</span>
+                                    <strong class="text-navy font-monospace">{{ prog.attendance_status }}</strong>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-2 pb-1.5 border-bottom border-secondary-subtle">
+                                    <span class="text-muted"><i class="fa-solid fa-file-circle-check me-1.5 text-teal"></i> Post Assessment</span>
+                                    <strong class="text-navy font-monospace">{{ prog.post_status }}</strong>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-0">
+                                    <span class="text-muted"><i class="fa-solid fa-comments me-1.5 text-teal"></i> Feedback Submission</span>
+                                    <strong class="text-navy font-monospace">{{ prog.feedback_status }}</strong>
+                                </div>
                             </div>
-                            {% endif %}
                             {% endif %}
 
                             <!-- Actions Footer -->
@@ -217,20 +228,9 @@
                             </div>
                             {% else %}
                             <div class="d-flex gap-2 mt-auto">
-                                {% if en.course.mode == 'Self Paced' %}
-                                <a href="{{ prog.btn_url }}" class="btn btn-teal btn-sm flex-grow-1 fw-bold py-2 rounded-3 text-uppercase font-monospace shadow-sm" style="background-color: #0A4B5C; border-color: #0A4B5C; color: #ffffff !important;">
+                                <a href="{{ prog.btn_url }}" class="btn btn-teal btn-sm flex-grow-1 fw-bold py-2 rounded-3 text-uppercase font-monospace shadow-sm" style="background-color: #0A4B5C; border-color: #0A4B5C; color: #ffffff !important; {% if prog.btn_text == 'Class Pending' or prog.btn_text == 'Course Completed' %}pointer-events: none; opacity: 0.6;{% endif %}">
                                     {{ prog.btn_text }} <i class="fa-solid fa-arrow-right ms-1"></i>
                                 </a>
-                                {% else %}
-                                    {% set cls_id = en.live_class.class_id if en.live_class else (en.course.classes[0].class_id if en.course.classes else '') %}
-                                    {% if cls_id %}
-                                    <a href="{{ url_for('learners.class_flow', class_id_str=cls_id) }}" class="btn btn-teal btn-sm flex-grow-1 fw-bold py-2 rounded-3 text-uppercase font-monospace shadow-sm" style="color: #ffffff !important;">
-                                        Go to Class Flow <i class="fa-solid fa-arrow-right ms-1"></i>
-                                    </a>
-                                    {% else %}
-                                    <button class="btn btn-secondary btn-sm flex-grow-1" disabled>Class Pending</button>
-                                    {% endif %}
-                                {% endif %}
                                 <button type="button" class="btn btn-outline-teal btn-sm px-2.5" title="Recommend to Learning Wall" onclick="openRecommendModal({{ en.course.id }}, '{{ en.course.name|escape }}')">
                                     <i class="fa-solid fa-share-nodes"></i>
                                 </button>
