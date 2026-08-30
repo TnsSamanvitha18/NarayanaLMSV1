@@ -828,6 +828,17 @@ def archive_course(course_id):
     return redirect(url_for('courses.list_courses'))
 
 
+@courses_bp.route('/<int:course_id>/unarchive', methods=['POST'])
+@admin_required
+def unarchive_course(course_id):
+
+    course = Course.query.get_or_404(course_id)
+    course.is_archived = False
+    db.session.commit()
+    flash(f"Course '{course.name}' ({course.course_id}) has been restored/unarchived successfully.", "success")
+    return redirect(url_for('courses.list_courses'))
+
+
 @courses_bp.route('/<int:course_id>/upload_material', methods=['POST'])
 @admin_required
 def upload_material(course_id):

@@ -140,7 +140,12 @@
                                 <i class="fa-solid fa-pen-to-square me-1"></i> Edit
                             </a>
                             {% if c.is_archived %}
-                            <span class="badge bg-secondary p-2"><i class="fa-solid fa-box-archive me-1"></i> Archived</span>
+                            <form action="{{ url_for('courses.unarchive_course', course_id=c.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to restore course {{ c.course_id }}?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn-action-view" title="Restore Course" style="background-color: var(--primary-accent) !important; border-color: var(--primary-accent) !important; color: #ffffff !important;">
+                                    <i class="fa-solid fa-arrow-up-from-bracket me-1"></i> Restore
+                                </button>
+                            </form>
                             {% else %}
                             <form action="{{ url_for('courses.archive_course', course_id=c.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to archive course {{ c.course_id }}?');">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
