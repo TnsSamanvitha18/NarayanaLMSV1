@@ -298,10 +298,31 @@ def my_portal():
 
     # Build lesson progress map: {enrollment_id: {done: int, total: int, pct: float}}
     progress_map = {}
+    from app.models.assessment import CourseAssessment, AssessmentAttempt
+    from app.models.review import LessonReview
+    
     for en in enrollments:
         total_lessons = len(en.course.lessons) if en.course.lessons else 0
         if total_lessons > 0:
-            done_count = LessonReview.query.filter_by(enrollment_id=en.id).count()
+            reviewed_reviews = LessonReview.query.filter_by(enrollment_id=en.id).all()
+            reviewed_lesson_ids = {r.lesson_id for r in reviewed_reviews}
+            
+            done_count = 0
+            for les in en.course.lessons:
+                has_les_post = CourseAssessment.query.filter_by(course_id=en.course.id, lesson_id=les.id, assessment_type='LESSON_POST').count() > 0
+                if has_les_post:
+                    post_att = AssessmentAttempt.query.filter(
+                        (AssessmentAttempt.enrollment_id == en.id) & 
+                        (AssessmentAttempt.assessment_type.in_(['LESSON_POST', 'POST'])) & 
+                        ((AssessmentAttempt.lesson_id == les.id) | (AssessmentAttempt.lesson_number == les.lesson_number)) & 
+                        (AssessmentAttempt.passed == True)
+                    ).first()
+                    if post_att:
+                        done_count += 1
+                else:
+                    if les.id in reviewed_lesson_ids:
+                        done_count += 1
+            
             pct = round(min(done_count / total_lessons, 1.0) * 100)
         else:
             done_count = 0
@@ -320,7 +341,24 @@ def my_portal():
             for sub_en in sub_enrollments:
                 total_lessons = len(sub_en.course.lessons) if sub_en.course.lessons else 0
                 if total_lessons > 0:
-                    done_count = LessonReview.query.filter_by(enrollment_id=sub_en.id).count()
+                    reviewed_reviews_sub = LessonReview.query.filter_by(enrollment_id=sub_en.id).all()
+                    reviewed_lesson_ids_sub = {r.lesson_id for r in reviewed_reviews_sub}
+                    
+                    done_count = 0
+                    for les in sub_en.course.lessons:
+                        has_les_post = CourseAssessment.query.filter_by(course_id=sub_en.course.id, lesson_id=les.id, assessment_type='LESSON_POST').count() > 0
+                        if has_les_post:
+                            post_att = AssessmentAttempt.query.filter(
+                                (AssessmentAttempt.enrollment_id == sub_en.id) & 
+                                (AssessmentAttempt.assessment_type.in_(['LESSON_POST', 'POST'])) & 
+                                ((AssessmentAttempt.lesson_id == les.id) | (AssessmentAttempt.lesson_number == les.lesson_number)) & 
+                                (AssessmentAttempt.passed == True)
+                            ).first()
+                            if post_att:
+                                done_count += 1
+                        else:
+                            if les.id in reviewed_lesson_ids_sub:
+                                done_count += 1
                     pct = round(min(done_count / total_lessons, 1.0) * 100)
                 else:
                     done_count = 0
