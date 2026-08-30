@@ -449,7 +449,15 @@
                                         {% elif block.type == 'video' %}
                                             <div class="card border-0 shadow-xs overflow-hidden rounded-3">
                                                 <div class="ratio ratio-16x9">
-                                                    <iframe src="{{ block.video_url }}" title="Video Block" allowfullscreen></iframe>
+                                                    {% set block_yt_src = block.video_url %}
+                                                    {% if 'youtube' in block_yt_src or 'youtu.be' in block_yt_src or 'embed' in block_yt_src %}
+                                                        {% if '?' in block_yt_src %}
+                                                            {% set block_yt_src = block_yt_src + '&modestbranding=1&rel=0' %}
+                                                        {% else %}
+                                                            {% set block_yt_src = block_yt_src + '?modestbranding=1&rel=0' %}
+                                                        {% endif %}
+                                                    {% endif %}
+                                                    <iframe src="{{ block_yt_src }}" title="Video Block" allowfullscreen></iframe>
                                                 </div>
                                             </div>
                                         {% elif block.type == 'image_carousel' %}
@@ -685,7 +693,13 @@
                     <div class="bg-black">
                         {% if 'youtube' in active_les.video_url or 'youtu.be' in active_les.video_url or 'embed' in active_les.video_url %}
                         <div class="ratio ratio-16x9">
-                            <iframe src="{{ active_les.video_url }}" title="YouTube Video Lecture" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
+                            {% set les_yt_src = active_les.video_url %}
+                            {% if '?' in les_yt_src %}
+                                {% set les_yt_src = les_yt_src + '&modestbranding=1&rel=0' %}
+                            {% else %}
+                                {% set les_yt_src = les_yt_src + '?modestbranding=1&rel=0' %}
+                            {% endif %}
+                            <iframe src="{{ les_yt_src }}" title="YouTube Video Lecture" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
                         </div>
                         {% else %}
                         <video controls class="w-100" style="max-height: 420px;">
