@@ -352,6 +352,27 @@ def my_portal():
             fb_resp = FeedbackResponse.query.filter_by(repo_id=fb_repo.id, learner_id=learner.id).first()
         feedback_status = "Submitted" if fb_resp else "Pending"
 
+        # Determine dynamic button text and URL
+        from flask import url_for
+        btn_text = "Continue Learning"
+        btn_url = url_for('learners.self_paced_flow', course_id_str=en.course.course_id)
+        
+        if en.completion_status == 'Completed':
+            from app.models.certificate import Certificate
+            my_cert = Certificate.query.filter_by(learner_id=learner.id, course_id=en.course.id).first()
+            if my_cert:
+                btn_text = "Download Certificate"
+                btn_url = url_for('certificates.download_certificate', cert_id_str=my_cert.certificate_id)
+            else:
+                btn_text = "Course Completed"
+                btn_url = "#"
+        elif total_lessons > 0 and done_count == total_lessons and (post_status == "Passed" or post_status == "N/A" or not has_pre) and feedback_status == "Pending":
+            btn_text = "Submit Feedback"
+            if fb_repo:
+                btn_url = url_for('learners.submit_feedback', repo_id=fb_repo.id) + '?course_id=' + str(en.course.id)
+        elif en.completion_status == 'Enrolled' or done_count == 0:
+            btn_text = "Start Learning"
+
         progress_map[en.id] = {
             'done': done_count,
             'total': total_lessons,
@@ -359,7 +380,9 @@ def my_portal():
             'pre_status': pre_status,
             'lessons_status': lessons_status,
             'post_status': post_status,
-            'feedback_status': feedback_status
+            'feedback_status': feedback_status,
+            'btn_text': btn_text,
+            'btn_url': btn_url
         }
 
     # Check if this learner has subordinates (is a manager)

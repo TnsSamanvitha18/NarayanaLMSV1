@@ -218,8 +218,8 @@
                             {% else %}
                             <div class="d-flex gap-2 mt-auto">
                                 {% if en.course.mode == 'Self Paced' %}
-                                <a href="{{ url_for('learners.self_paced_flow', course_id_str=en.course.course_id) }}" class="btn btn-teal btn-sm flex-grow-1 fw-bold py-2 rounded-3 text-uppercase font-monospace shadow-sm" style="background-color: #0A4B5C; border-color: #0A4B5C; color: #ffffff !important;">
-                                    Continue Learning <i class="fa-solid fa-arrow-right ms-1"></i>
+                                <a href="{{ prog.btn_url }}" class="btn btn-teal btn-sm flex-grow-1 fw-bold py-2 rounded-3 text-uppercase font-monospace shadow-sm" style="background-color: #0A4B5C; border-color: #0A4B5C; color: #ffffff !important;">
+                                    {{ prog.btn_text }} <i class="fa-solid fa-arrow-right ms-1"></i>
                                 </a>
                                 {% else %}
                                     {% set cls_id = en.live_class.class_id if en.live_class else (en.course.classes[0].class_id if en.course.classes else '') %}
