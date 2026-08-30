@@ -147,10 +147,10 @@
             border-color: var(--primary-color) !important;
             color: #ffffff !important;
         }
-        body[class*="theme-"] .card-gradient-primary *,
-        body[class*="theme-"] .card-gradient-teal *,
-        body[class*="theme-"] .card-gradient-gold *,
-        body[class*="theme-"] .bg-navy * {
+        body[class*="theme-"] .card-gradient-primary *:not(a):not(button):not(.btn):not(.badge),
+        body[class*="theme-"] .card-gradient-teal *:not(a):not(button):not(.btn):not(.badge),
+        body[class*="theme-"] .card-gradient-gold *:not(a):not(button):not(.btn):not(.badge),
+        body[class*="theme-"] .bg-navy *:not(a):not(button):not(.btn):not(.badge) {
             color: #ffffff !important;
         }
         body[class*="theme-"] .card-gradient-primary .text-white-50,
