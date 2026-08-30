@@ -358,7 +358,6 @@ def my_portal():
         attendance_status = "Present" if (att and att.status == 'Present') else "Pending"
 
         # Determine dynamic button text and URL
-        from flask import url_for
         btn_text = "Continue Learning"
         btn_url = url_for('learners.self_paced_flow', course_id_str=en.course.course_id)
         
