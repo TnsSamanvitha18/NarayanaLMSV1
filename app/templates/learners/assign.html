@@ -106,7 +106,12 @@
                         <h5 class="fw-bold text-navy mb-3"><i class="fa-solid fa-file-csv me-2 text-success"></i> Option B: Upload CSV File</h5>
                         <div class="card bg-light border-0 p-3" style="max-width: 500px;">
                             <input type="file" class="form-control" name="learner_csv" accept=".csv">
-                            <small class="text-muted mt-2 d-block">CSV column header should contain <code>Global ID</code> or <code>ID</code>.</small>
+                            <div class="mt-2 d-flex justify-content-between align-items-center">
+                                <small class="text-muted">CSV column header: <code>Global ID</code> or <code>ID</code>.</small>
+                                <a href="{{ url_for('courses.download_sample_csv', csv_type='learners') }}" class="btn btn-sm btn-outline-success fw-bold">
+                                    <i class="fa-solid fa-download me-1"></i> Sample CSV
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>

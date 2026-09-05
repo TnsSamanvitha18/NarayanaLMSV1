@@ -1,0 +1,5 @@
+1. cd "c:\Users\SHREEEE\OneDrive\Desktop\Aditya Anna\LMSV1\NarayanaLMSV1"
+2. python -m venv venv
+3. .\venv\Scripts\Activate.ps1
+4. pip install -r requirements.txt
+5. python run.py

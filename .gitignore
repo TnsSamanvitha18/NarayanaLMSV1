@@ -17,4 +17,7 @@ static/qr_codes/*
 # Local databases and environment files
 .env
 *.db
+*.db-shm
+*.db-wal
 instance/
+scratch/

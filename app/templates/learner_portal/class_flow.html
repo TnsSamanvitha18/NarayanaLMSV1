@@ -164,11 +164,7 @@
                             </button>
                             {% endif %}
 
-                            {% if mat.external_url %}
-                            <a href="{{ mat.external_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-teal btn-sm fw-bold px-2 py-0.5 text-xs">
-                                <i class="fa-solid fa-up-right-from-square me-1"></i> Open in Google Drive
-                            </a>
-                            {% endif %}
+
 
                             {% if mat.allow_download and mat.filename %}
                             <a href="{{ url_for('courses.download_material', material_id=mat.id) }}?download=1" target="_blank" class="btn btn-navy text-white btn-sm px-2 py-0.5 text-xs ms-auto">
@@ -219,11 +215,7 @@
                                 <div class="modal-footer bg-light py-2 px-3 justify-content-between">
                                     <small class="text-muted">Hosted on Google Drive / External Cloud Storage</small>
                                     <div class="d-flex align-items-center gap-2">
-                                        {% if mat.external_url %}
-                                        <a href="{{ mat.external_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-teal fw-bold">
-                                            <i class="fa-solid fa-up-right-from-square me-1"></i> Open in Google Drive
-                                        </a>
-                                        {% endif %}
+
                                         <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
                                     </div>
                                 </div>

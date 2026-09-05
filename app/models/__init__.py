@@ -4,7 +4,7 @@ db = SQLAlchemy()
 
 # Import all models to ensure registration for db.create_all() and migrations
 from app.models.user import AdminUser, Learner
-from app.models.course import Course, CourseLesson, CourseAssessment, CourseMaterial, RiseCoursewareVersion, LearnerBlockProgress
+from app.models.course import Course, CourseLesson, CourseAssessment, LessonCourseware, CoursewareAudioTrack, CourseMaterial, RiseCoursewareVersion, LearnerBlockProgress
 from app.models.live_class import LiveClass, AuditLog
 from app.models.enrollment import LearnerEnrollment, AssessmentAttempt, LessonReview
 from app.models.badge import LearnerBadge

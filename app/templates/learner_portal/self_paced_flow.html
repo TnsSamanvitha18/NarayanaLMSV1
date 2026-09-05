@@ -299,28 +299,67 @@
                     <!-- Courseware Viewers -->
                     {% for cw in active_les.courseware %}
                     <div class="border-bottom border-secondary">
+                        {% set is_gd, emb_url, g_type, file_id = parse_gdrive_url(cw.external_url) if cw.external_url else (False, '', '', '') %}
                         {% if cw.courseware_type == 'Video' or cw.courseware_type == 'Video URL' or (cw.filename and cw.filename.split('.')[-1]|lower in ['mp4', 'webm', 'ogg', 'mov']) %}
                             {% if cw.filename %}
-                            <video controls class="w-100" style="max-height: 420px; background: #000;" controlsList="nodownload">
-                                <source src="{{ url_for('courses.stream_courseware', courseware_id=cw.id) }}">
-                                Your browser does not support HTML5 video.
-                            </video>
+                            <div class="position-relative bg-black rounded overflow-hidden shadow-sm my-2" id="videoContainer{{ cw.id }}">
+                                <div class="p-2 bg-dark text-white d-flex justify-content-between align-items-center flex-wrap gap-2 border-bottom border-secondary">
+                                    <span class="small fw-semibold"><i class="fa-solid fa-film text-info me-1"></i> {{ cw.title }}</span>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <label class="text-xs text-white-50 mb-0"><i class="fa-solid fa-language me-1 text-warning"></i> Audio Track:</label>
+                                        {% set default_track = cw.audio_tracks | selectattr("is_default") | first if cw.audio_tracks else None %}
+                                        <select class="form-select form-select-sm bg-black text-white border-secondary text-xs audio-track-select" id="audioSelect{{ cw.id }}" data-cw-id="{{ cw.id }}" style="max-width: 220px;">
+                                            <option value="default" {% if not default_track %}selected{% endif %}>Original Audio {% if not default_track %}(Default ⭐){% endif %}</option>
+                                            {% if cw.audio_tracks %}
+                                                {% for trk in cw.audio_tracks %}
+                                                <option value="aux_{{ trk.id }}" {% if trk.is_default %}selected{% endif %}>{{ trk.language_label }} {% if trk.is_default %}(Default ⭐){% endif %}</option>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <video controls class="w-100 lms-multi-audio-video" id="lmsVideo{{ cw.id }}" data-cw-id="{{ cw.id }}" style="max-height: 420px; background: #000;" controlsList="nodownload">
+                                    <source src="{{ url_for('courses.stream_courseware', courseware_id=cw.id) }}">
+                                    Your browser does not support HTML5 video.
+                                </video>
+
+                                {% if cw.audio_tracks %}
+                                    {% for trk in cw.audio_tracks %}
+                                    <audio id="auxAudio{{ cw.id }}_{{ trk.id }}" src="{{ url_for('courses.stream_audio_track', track_id=trk.id) }}" preload="metadata"></audio>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
                             {% elif cw.external_url %}
                             <div class="ratio ratio-16x9">
                                 <iframe src="{{ cw.external_url }}" title="Video Lecture" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
                             </div>
                             {% endif %}
 
-                        {% elif cw.courseware_type in ['PDF', 'PPT', 'Excel', 'Doc'] or (cw.filename and cw.filename.split('.')[-1]|lower in ['pdf', 'ppt', 'pptx', 'xls', 'xlsx', 'doc', 'docx', 'csv']) %}
-                            <div class="bg-white border">
-                                {% set is_gd, emb_url, g_type, file_id = parse_gdrive_url(cw.external_url) if cw.external_url else (False, '', '', '') %}
-                                {% if is_gd %}
-                                    <iframe src="{{ emb_url }}" class="w-100" style="height: 580px; border: none;" allowfullscreen></iframe>
-                                {% elif cw.external_url %}
-                                    <iframe src="{{ cw.external_url }}" class="w-100" style="height: 580px; border: none;" allowfullscreen></iframe>
-                                {% else %}
-                                    <iframe src="{{ url_for('courses.stream_courseware', courseware_id=cw.id) }}#toolbar=0" class="w-100" style="height: 580px; border: none;" allowfullscreen></iframe>
-                                {% endif %}
+                        {% elif is_gd or cw.external_url or cw.courseware_type in ['PDF', 'PPT', 'Excel', 'Doc', 'Google Drive', 'Google Slides', 'Google Doc', 'Google Sheet', 'Google Deck', 'Presentation', 'Deck', 'Document', 'Embed', 'Link', 'URL'] or cw.courseware_type.startswith('Google') or (cw.filename and cw.filename.split('.')[-1]|lower in ['pdf', 'ppt', 'pptx', 'xls', 'xlsx', 'doc', 'docx', 'csv']) %}
+                            <div class="bg-white border rounded-3 overflow-hidden shadow-sm my-2">
+                                <div class="p-2.5 bg-navy text-white d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                    <div class="d-flex align-items-center gap-2">
+                                        {% if is_gd or 'Google' in cw.courseware_type %}
+                                        <i class="fa-brands fa-google-drive text-success fs-5"></i>
+                                        {% elif 'PPT' in cw.courseware_type or 'Deck' in cw.courseware_type %}
+                                        <i class="fa-solid fa-file-powerpoint text-warning fs-5"></i>
+                                        {% else %}
+                                        <i class="fa-solid fa-file-lines text-teal fs-5"></i>
+                                        {% endif %}
+                                        <span class="fw-bold text-sm text-white me-1">{{ cw.title }}</span>
+                                        <span class="badge bg-teal-light text-teal border border-teal-subtle text-xxs">{{ g_type if is_gd else cw.courseware_type }}</span>
+                                    </div>
+                                </div>
+                                <div class="w-100" style="height: 600px; min-height: 480px; background: #1e1e1e;">
+                                    {% if is_gd %}
+                                        <iframe src="{{ emb_url }}" class="w-100 h-100 border-0" allowfullscreen allow="autoplay"></iframe>
+                                    {% elif cw.external_url %}
+                                        <iframe src="{{ cw.external_url }}" class="w-100 h-100 border-0" allowfullscreen allow="autoplay"></iframe>
+                                    {% else %}
+                                        <iframe src="{{ url_for('courses.stream_courseware', courseware_id=cw.id) }}#toolbar=0" class="w-100 h-100 border-0" allowfullscreen></iframe>
+                                    {% endif %}
+                                </div>
                             </div>
 
                         {% elif cw.courseware_type == 'Text' %}
@@ -689,7 +728,7 @@
                     </div>
                     {% endfor %}
 
-                    {% if active_les.video_url %}
+                    {% if active_les.video_url and not active_les.courseware %}
                     <div class="bg-black">
                         {% if 'youtube' in active_les.video_url or 'youtu.be' in active_les.video_url or 'embed' in active_les.video_url %}
                         <div class="ratio ratio-16x9">
@@ -702,7 +741,7 @@
                             <iframe src="{{ les_yt_src }}" title="YouTube Video Lecture" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
                         </div>
                         {% else %}
-                        <video controls class="w-100" style="max-height: 420px;">
+                        <video controls class="w-100" style="max-height: 420px;" controlsList="nodownload">
                             <source src="{{ active_les.video_url }}" type="video/mp4">
                             Your browser does not support inline video playback.
                         </video>
@@ -739,130 +778,7 @@
                     {% endif %}
                 </div>
 
-                <!-- Interactive Study Flashcards -->
-                {% if active_content_unlocked %}
-                <div class="p-4 bg-light border-top" id="flashcards-widget-container">
-                    <h6 class="fw-bold text-navy mb-3"><i class="fa-regular fa-clone text-teal me-1"></i> Interactive Concept Flashcards</h6>
-                    <p class="text-muted text-xxs mb-3">Flip the cards to review core definitions. Review all cards to earn 20 points! ⭐</p>
-                    
-                    <div class="flashcard-container d-flex justify-content-center align-items-center position-relative my-4" style="perspective: 1000px; height: 180px; position: relative;">
-                        <!-- Card Elements -->
-                        {% set cards = [
-                            {"front": "Active Learning", "back": "A dynamic learning model requiring users to complete milestones (pre/post-tests, timers) to unlock content sequentially."},
-                            {"front": "Progressive Gating", "back": "Enforces prerequisites and viewing time limits on lessons to maximize memory retention and course depth."},
-                            {"front": "Gamified Feedback Loop", "back": "Encourages knowledge sharing on the Social Wall while rewarding completions and logins with points and badges."}
-                        ] %}
-                        
-                        {% for c in cards %}
-                        <div class="flashcard w-100 h-100 position-absolute rounded-3 shadow-sm" id="flashcard-{{ loop.index0 }}" style="transform-style: preserve-3d; transition: transform 0.6s; cursor: pointer; display: {% if loop.first %}block{% else %}none{% endif %}; max-width: 320px; z-index: 5; position: absolute; left: 50%; transform: translateX(-50%);">
-                            <div class="flashcard-inner w-100 h-100 position-relative" style="transform-style: preserve-3d; width: 100%; height: 100%;" onclick="this.classList.toggle('flipped')">
-                                <!-- Front Face -->
-                                <div class="flashcard-front position-absolute w-100 h-100 bg-white border border-teal-subtle rounded-3 d-flex align-items-center justify-content-center p-3 text-center" style="backface-visibility: hidden; z-index: 2; position: absolute; top: 0; left: 0; right: 0; bottom: 0;">
-                                    <div>
-                                        <span class="badge bg-teal-subtle text-teal mb-2">Term {{ loop.index }}</span>
-                                        <h6 class="fw-bold text-navy mb-0">{{ c.front }}</h6>
-                                        <small class="text-muted d-block mt-3 text-xxs"><i class="fa-solid fa-rotate me-1"></i> Click to Flip</small>
-                                    </div>
-                                </div>
-                                <!-- Back Face -->
-                                <div class="flashcard-back position-absolute w-100 h-100 bg-teal text-white rounded-3 d-flex align-items-center justify-content-center p-3 text-center" style="backface-visibility: hidden; transform: rotateY(180deg); z-index: 1; position: absolute; top: 0; left: 0; right: 0; bottom: 0;">
-                                    <div>
-                                        <p class="small mb-0">{{ c.back }}</p>
-                                        <small class="text-white-50 d-block mt-3 text-xxs"><i class="fa-solid fa-rotate me-1"></i> Click to Flip Back</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
 
-                    <!-- Flashcard Navigation Controls -->
-                    <div class="d-flex justify-content-between align-items-center px-4">
-                        <button type="button" class="btn btn-outline-secondary btn-xxs rounded-pill" id="prev-card-btn" disabled onclick="navigateCard(-1)">
-                            <i class="fa-solid fa-chevron-left me-1"></i> Back
-                        </button>
-                        <span class="text-muted text-xs font-monospace fw-bold" id="card-indicator">Card 1 / 3</span>
-                        <button type="button" class="btn btn-teal text-white btn-xxs rounded-pill" id="next-card-btn" onclick="navigateCard(1)">
-                            Next <i class="fa-solid fa-chevron-right ms-1"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <style>
-                .flashcard-inner {
-                    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-                }
-                .flashcard-inner.flipped {
-                    transform: rotateY(180deg);
-                }
-                .flashcard-front, .flashcard-back {
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                }
-                </style>
-                
-                <script>
-                let currentCardIdx = 0;
-                const totalCards = 3;
-
-                function navigateCard(dir) {
-                    // Hide current card
-                    document.getElementById(`flashcard-${currentCardIdx}`).style.display = 'none';
-                    
-                    // Reset flip class if flipped
-                    const inner = document.querySelector(`#flashcard-${currentCardIdx} .flashcard-inner`);
-                    if (inner) inner.classList.remove('flipped');
-                    
-                    currentCardIdx += dir;
-                    
-                    // Show next card
-                    document.getElementById(`flashcard-${currentCardIdx}`).style.display = 'block';
-                    
-                    // Update buttons
-                    document.getElementById('prev-card-btn').disabled = (currentCardIdx === 0);
-                    
-                    const nextBtn = document.getElementById('next-card-btn');
-                    if (currentCardIdx === totalCards - 1) {
-                        nextBtn.innerHTML = '<i class="fa-solid fa-check me-1"></i> Complete';
-                        nextBtn.onclick = completeFlashcards;
-                    } else {
-                        nextBtn.innerHTML = 'Next <i class="fa-solid fa-chevron-right ms-1"></i>';
-                        nextBtn.onclick = function() { navigateCard(1); };
-                    }
-                    
-                    document.getElementById('card-indicator').innerText = `Card ${currentCardIdx + 1} / ${totalCards}`;
-                }
-
-                function completeFlashcards() {
-                    fetch("{{ url_for('learners.complete_flashcards', course_id=course.id) }}", {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': '{{ csrf_token() }}'
-                        }
-                    })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.status === 'success') {
-                            alert(data.message);
-                            document.getElementById('flashcards-widget-container').innerHTML = `
-                                <div class="alert alert-success d-flex align-items-center py-2.5 mb-0">
-                                    <i class="fa-solid fa-circle-check fs-5 text-success me-2"></i>
-                                    <div>
-                                        <strong>Flashcards Completed!</strong> You earned 20 points and the Flashcard Pro badge!
-                                    </div>
-                                </div>
-                            `;
-                        } else {
-                            alert(data.message || 'Already completed or error occurred.');
-                        }
-                    })
-                    .catch(err => console.error('Flashcard error:', err));
-                }
-                </script>
-                {% endif %}
 
                 <!-- Bottom Primary Next Button -->
                 <div class="p-3.5 bg-white border-top">
@@ -1153,4 +1069,134 @@
 }
 </style>
 {% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.audio-track-select').forEach(function(selectEl) {
+        var cwId = selectEl.getAttribute('data-cw-id');
+        var videoEl = document.getElementById('lmsVideo' + cwId);
+        if (!videoEl) return;
+
+        if (videoEl.audioTracks && videoEl.audioTracks.length > 1) {
+            for (var i = 0; i < videoEl.audioTracks.length; i++) {
+                var track = videoEl.audioTracks[i];
+                var opt = document.createElement('option');
+                opt.value = 'native_' + i;
+                opt.textContent = (track.label || track.language || ('Audio Track ' + (i + 1))) + ' (Embedded)';
+                selectEl.appendChild(opt);
+            }
+        }
+
+        var activeAuxAudio = null;
+
+        // Auto-initialize default audio track selection on page load
+        if (selectEl.value.startsWith('aux_')) {
+            var initTrackId = selectEl.value.split('_')[1];
+            var initAuxAudio = document.getElementById('auxAudio' + cwId + '_' + initTrackId);
+            if (initAuxAudio) {
+                videoEl.muted = true;
+                activeAuxAudio = initAuxAudio;
+            }
+        }
+
+        function syncAudioToVideo() {
+            if (activeAuxAudio && videoEl) {
+                if (Math.abs(activeAuxAudio.currentTime - videoEl.currentTime) > 0.15) {
+                    activeAuxAudio.currentTime = videoEl.currentTime;
+                }
+                activeAuxAudio.playbackRate = videoEl.playbackRate;
+            }
+        }
+
+        selectEl.addEventListener('change', function() {
+            var val = this.value;
+
+            if (activeAuxAudio) {
+                activeAuxAudio.pause();
+                activeAuxAudio = null;
+            }
+
+            if (val === 'default') {
+                videoEl.muted = false;
+                if (videoEl.audioTracks) {
+                    for (var k = 0; k < videoEl.audioTracks.length; k++) {
+                        videoEl.audioTracks[k].enabled = (k === 0);
+                    }
+                }
+            } else if (val.startsWith('native_')) {
+                var idx = parseInt(val.split('_')[1], 10);
+                videoEl.muted = false;
+                if (videoEl.audioTracks) {
+                    for (var j = 0; j < videoEl.audioTracks.length; j++) {
+                        videoEl.audioTracks[j].enabled = (j === idx);
+                    }
+                }
+            } else if (val.startsWith('aux_')) {
+                var trackId = val.split('_')[1];
+                var auxAudio = document.getElementById('auxAudio' + cwId + '_' + trackId);
+                if (auxAudio) {
+                    videoEl.muted = true;
+                    activeAuxAudio = auxAudio;
+                    activeAuxAudio.currentTime = videoEl.currentTime;
+                    activeAuxAudio.playbackRate = videoEl.playbackRate;
+                    if (!videoEl.paused) {
+                        activeAuxAudio.play().catch(function(e){ console.log(e); });
+                    }
+                }
+            }
+        });
+
+        videoEl.addEventListener('play', function() {
+            if (activeAuxAudio) {
+                activeAuxAudio.currentTime = videoEl.currentTime;
+                activeAuxAudio.playbackRate = videoEl.playbackRate;
+                activeAuxAudio.play().catch(function(e){ console.log(e); });
+            }
+        });
+
+        videoEl.addEventListener('pause', function() {
+            if (activeAuxAudio) {
+                activeAuxAudio.pause();
+            }
+        });
+
+        // Forward Seeking Restriction Guard
+        var maxTimeWatched = 0;
+
+        videoEl.addEventListener('timeupdate', function() {
+            if (!videoEl.seeking) {
+                if (videoEl.currentTime > maxTimeWatched) {
+                    maxTimeWatched = videoEl.currentTime;
+                }
+            }
+            syncAudioToVideo();
+        });
+
+        videoEl.addEventListener('seeking', function() {
+            // Block scrubbing forward past maximum watched progress
+            if (videoEl.currentTime > maxTimeWatched + 1.0) {
+                videoEl.currentTime = maxTimeWatched;
+            }
+            if (activeAuxAudio) {
+                activeAuxAudio.currentTime = videoEl.currentTime;
+            }
+        });
+
+        videoEl.addEventListener('seeked', function() {
+            if (videoEl.currentTime > maxTimeWatched + 1.0) {
+                videoEl.currentTime = maxTimeWatched;
+            }
+            if (activeAuxAudio) {
+                activeAuxAudio.currentTime = videoEl.currentTime;
+            }
+        });
+
+        videoEl.addEventListener('ratechange', function() {
+            if (activeAuxAudio) {
+                activeAuxAudio.playbackRate = videoEl.playbackRate;
+            }
+        });
+    });
+});
+</script>
 {% endblock %}

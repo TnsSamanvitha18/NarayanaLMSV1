@@ -27,13 +27,23 @@ class Course(db.Model):
     feedback_repository = db.relationship('FeedbackRepository', backref='courses', lazy=True)
 
     @staticmethod
-    def generate_course_id():
-        all_courses = Course.query.order_by(Course.id.desc()).all()
+    def generate_course_id(mode='Self Paced'):
+        prefix = 'CRS-SP-'
+        if mode == 'Live Online':
+            prefix = 'CRS-ON-'
+        elif mode in ['Live In Person', 'Live']:
+            prefix = 'CRS-IP-'
+
+        all_courses = Course.query.filter(Course.course_id.like(f"{prefix}%")).all()
+        max_num = 0
         for c in all_courses:
-            parts = c.course_id.split('-')
+            parts = c.course_id.split(prefix)
             if len(parts) == 2 and parts[1].isdigit():
-                return f"CRS-{int(parts[1]) + 1:06d}"
-        return "CRS-000001"
+                num = int(parts[1])
+                if num > max_num:
+                    max_num = num
+
+        return f"{prefix}{max_num + 1:03d}"
 
     def __repr__(self):
         return f'<Course {self.course_id} - {self.name}>'
@@ -101,14 +111,30 @@ class LessonCourseware(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     lesson_id = db.Column(db.Integer, db.ForeignKey('course_lessons.id'), nullable=False)
     title = db.Column(db.String(150), nullable=False)
-    courseware_type = db.Column(db.String(30), nullable=False, default='Text') # 'Video', 'PDF', 'PPT', 'Text', 'SCORM'
+    courseware_type = db.Column(db.String(80), nullable=False, default='Text') # 'Video', 'PDF', 'PPT', 'Text', 'SCORM', 'Google Drive (Google Slides (PPT))'
     filename = db.Column(db.String(255), nullable=True) # Non-downloadable file in uploads/materials
     external_url = db.Column(db.String(500), nullable=True)
     content_text = db.Column(db.Text, nullable=True)
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    audio_tracks = db.relationship('CoursewareAudioTrack', backref='courseware', lazy=True, cascade='all, delete-orphan')
+
     def __repr__(self):
         return f'<LessonCourseware {self.title} ({self.courseware_type})>'
+
+
+class CoursewareAudioTrack(db.Model):
+    __tablename__ = 'courseware_audio_tracks'
+
+    id = db.Column(db.Integer, primary_key=True)
+    courseware_id = db.Column(db.Integer, db.ForeignKey('lesson_courseware.id'), nullable=False)
+    language_label = db.Column(db.String(50), nullable=False) # e.g. "English", "Telugu", "Hindi", "Tamil"
+    audio_filename = db.Column(db.String(255), nullable=False)
+    is_default = db.Column(db.Boolean, default=False)
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<CoursewareAudioTrack {self.language_label} for Courseware {self.courseware_id}>'
 
 
 class CourseMaterial(db.Model):

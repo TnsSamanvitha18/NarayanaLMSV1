@@ -92,7 +92,12 @@
                     <div class="mb-3">
                         <label for="attendance_csv" class="form-label fw-bold"><i class="fa-solid fa-upload me-1 text-success"></i> OR Upload Attendance CSV File</label>
                         <input type="file" class="form-control" id="attendance_csv" name="attendance_csv" accept=".csv,.xlsx,.xls">
-                        <small class="text-muted">CSV column: <strong>Global ID</strong> (or first column).</small>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <small class="text-muted">CSV column: <strong>Global ID</strong> (or first column).</small>
+                            <a href="{{ url_for('courses.download_sample_csv', csv_type='attendance') }}" class="btn btn-sm btn-outline-success fw-bold">
+                                <i class="fa-solid fa-download me-1"></i> Sample CSV
+                            </a>
+                        </div>
                     </div>
 
                     <div class="mb-3">

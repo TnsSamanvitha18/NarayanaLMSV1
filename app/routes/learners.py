@@ -1,4 +1,5 @@
 import os
+import re
 from app.utils.decorators import admin_required
 import json
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
@@ -128,6 +129,42 @@ def learner_detail(learner_id):
 
 
 
+def parse_global_ids_from_input(global_ids_text, csv_file=None):
+    parsed_ids = []
+    seen = set()
+
+    if global_ids_text:
+        raw_tokens = re.split(r'[\r\n,;\s]+', str(global_ids_text))
+        for token in raw_tokens:
+            val = token.strip().strip('"').strip("'")
+            if val.endswith('.0'):
+                val = val[:-2]
+            if val and val not in seen:
+                seen.add(val)
+                parsed_ids.append(val)
+
+    if csv_file and getattr(csv_file, 'filename', None):
+        try:
+            df = pd.read_csv(csv_file.stream)
+            if not df.empty:
+                col_name = df.columns[0]
+                for col in df.columns:
+                    if 'global' in str(col).lower() or 'id' in str(col).lower():
+                        col_name = col
+                        break
+                for val in df[col_name].dropna():
+                    val_str = str(val).strip().strip('"').strip("'")
+                    if val_str.endswith('.0'):
+                        val_str = val_str[:-2]
+                    if val_str and val_str not in seen:
+                        seen.add(val_str)
+                        parsed_ids.append(val_str)
+        except Exception as e:
+            pass
+
+    return parsed_ids
+
+
 @learners_bp.route('/assign', methods=['GET', 'POST'])
 @admin_required
 def assign_learners():
@@ -135,9 +172,26 @@ def assign_learners():
     courses = Course.query.filter_by(mode='Self Paced').all()
 
     if request.method == 'POST':
-        course_id = int(request.form.get('course_id'))
-        course = Course.query.get_or_404(course_id)
-        
+        is_ajax = (
+            request.is_json
+            or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+            or 'application/json' in request.headers.get('Accept', '')
+        )
+
+        course_id_raw = request.form.get('course_id') or (request.json.get('course_id') if request.is_json and request.json else None)
+        try:
+            course_id = int(course_id_raw)
+            course = Course.query.get(course_id)
+        except (TypeError, ValueError):
+            course = None
+
+        if not course:
+            msg = "Invalid course selection."
+            if is_ajax:
+                return jsonify({'success': False, 'message': msg}), 400
+            flash(msg, "danger")
+            return redirect(url_for('learners.assign_learners'))
+
         assignment_mode = request.form.get('assignment_mode', 'manual')
         parsed_global_ids = []
 
@@ -163,39 +217,25 @@ def assign_learners():
                 has_filters = True
 
             if not has_filters:
-                flash("Please select at least one parameter filter for batch assignment.", "warning")
-                return redirect(url_for('learners.assign_learners'))
+                msg = "Please select at least one parameter filter for batch assignment."
+                if is_ajax:
+                    return jsonify({'success': False, 'message': msg}), 400
+                flash(msg, "warning")
+                return redirect(url_for('courses.view_course', course_id=course.id))
 
             filtered_learners = query.all()
             parsed_global_ids = [learner.global_id for learner in filtered_learners]
         else:
             global_ids_text = request.form.get('global_ids', '').strip()
             csv_file = request.files.get('learner_csv')
-
-            if global_ids_text:
-                # Split lines
-                lines = global_ids_text.split('\n')
-                parsed_global_ids.extend([line.strip() for line in lines if line.strip()])
-
-            if csv_file and csv_file.filename:
-                try:
-                    df = pd.read_csv(csv_file.stream)
-                    # Check for Global ID or first column
-                    col_name = df.columns[0]
-                    for col in df.columns:
-                        if 'global' in str(col).lower() or 'id' in str(col).lower():
-                            col_name = col
-                            break
-                    for val in df[col_name].dropna():
-                        clean_val = str(val).strip()
-                        if clean_val and clean_val not in parsed_global_ids:
-                            parsed_global_ids.append(clean_val)
-                except Exception as e:
-                    flash(f"Error parsing Learner CSV: {str(e)}", "danger")
+            parsed_global_ids = parse_global_ids_from_input(global_ids_text, csv_file)
 
         if not parsed_global_ids:
-            flash("No matching learners found or no valid Global IDs provided.", "warning")
-            return redirect(url_for('learners.assign_learners'))
+            msg = "No matching learners found or no valid Global IDs provided."
+            if is_ajax:
+                return jsonify({'success': False, 'message': msg}), 400
+            flash(msg, "warning")
+            return redirect(url_for('courses.view_course', course_id=course.id))
 
         assigned_count = 0
         already_enrolled_count = 0
@@ -239,7 +279,21 @@ def assign_learners():
             msg += f" {already_enrolled_count} learner(s) were already enrolled."
         if invalid_ids:
             msg += f" {len(invalid_ids)} invalid/non-existing Global ID(s) could not be assigned: {', '.join(invalid_ids[:5])}{'...' if len(invalid_ids) > 5 else ''}."
-            flash(msg, "warning" if assigned_count == 0 else "info")
+
+        if is_ajax:
+            is_error = (assigned_count == 0 and already_enrolled_count == 0 and len(invalid_ids) > 0)
+            return jsonify({
+                'success': not is_error,
+                'message': msg,
+                'assigned_count': assigned_count,
+                'already_enrolled_count': already_enrolled_count,
+                'invalid_ids': invalid_ids
+            }), (400 if is_error else 200)
+
+        if invalid_ids and assigned_count == 0 and already_enrolled_count == 0:
+            flash(msg, "danger")
+        elif invalid_ids:
+            flash(msg, "warning")
         else:
             flash(msg, "success")
 
@@ -336,21 +390,34 @@ def my_portal():
         
         # 3. Post Assessment Status
         course_end_att = AssessmentAttempt.query.filter_by(enrollment_id=en.id, assessment_type='COURSE_END').order_by(AssessmentAttempt.id.desc()).first()
-        if course_end_att:
-            post_status = "Passed" if course_end_att.passed else ("Failed" if en.attempts_count >= 3 else "Pending")
+        if course_end_att and course_end_att.passed:
+            post_status = "Passed"
+        elif course_end_att and not course_end_att.passed:
+            post_status = "Failed" if en.attempts_count >= 3 else "Pending"
         else:
-            if done_count == total_lessons:
+            if total_lessons > 0 and done_count == total_lessons:
                 post_status = "Pending"
             else:
                 post_status = "Locked"
                 
-        # 4. Feedback Status
+        # 4. Feedback Status (Strictly locked until Post Assessment is Passed)
         from app.models.feedback import FeedbackResponse, FeedbackRepository
         fb_repo = en.course.feedback_repository or FeedbackRepository.query.first()
         fb_resp = None
         if fb_repo:
             fb_resp = FeedbackResponse.query.filter_by(repo_id=fb_repo.id, learner_id=learner.id).first()
-        feedback_status = "Submitted" if fb_resp else "Pending"
+        
+        if post_status == "Passed":
+            feedback_status = "Submitted" if fb_resp else "Pending"
+        else:
+            feedback_status = "Locked"
+
+        # Strict Database Completion Status Integrity Check:
+        # A course CANNOT have completion_status = 'Completed' if Post Assessment is not Passed or Feedback is not Submitted!
+        if en.completion_status == 'Completed':
+            if post_status != 'Passed' or feedback_status != 'Submitted':
+                en.completion_status = 'In Progress'
+                db.session.commit()
 
         # Live Class parameters
         from app.models.attendance import Attendance
@@ -372,11 +439,17 @@ def my_portal():
                     btn_url = url_for('certificates.download_certificate', cert_id_str=my_cert.certificate_id)
                 else:
                     btn_text = "Course Completed"
-                    btn_url = "#"
-            elif attendance_status == "Present" and (post_status == "Passed" or post_status == "N/A" or not has_pre) and feedback_status == "Pending":
+                    btn_url = url_for('learners.class_flow', class_id_str=cls_id) if cls_id else "#"
+            elif pre_status == "Pending":
+                btn_text = "Take Pre Course Assessment"
+                btn_url = url_for('learners.take_assessment', course_id=en.course.id, assessment_type='PRE')
+            elif attendance_status == "Present" and post_status == "Passed" and feedback_status == "Pending":
                 btn_text = "Submit Feedback"
                 if fb_repo:
                     btn_url = url_for('learners.submit_feedback', repo_id=fb_repo.id) + '?course_id=' + str(en.course.id) + ('&class_id=' + str(en.class_id) if en.class_id else '')
+            elif attendance_status == "Present" and post_status == "Pending":
+                btn_text = "Take Course End Assessment"
+                btn_url = url_for('learners.take_assessment', course_id=en.course.id, assessment_type='COURSE_END')
             elif cls_id:
                 btn_text = "Go to Class Flow"
                 btn_url = url_for('learners.class_flow', class_id_str=cls_id)
@@ -393,13 +466,25 @@ def my_portal():
                     btn_url = url_for('certificates.download_certificate', cert_id_str=my_cert.certificate_id)
                 else:
                     btn_text = "Course Completed"
-                    btn_url = "#"
-            elif total_lessons > 0 and done_count == total_lessons and (post_status == "Passed" or post_status == "N/A" or not has_pre) and feedback_status == "Pending":
+                    btn_url = url_for('learners.self_paced_flow', course_id_str=en.course.course_id)
+            elif pre_status == "Pending":
+                btn_text = "Take Pre Course Assessment"
+                btn_url = url_for('learners.take_assessment', course_id=en.course.id, assessment_type='PRE')
+            elif (total_lessons == 0 or done_count == total_lessons) and post_status == "Passed" and feedback_status == "Pending":
                 btn_text = "Submit Feedback"
                 if fb_repo:
                     btn_url = url_for('learners.submit_feedback', repo_id=fb_repo.id) + '?course_id=' + str(en.course.id)
-            elif en.completion_status == 'Enrolled' or done_count == 0:
+            elif (total_lessons == 0 or done_count == total_lessons) and post_status == "Pending":
+                btn_text = "Take Course End Assessment"
+                btn_url = url_for('learners.take_assessment', course_id=en.course.id, assessment_type='COURSE_END')
+            elif en.completion_status == 'Enrolled' and done_count == 0:
                 btn_text = "Start Learning"
+                btn_url = url_for('learners.self_paced_flow', course_id_str=en.course.course_id)
+            else:
+                btn_text = "Continue Learning"
+                btn_url = url_for('learners.self_paced_flow', course_id_str=en.course.course_id)
+
+        course_url = url_for('learners.self_paced_flow', course_id_str=en.course.course_id) if en.course.mode == 'Self Paced' else (url_for('learners.class_flow', class_id_str=cls_id) if cls_id else '#')
 
         progress_map[en.id] = {
             'done': done_count,
@@ -411,7 +496,8 @@ def my_portal():
             'feedback_status': feedback_status,
             'attendance_status': attendance_status,
             'btn_text': btn_text,
-            'btn_url': btn_url
+            'btn_url': btn_url,
+            'course_url': course_url
         }
 
     # Check if this learner has subordinates (is a manager)

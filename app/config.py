@@ -12,7 +12,7 @@ class Config:
         _db_url = _db_url.replace("postgres://", "postgresql://", 1)
     SQLALCHEMY_DATABASE_URI = _db_url or f'sqlite:///{os.path.join(BASE_DIR, "lms.db")}'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    ENABLE_CONTENT_AUTHORING = os.environ.get('ENABLE_CONTENT_AUTHORING', 'True') == 'True'
+    ENABLE_CONTENT_AUTHORING = os.environ.get('ENABLE_CONTENT_AUTHORING', 'False') == 'True'
     
     # Decoupled Storage Provider Configuration (MinIO / S3 compat)
     STORAGE_PROVIDER = os.environ.get('STORAGE_PROVIDER', 'local')
@@ -27,8 +27,8 @@ class Config:
     CERT_FOLDER = os.path.join(BASE_DIR, 'uploads', 'certificates')
     MATERIALS_FOLDER = os.path.join(BASE_DIR, 'uploads', 'materials')
     
-    # Maximum allowed payload size (50 MB for videos/PPT/PDF)
-    MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50 MB
+    # Maximum allowed payload size (1 GB for audio/video/PPT/PDF/SCORM)
+    MAX_CONTENT_LENGTH = 1024 * 1024 * 1024  # 1 GB
 
     TEMPLATES_AUTO_RELOAD = True
     SEND_FILE_MAX_AGE_DEFAULT = 0

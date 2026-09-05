@@ -21,8 +21,8 @@
             <div class="row g-3">
                 <div class="col-md-3">
                     <label class="form-label fw-bold">Course ID</label>
-                    <input type="text" class="form-control bg-light font-monospace" value="{{ auto_id }}" readonly>
-                    <small class="text-muted">Auto-generated format (CRS-XXXXXX)</small>
+                    <input type="text" class="form-control bg-light font-monospace" id="course_id_input" value="{{ course.course_id if course else auto_id }}" readonly>
+                    <small class="text-muted">Auto-generated format (CRS-SP- / CRS-ON- / CRS-IP-)</small>
                 </div>
 
                 <div class="col-md-9">
@@ -119,31 +119,31 @@
                     <i class="fa-solid fa-info-circle me-1"></i> <strong>CSV Column Structure:</strong> Column1: Serial Number, Column2: Question, Column3: Option1, Column4: Option2, Column5: Option3, Column6: Option4, Column7: Correct Option (e.g. Option1).
                 </div>
 
-                <!-- Course-End Assessment CSV (ONLY FOR SELF-PACED COURSES) -->
-                <div class="col-md-12" id="summative_csv_container">
-                    <div class="card bg-light border-warning p-3">
-                        <label for="summative_assessment_csv" class="form-label fw-bold text-navy">
-                            <i class="fa-solid fa-award text-warning me-1"></i> Course-End Summative Assessment CSV File <span class="badge bg-outline-secondary border text-muted">Self-Paced Only</span>
-                        </label>
-                        <input type="file" class="form-control mb-2" id="summative_assessment_csv" name="summative_assessment_csv" accept=".csv,.xlsx,.xls">
-                        <small class="text-muted">Upload CSV for final Course-End Summative Assessment (Self-Paced courses only).</small>
-                    </div>
-                </div>
-
-                <!-- Pre & Post Assessment CSVs (ONLY FOR LIVE IN PERSON & LIVE ONLINE COURSES) -->
+                <!-- Pre Course Assessment CSV (Unlocks Lessons) -->
                 <div class="col-md-6" id="pre_csv_container">
                     <div class="card bg-light border-0 p-3 h-100">
-                        <label for="pre_assessment_csv" class="form-label fw-bold text-navy"><i class="fa-solid fa-pen-nib text-primary me-1"></i> Pre Assessment CSV File <span class="badge bg-outline-secondary border text-muted">Live Courses Only</span></label>
+                        <label for="pre_assessment_csv" class="form-label fw-bold text-navy">
+                            <i class="fa-solid fa-pen-nib text-primary me-1"></i> Pre Course Assessment CSV File <span class="badge bg-primary-subtle text-primary border">Unlocks Lessons</span>
+                        </label>
                         <input type="file" class="form-control mb-2" id="pre_assessment_csv" name="pre_assessment_csv" accept=".csv,.xlsx,.xls">
-                        <small class="text-muted">Upload CSV for Pre-Assessment question bank (Live In-Person & Live Online courses).</small>
+                        <div class="d-flex justify-content-between align-items-center mt-1">
+                            <small class="text-muted">Optional: Upload CSV for Pre Course Assessment.</small>
+                            <a href="{{ url_for('courses.download_sample_csv', csv_type='assessment') }}" class="btn btn-outline-primary btn-xs py-1 px-2 fw-bold rounded-2 text-nowrap"><i class="fa-solid fa-download me-1"></i> Sample CSV</a>
+                        </div>
                     </div>
                 </div>
 
-                <div class="col-md-6" id="post_csv_container">
-                    <div class="card bg-light border-0 p-3 h-100">
-                        <label for="post_assessment_csv" class="form-label fw-bold text-navy"><i class="fa-solid fa-list-check text-success me-1"></i> Post Assessment CSV File <span class="badge bg-outline-secondary border text-muted">Live Courses Only</span></label>
-                        <input type="file" class="form-control mb-2" id="post_assessment_csv" name="post_assessment_csv" accept=".csv,.xlsx,.xls">
-                        <small class="text-muted">Upload CSV for Post-Assessment question bank (Live In-Person & Live Online courses).</small>
+                <!-- Course End Assessment CSV (Mandatory Exam) -->
+                <div class="col-md-6" id="summative_csv_container">
+                    <div class="card bg-light border-warning p-3 h-100">
+                        <label for="summative_assessment_csv" class="form-label fw-bold text-navy">
+                            <i class="fa-solid fa-award text-warning me-1"></i> Course End Assessment CSV File <span class="badge bg-warning-subtle text-dark border">Mandatory Exam</span>
+                        </label>
+                        <input type="file" class="form-control mb-2" id="summative_assessment_csv" name="summative_assessment_csv" accept=".csv,.xlsx,.xls">
+                        <div class="d-flex justify-content-between align-items-center mt-1">
+                            <small class="text-muted">Upload CSV for Course End Assessment.</small>
+                            <a href="{{ url_for('courses.download_sample_csv', csv_type='assessment') }}" class="btn btn-outline-warning text-dark btn-xs py-1 px-2 fw-bold rounded-2 text-nowrap"><i class="fa-solid fa-download me-1"></i> Sample CSV</a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -165,20 +165,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const sequentialContainer = document.getElementById('sequential_container');
     const completionDateContainer = document.getElementById('completion_date_container');
-    const summativeContainer = document.getElementById('summative_csv_container');
-    const preContainer = document.getElementById('pre_csv_container');
-    const postContainer = document.getElementById('post_csv_container');
 
     function updateModeVisibility() {
         const mode = modeSelect.value;
         const isSelfPaced = mode === 'Self Paced';
         
-        if (summativeContainer) summativeContainer.classList.toggle('d-none', !isSelfPaced);
         if (sequentialContainer) sequentialContainer.classList.toggle('d-none', !isSelfPaced);
         if (completionDateContainer) completionDateContainer.classList.toggle('d-none', !isSelfPaced);
-
-        if (preContainer) preContainer.classList.toggle('d-none', isSelfPaced);
-        if (postContainer) postContainer.classList.toggle('d-none', isSelfPaced);
         
         durationInput.readOnly = isSelfPaced;
         if (isSelfPaced) {
@@ -187,6 +180,23 @@ document.addEventListener('DOMContentLoaded', function() {
             durationInput.classList.remove('bg-light');
         }
     }
+
+    {% if not course %}
+    function fetchCourseId() {
+        const mode = modeSelect.value;
+        fetch(`{{ url_for('courses.generate_course_id_api') }}?mode=${encodeURIComponent(mode)}`)
+            .then(res => res.json())
+            .then(data => {
+                const courseIdInput = document.getElementById('course_id_input');
+                if (courseIdInput && data.course_id) {
+                    courseIdInput.value = data.course_id;
+                }
+            })
+            .catch(err => console.error("Error fetching course ID:", err));
+    }
+    modeSelect.addEventListener('change', fetchCourseId);
+    fetchCourseId();
+    {% endif %}
 
     modeSelect.addEventListener('change', updateModeVisibility);
     updateModeVisibility();

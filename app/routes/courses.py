@@ -1,10 +1,11 @@
 import os
+from datetime import datetime
 from app.utils.decorators import admin_required
 import uuid
 import json
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session, send_file, current_app, send_from_directory
 from app.models import db
-from app.models.course import Course, CourseAssessment, CourseMaterial, CourseLesson, LessonCourseware, RiseCoursewareVersion, LearnerBlockProgress
+from app.models.course import Course, CourseAssessment, CourseMaterial, CourseLesson, LessonCourseware, CoursewareAudioTrack, RiseCoursewareVersion, LearnerBlockProgress
 from app.models.live_class import LiveClass
 from app.services.assessment_service import parse_assessment_csv
 from app.services.report_service import generate_course_analytics_csv, generate_class_attendance_csv
@@ -75,7 +76,7 @@ def create_course():
             flash('Course Name is required.', 'danger')
             return redirect(url_for('courses.create_course'))
 
-        course_id = Course.generate_course_id()
+        course_id = Course.generate_course_id(mode)
         new_course = Course(
             course_id=course_id,
             name=name,
@@ -116,8 +117,8 @@ def create_course():
 
         summative_errs, pre_errs, post_errs = [], [], []
 
-        # 1. Course End Assessment ONLY available for Self Paced courses
-        if mode == 'Self Paced' and summative_file and summative_file.filename:
+        # 1. Course End Assessment (Available for all course modes)
+        if summative_file and summative_file.filename:
             q_list, errs = parse_assessment_csv(summative_file.stream, filename=summative_file.filename)
             if errs:
                 summative_errs = errs
@@ -136,26 +137,25 @@ def create_course():
                     )
                     db.session.add(assessment)
 
-        # 2. Pre and Post Assessments ONLY available for Live In Person / Live Online courses
-        if mode != 'Self Paced':
-            if pre_file and pre_file.filename:
-                q_list, errs = parse_assessment_csv(pre_file.stream, filename=pre_file.filename)
-                if errs:
-                    pre_errs = errs
-                else:
-                    for q in q_list:
-                        assessment = CourseAssessment(
-                            course_id=new_course.id,
-                            assessment_type='PRE',
-                            serial_number=q['serial_number'],
-                            question=q['question'],
-                            option1=q['option1'],
-                            option2=q['option2'],
-                            option3=q['option3'],
-                            option4=q['option4'],
-                            correct_option=q['correct_option']
-                        )
-                        db.session.add(assessment)
+        # 2. Pre Course Assessment (Available for all course modes)
+        if pre_file and pre_file.filename:
+            q_list, errs = parse_assessment_csv(pre_file.stream, filename=pre_file.filename)
+            if errs:
+                pre_errs = errs
+            else:
+                for q in q_list:
+                    assessment = CourseAssessment(
+                        course_id=new_course.id,
+                        assessment_type='PRE',
+                        serial_number=q['serial_number'],
+                        question=q['question'],
+                        option1=q['option1'],
+                        option2=q['option2'],
+                        option3=q['option3'],
+                        option4=q['option4'],
+                        correct_option=q['correct_option']
+                    )
+                    db.session.add(assessment)
 
             if post_file and post_file.filename:
                 q_list, errs = parse_assessment_csv(post_file.stream, filename=post_file.filename)
@@ -187,8 +187,15 @@ def create_course():
 
     from app.models.feedback import FeedbackRepository
     feedback_repos = FeedbackRepository.query.all()
-    auto_id = Course.generate_course_id()
+    auto_id = Course.generate_course_id('Self Paced')
     return render_template('courses/create_edit.html', auto_id=auto_id, course=None, feedback_repos=feedback_repos)
+
+
+@courses_bp.route('/generate_id')
+@admin_required
+def generate_course_id_api():
+    mode = request.args.get('mode', 'Self Paced').strip()
+    return jsonify({'course_id': Course.generate_course_id(mode)})
 
 
 @courses_bp.route('/<int:course_id>')
@@ -511,6 +518,102 @@ def add_lesson_courseware(lesson_id):
     return redirect(url_for('courses.view_course', course_id=lesson.course_id))
 
 
+@courses_bp.route('/courseware/<int:courseware_id>/add_audio_track', methods=['POST'])
+@admin_required
+def add_audio_track(courseware_id):
+    cw = LessonCourseware.query.get_or_404(courseware_id)
+    language_label = request.form.get('language_label', '').strip()
+    audio_file = request.files.get('audio_file')
+    make_default = request.form.get('make_default') == '1' or len(cw.audio_tracks) == 0
+
+    if not language_label:
+        flash("Audio track language label is required (e.g. Telugu, Hindi, Tamil).", "danger")
+        return redirect(url_for('courses.view_course', course_id=cw.lesson.course_id))
+
+    if not audio_file or not audio_file.filename:
+        flash("Please select an audio file (.mp3, .m4a, .aac, .wav).", "danger")
+        return redirect(url_for('courses.view_course', course_id=cw.lesson.course_id))
+
+    ext = os.path.splitext(audio_file.filename)[1].lower()
+    if ext not in ['.mp3', '.m4a', '.aac', '.wav', '.ogg', '.opus', '.flac']:
+        flash("Invalid audio format. Please upload an MP3, M4A, AAC, or WAV file.", "danger")
+        return redirect(url_for('courses.view_course', course_id=cw.lesson.course_id))
+
+    short_id = uuid.uuid4().hex[:8]
+    filename = f"audio_{cw.id}_{short_id}{ext}"
+    materials_folder = current_app.config['MATERIALS_FOLDER']
+    os.makedirs(materials_folder, exist_ok=True)
+    file_path = os.path.join(materials_folder, filename)
+    audio_file.save(file_path)
+
+    if make_default:
+        for t in cw.audio_tracks:
+            t.is_default = False
+
+    track = CoursewareAudioTrack(
+        courseware_id=cw.id,
+        language_label=language_label,
+        audio_filename=filename,
+        is_default=make_default
+    )
+    db.session.add(track)
+    db.session.commit()
+
+    flash(f"Audio track '{language_label}' added to '{cw.title}'" + (" (Set as Default Audio)." if make_default else "."), "success")
+    return redirect(url_for('courses.view_course', course_id=cw.lesson.course_id))
+
+
+@courses_bp.route('/courseware/audio/<int:track_id>/set_default', methods=['POST'])
+@admin_required
+def set_default_audio_track(track_id):
+    if track_id == 0:
+        cw_id = request.form.get('courseware_id', type=int)
+        cw = LessonCourseware.query.get_or_404(cw_id)
+        for t in cw.audio_tracks:
+            t.is_default = False
+        db.session.commit()
+        flash(f"Default audio reset to Original Video Audio for '{cw.title}'.", "success")
+        return redirect(url_for('courses.view_course', course_id=cw.lesson.course_id))
+
+    track = CoursewareAudioTrack.query.get_or_404(track_id)
+    cw = track.courseware
+    for t in cw.audio_tracks:
+        t.is_default = (t.id == track.id)
+    db.session.commit()
+    flash(f"'{track.language_label}' set as Default Audio Track for '{cw.title}'.", "success")
+    return redirect(url_for('courses.view_course', course_id=cw.lesson.course_id))
+
+
+@courses_bp.route('/courseware/audio/<int:track_id>')
+def stream_audio_track(track_id):
+    track = CoursewareAudioTrack.query.get_or_404(track_id)
+    materials_folder = current_app.config['MATERIALS_FOLDER']
+    file_path = os.path.join(materials_folder, track.audio_filename)
+    if os.path.exists(file_path):
+        ext = os.path.splitext(track.audio_filename)[1].lower()
+        mimetypes = {'.mp3': 'audio/mpeg', '.m4a': 'audio/mp4', '.aac': 'audio/aac', '.wav': 'audio/wav', '.ogg': 'audio/ogg'}
+        return send_file(file_path, mimetype=mimetypes.get(ext, 'audio/mpeg'))
+    return jsonify({'error': 'Audio track file not found'}), 404
+
+
+@courses_bp.route('/courseware/audio/<int:track_id>/delete', methods=['POST'])
+@admin_required
+def delete_audio_track(track_id):
+    track = CoursewareAudioTrack.query.get_or_404(track_id)
+    course_id = track.courseware.lesson.course_id
+    materials_folder = current_app.config['MATERIALS_FOLDER']
+    file_path = os.path.join(materials_folder, track.audio_filename)
+    if os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+        except Exception:
+            pass
+    db.session.delete(track)
+    db.session.commit()
+    flash("Audio track deleted successfully.", "info")
+    return redirect(url_for('courses.view_course', course_id=course_id))
+
+
 @courses_bp.route('/lesson/<int:lesson_id>/upload_assessment', methods=['POST'])
 @admin_required
 def upload_lesson_assessment(lesson_id):
@@ -592,7 +695,12 @@ def upload_course_end_assessment(course_id):
         db.session.add(assessment)
 
     from app.models.notification import LearnerNotification
+    from app.models.enrollment import AssessmentAttempt
     for en in course.enrollments:
+        passed_att = AssessmentAttempt.query.filter_by(enrollment_id=en.id, assessment_type='COURSE_END', passed=True).first()
+        if not passed_att:
+            en.completion_status = 'In Progress'
+
         notif = LearnerNotification(
             learner_id=en.learner_id,
             course_id=course.id,
@@ -753,7 +861,7 @@ def edit_course(course_id):
         pre_file = request.files.get('pre_assessment_csv')
         post_file = request.files.get('post_assessment_csv')
 
-        if course.mode == 'Self Paced' and summative_file and summative_file.filename:
+        if summative_file and summative_file.filename:
             q_list, errs = parse_assessment_csv(summative_file.stream, filename=summative_file.filename)
             if not errs:
                 CourseAssessment.query.filter((CourseAssessment.course_id == course.id) & (CourseAssessment.assessment_type == 'COURSE_END') & (CourseAssessment.lesson_id == None)).delete()
@@ -771,24 +879,29 @@ def edit_course(course_id):
                     )
                     db.session.add(assessment)
 
-        if course.mode != 'Self Paced':
-            if pre_file and pre_file.filename:
-                q_list, errs = parse_assessment_csv(pre_file.stream, filename=pre_file.filename)
-                if not errs:
-                    CourseAssessment.query.filter_by(course_id=course.id, assessment_type='PRE').delete()
-                    for q in q_list:
-                        assessment = CourseAssessment(
-                            course_id=course.id,
-                            assessment_type='PRE',
-                            serial_number=q['serial_number'],
-                            question=q['question'],
-                            option1=q['option1'],
-                            option2=q['option2'],
-                            option3=q['option3'],
-                            option4=q['option4'],
-                            correct_option=q['correct_option']
-                        )
-                        db.session.add(assessment)
+                from app.models.enrollment import AssessmentAttempt
+                for en in course.enrollments:
+                    passed_att = AssessmentAttempt.query.filter_by(enrollment_id=en.id, assessment_type='COURSE_END', passed=True).first()
+                    if not passed_att:
+                        en.completion_status = 'In Progress'
+
+        if pre_file and pre_file.filename:
+            q_list, errs = parse_assessment_csv(pre_file.stream, filename=pre_file.filename)
+            if not errs:
+                CourseAssessment.query.filter_by(course_id=course.id, assessment_type='PRE').delete()
+                for q in q_list:
+                    assessment = CourseAssessment(
+                        course_id=course.id,
+                        assessment_type='PRE',
+                        serial_number=q['serial_number'],
+                        question=q['question'],
+                        option1=q['option1'],
+                        option2=q['option2'],
+                        option3=q['option3'],
+                        option4=q['option4'],
+                        correct_option=q['correct_option']
+                    )
+                    db.session.add(assessment)
 
             if post_file and post_file.filename:
                 q_list, errs = parse_assessment_csv(post_file.stream, filename=post_file.filename)
@@ -807,6 +920,21 @@ def edit_course(course_id):
                             correct_option=q['correct_option']
                         )
                         db.session.add(assessment)
+
+        # Check if feedback repository or course assessment was updated/added:
+        # Demote any completed enrollments for this course back to 'In Progress' if feedback or course end assessment is pending!
+        from app.models.feedback import FeedbackResponse
+        from app.models.enrollment import AssessmentAttempt
+        for en in course.enrollments:
+            passed_att = AssessmentAttempt.query.filter_by(enrollment_id=en.id, assessment_type='COURSE_END', passed=True).first()
+            has_post_exam = CourseAssessment.query.filter_by(course_id=course.id, assessment_type='COURSE_END').count() > 0
+            
+            fb_repo = course.feedback_repository or FeedbackRepository.query.first()
+            fb_resp = FeedbackResponse.query.filter_by(repo_id=fb_repo.id, learner_id=en.learner_id).first() if fb_repo else None
+            
+            if (has_post_exam and not passed_att) or (fb_repo and not fb_resp):
+                if en.completion_status == 'Completed':
+                    en.completion_status = 'In Progress'
 
         db.session.commit()
         flash(f"Course {course.course_id} updated successfully.", "success")
@@ -836,6 +964,20 @@ def unarchive_course(course_id):
     course.is_archived = False
     db.session.commit()
     flash(f"Course '{course.name}' ({course.course_id}) has been restored/unarchived successfully.", "success")
+    return redirect(url_for('courses.list_courses'))
+
+
+@courses_bp.route('/<int:course_id>/delete', methods=['POST'])
+@admin_required
+def delete_course(course_id):
+    """
+    Safely archives the course instead of deleting database records.
+    """
+    course = Course.query.get_or_404(course_id)
+    course.is_archived = True
+    db.session.commit()
+
+    flash(f"Course '{course.name}' ({course.course_id}) has been successfully archived.", "success")
     return redirect(url_for('courses.list_courses'))
 
 
@@ -966,61 +1108,60 @@ def download_material(material_id):
                     download_name=f"{mat.title}{ext}"
                 )
 
-            # For PowerPoint inline viewing: Render Reveal.js HTML presentation (NEVER send raw ppt binary!)
+            # For PowerPoint inline viewing: Render PPTonPage interactive client-side viewer
             if is_ppt:
-                img_out_dir = os.path.join(current_app.config['MATERIALS_FOLDER'], 'slides', f"mat_{mat.id}")
-                img_rel_prefix = f"/courses/material/{mat.id}/slide_img"
-                slides_data = parse_pptx_slides(file_path, output_img_dir=img_out_dir, rel_img_prefix=img_rel_prefix)
-
-                if not slides_data:
-                    text_bullets = [line.strip() for line in (mat.description or "").split('\n') if line.strip()]
-                    if not text_bullets:
-                        text_bullets = [f"Overview of {mat.title}", "Key Concepts Breakdown", "Summary & Best Practices"]
-                    slides_data = [{"slide_number": 1, "title": mat.title, "bullets": text_bullets, "images": [], "notes": ""}]
-
-                sections_html = []
-                for s in slides_data:
-                    title_html = f'<h3 style="color:#F59E0B; font-weight:700; margin-bottom:16px; font-size:1.6rem;">{s.get("title") or mat.title}</h3>'
-                    bullets_html = ""
-                    if s.get("bullets"):
-                        items = "".join([f'<li style="margin-bottom:10px; font-size:1.05rem; color:#E2E8F0;">{b}</li>' for b in s["bullets"]])
-                        bullets_html = f'<ul style="text-align:left; display:inline-block; max-width:90%; font-size:1rem; margin-bottom:16px;">{items}</ul>'
-
-                    images_html = ""
-                    if s.get("images"):
-                        img_tags = "".join([f'<img src="{img_url}" style="max-height:280px; max-width:90%; border-radius:10px; border:1px solid #334155; margin:10px auto; display:block; box-shadow:0 10px 30px rgba(0,0,0,0.5);">' for img_url in s["images"]])
-                        images_html = f'<div style="margin-top:15px;">{img_tags}</div>'
-
-                    sections_html.append(f'<section style="padding:15px; box-sizing:border-box;">{title_html}{bullets_html}{images_html}</section>')
-
-                slides_content = "\n".join(sections_html)
+                raw_url = url_for('courses.get_material_raw_file', material_id=mat.id)
+                js_url = url_for('static', filename='js/pptx-viewer.js')
                 return f"""
                 <!DOCTYPE html>
                 <html>
                 <head>
                     <meta charset="utf-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1">
-                    <title>{mat.title} - Reveal.js Viewer</title>
-                    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-                    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.css">
-                    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/theme/white.min.css">
+                    <title>{mat.title} - Interactive PowerPoint Presentation</title>
+                    <script src="{js_url}"></script>
                     <style>
                         * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-                        html, body, .reveal {{ width: 100%; height: 100%; background: #FFFFFF !important; color: #0F172A !important; overflow: hidden; font-family: system-ui, sans-serif; }}
-                        .reveal h3 {{ color: #0A4B5C !important; font-weight: 700 !important; border-bottom: 2px solid #E2E8F0 !important; padding-bottom: 8px !important; }}
-                        .reveal ul {{ color: #1E293B !important; }}
-                        .reveal ul li {{ color: #1E293B !important; }}
-                        .reveal img {{ max-width: 95% !important; max-height: 380px !important; object-fit: contain !important; margin: 12px auto !important; border-radius: 10px !important; border: 1px solid #E2E8F0 !important; box-shadow: 0 8px 24px rgba(0,0,0,0.08) !important; }}
-                        .reveal .controls {{ color: #0A4B5C !important; }}
-                        .reveal .progress {{ color: #0A4B5C !important; background: #E2E8F0 !important; }}
-                        .reveal .slide-number {{ font-family: monospace !important; color: #0A4B5C !important; font-weight: 700 !important; background: #F8FAFC !important; border: 1px solid #CBD5E1 !important; }}
+                        html, body {{ width: 100%; height: 100%; background: #0E1116; overflow: hidden; font-family: system-ui, -apple-system, sans-serif; }}
+                        pptx-viewer {{
+                            width: 100%;
+                            height: 100%;
+                            --pptx-surface: #0E1116;
+                            --pptx-accent: #0A4B5C;
+                            --pptx-chrome: rgba(14, 17, 22, 0.88);
+                            --pptx-on-chrome: #F8FAFC;
+                        }}
                     </style>
                 </head>
                 <body>
-                    <div class="reveal"><div class="slides">{slides_content}</div></div>
-                    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.js"></script>
+                    <pptx-viewer src="{raw_url}" controls="default" animations="on"></pptx-viewer>
                     <script>
-                        Reveal.initialize({{ width: "100%", height: "100%", margin: 0.04, minScale: 0.2, maxScale: 2.0, hash: true, slideNumber: 'c / t', controls: true, progress: true, center: true, transition: 'slide' }});
+                        document.addEventListener('DOMContentLoaded', () => {{
+                            const viewer = document.querySelector('pptx-viewer');
+                            if (viewer) {{
+                                const injectHDStyles = () => {{
+                                    if (viewer.shadowRoot && !viewer.shadowRoot.querySelector('#hd-image-patch')) {{
+                                        const style = document.createElement('style');
+                                        style.id = 'hd-image-patch';
+                                        style.textContent = `
+                                            img, image, svg, canvas {{
+                                                image-rendering: -webkit-optimize-contrast !important;
+                                                image-rendering: high-quality !important;
+                                                transform: translateZ(0);
+                                                backface-visibility: hidden;
+                                            }}
+                                            .slide-container {{
+                                                text-rendering: optimizeLegibility;
+                                                -webkit-font-smoothing: antialiased;
+                                            }}
+                                        `;
+                                        viewer.shadowRoot.appendChild(style);
+                                    }}
+                                }};
+                                viewer.addEventListener('pptx-load', injectHDStyles);
+                                setInterval(injectHDStyles, 500);
+                            }}
+                        }});
                     </script>
                 </body>
                 </html>
@@ -1050,11 +1191,41 @@ def get_courseware_raw_file(courseware_id):
     if cw.filename:
         file_path = os.path.join(current_app.config['MATERIALS_FOLDER'], cw.filename)
         if os.path.exists(file_path):
-            return send_file(
+            ext = os.path.splitext(cw.filename)[1].lower()
+            mimetype = 'application/vnd.openxmlformats-officedocument.presentationml.presentation' if ext in ['.ppt', '.pptx'] else 'application/octet-stream'
+            resp = send_file(
                 file_path,
-                mimetype='application/octet-stream',
+                mimetype=mimetype,
                 as_attachment=False
             )
+            resp.headers['Access-Control-Allow-Origin'] = '*'
+            resp.headers['Access-Control-Allow-Methods'] = 'GET, HEAD, OPTIONS'
+            resp.headers['Access-Control-Allow-Headers'] = 'Range, Content-Type'
+            resp.headers['Access-Control-Expose-Headers'] = 'Content-Length, Content-Range, Accept-Ranges, ETag'
+            resp.headers['Accept-Ranges'] = 'bytes'
+            return resp
+    return jsonify({'error': 'File not found'}), 404
+
+
+@courses_bp.route('/material/<int:material_id>/raw_file')
+def get_material_raw_file(material_id):
+    mat = CourseMaterial.query.get_or_404(material_id)
+    if mat.filename:
+        file_path = os.path.join(current_app.config['MATERIALS_FOLDER'], mat.filename)
+        if os.path.exists(file_path):
+            ext = os.path.splitext(mat.filename)[1].lower()
+            mimetype = 'application/vnd.openxmlformats-officedocument.presentationml.presentation' if ext in ['.ppt', '.pptx'] else 'application/octet-stream'
+            resp = send_file(
+                file_path,
+                mimetype=mimetype,
+                as_attachment=False
+            )
+            resp.headers['Access-Control-Allow-Origin'] = '*'
+            resp.headers['Access-Control-Allow-Methods'] = 'GET, HEAD, OPTIONS'
+            resp.headers['Access-Control-Allow-Headers'] = 'Range, Content-Type'
+            resp.headers['Access-Control-Expose-Headers'] = 'Content-Length, Content-Range, Accept-Ranges, ETag'
+            resp.headers['Accept-Ranges'] = 'bytes'
+            return resp
     return jsonify({'error': 'File not found'}), 404
 
 
@@ -1093,105 +1264,59 @@ def stream_courseware(courseware_id):
     is_ppt = ('PPT' in cw_type_upper) or ('POWERPOINT' in cw_type_upper) or ('SLIDE' in cw_type_upper) or (ext in ['.ppt', '.pptx'])
     is_pdf = ('PDF' in cw_type_upper) or (ext == '.pdf')
 
-    # 1. REVEAL.JS HTML5 PRESENTATION PLAYER ENGINE FOR PPT / PPTX
+    # 1. PPTonPage INTERACTIVE HTML5 PRESENTATION PLAYER ENGINE FOR PPT / PPTX
     if is_ppt:
-        file_path = os.path.join(current_app.config['MATERIALS_FOLDER'], cw.filename) if cw.filename else ''
-        img_out_dir = os.path.join(current_app.config['MATERIALS_FOLDER'], 'slides', str(cw.id))
-        img_rel_prefix = f"/courses/courseware/{cw.id}/slide_img"
-
-        slides_data = []
-        if file_path and os.path.exists(file_path):
-            slides_data = parse_pptx_slides(file_path, output_img_dir=img_out_dir, rel_img_prefix=img_rel_prefix)
-
-        if not slides_data:
-            text_bullets = [line.strip() for line in (cw.content_text or "").split('\n') if line.strip()]
-            if not text_bullets:
-                text_bullets = [f"Overview of {cw.title}", "Key Concepts Breakdown", "Summary & Best Practices"]
-            slides_data = [{"slide_number": 1, "title": cw.title, "bullets": text_bullets, "images": [], "notes": ""}]
-
-        # Construct Reveal.js <section> slides HTML
-        sections_html = []
-        for s in slides_data:
-            title_html = f'<h3 style="color:#F59E0B; font-weight:700; margin-bottom:20px; font-size:1.6rem;">{s.get("title") or cw.title}</h3>'
-            
-            bullets_html = ""
-            if s.get("bullets"):
-                items = "".join([f'<li style="margin-bottom:12px; font-size:1.05rem; color:#E2E8F0;">{b}</li>' for b in s["bullets"]])
-                bullets_html = f'<ul style="text-align:left; display:inline-block; max-width:90%; font-size:1rem; margin-bottom:20px;">{items}</ul>'
-
-            images_html = ""
-            if s.get("images"):
-                img_tags = "".join([f'<img src="{img_url}" style="max-height:280px; max-width:90%; border-radius:10px; border:1px solid #334155; margin:10px auto; display:block; box-shadow:0 10px 30px rgba(0,0,0,0.5);">' for img_url in s["images"]])
-                images_html = f'<div style="margin-top:15px;">{img_tags}</div>'
-
-            notes_html = f'<aside class="notes">{s.get("notes")}</aside>' if s.get("notes") else ""
-
-            section = f"""
-            <section style="padding: 20px; box-sizing: border-box;">
-                {title_html}
-                {bullets_html}
-                {images_html}
-                {notes_html}
-            </section>
-            """
-            sections_html.append(section)
-
-        slides_content = "\n".join(sections_html)
-
+        raw_url = url_for('courses.get_courseware_raw_file', courseware_id=cw.id)
+        js_url = url_for('static', filename='js/pptx-viewer.js')
         return f"""
         <!DOCTYPE html>
         <html>
         <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
-            <title>{cw.title} - Reveal.js Presentation Deck</title>
-            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.css">
-            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/theme/white.min.css">
+            <title>{cw.title} - Interactive PowerPoint Presentation</title>
+            <script src="{js_url}"></script>
             <style>
                 * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-                html, body, .reveal {{ width: 100%; height: 100%; background: #FFFFFF !important; color: #0F172A !important; overflow: hidden; font-family: system-ui, -apple-system, sans-serif; }}
-                .reveal h1, .reveal h2, .reveal h3, .reveal h4 {{ font-family: system-ui, sans-serif; text-transform: none; word-break: break-word; color: #0A4B5C !important; }}
-                .reveal .slides {{ text-align: center; background: #FFFFFF !important; }}
-                .reveal .slides section {{
-                    padding: 16px !important;
-                    box-sizing: border-box !important;
-                    max-height: 100% !important;
-                    overflow-y: auto !important;
-                    background: #FFFFFF !important;
+                html, body {{ width: 100%; height: 100%; background: #0E1116; overflow: hidden; font-family: system-ui, -apple-system, sans-serif; }}
+                pptx-viewer {{
+                    width: 100%;
+                    height: 100%;
+                    --pptx-surface: #0E1116;
+                    --pptx-accent: #0A4B5C;
+                    --pptx-chrome: rgba(14, 17, 22, 0.88);
+                    --pptx-on-chrome: #F8FAFC;
                 }}
-                .reveal h3 {{ color: #0A4B5C !important; font-weight: 700 !important; font-size: 1.6rem !important; margin-bottom: 16px !important; border-bottom: 2px solid #E2E8F0 !important; padding-bottom: 8px !important; }}
-                .reveal ul {{ max-width: 92% !important; text-align: left !important; display: inline-block !important; font-size: 1.05rem !important; line-height: 1.6 !important; margin-bottom: 16px !important; color: #1E293B !important; }}
-                .reveal ul li {{ margin-bottom: 10px !important; word-break: break-word !important; color: #1E293B !important; }}
-                .reveal img {{ max-width: 95% !important; max-height: 380px !important; object-fit: contain !important; margin: 12px auto !important; display: block !important; border-radius: 10px !important; border: 1px solid #E2E8F0 !important; box-shadow: 0 8px 24px rgba(0,0,0,0.08) !important; }}
-                .reveal .controls {{ color: #0A4B5C !important; }}
-                .reveal .progress {{ color: #0A4B5C !important; height: 5px !important; background: #E2E8F0 !important; }}
-                .reveal .slide-number {{ font-family: monospace !important; color: #0A4B5C !important; font-weight: 700 !important; background: #F8FAFC !important; border: 1px solid #CBD5E1 !important; padding: 4px 10px !important; border-radius: 6px !important; }}
             </style>
         </head>
         <body>
-            <div class="reveal">
-                <div class="slides">
-                    {slides_content}
-                </div>
-            </div>
-
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.js"></script>
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/notes/notes.min.js"></script>
+            <pptx-viewer src="{raw_url}" controls="default" animations="on"></pptx-viewer>
             <script>
-                Reveal.initialize({{
-                    width: "100%",
-                    height: "100%",
-                    margin: 0.04,
-                    minScale: 0.2,
-                    maxScale: 2.0,
-                    hash: true,
-                    slideNumber: 'c / t',
-                    controls: true,
-                    progress: true,
-                    center: true,
-                    transition: 'slide',
-                    plugins: [ RevealNotes ]
+                document.addEventListener('DOMContentLoaded', () => {{
+                    const viewer = document.querySelector('pptx-viewer');
+                    if (viewer) {{
+                        const injectHDStyles = () => {{
+                            if (viewer.shadowRoot && !viewer.shadowRoot.querySelector('#hd-image-patch')) {{
+                                const style = document.createElement('style');
+                                style.id = 'hd-image-patch';
+                                style.textContent = `
+                                    img, image, svg, canvas {{
+                                        image-rendering: -webkit-optimize-contrast !important;
+                                        image-rendering: high-quality !important;
+                                        transform: translateZ(0);
+                                        backface-visibility: hidden;
+                                    }}
+                                    .slide-container {{
+                                        text-rendering: optimizeLegibility;
+                                        -webkit-font-smoothing: antialiased;
+                                    }}
+                                `;
+                                viewer.shadowRoot.appendChild(style);
+                            }}
+                        }};
+                        viewer.addEventListener('pptx-load', injectHDStyles);
+                        setInterval(injectHDStyles, 500);
+                    }}
                 }});
             </script>
         </body>
@@ -1418,7 +1543,7 @@ def author_lesson(course_id, lesson_id):
     """
     Admin Course Authoring: Visual editor for lesson slides and document embeds.
     """
-    if not current_app.config.get('ENABLE_CONTENT_AUTHORING', True):
+    if not current_app.config.get('ENABLE_CONTENT_AUTHORING', False):
         flash("Content authoring tool is currently disabled by system configuration.", "warning")
         return redirect(url_for('courses.view_course', course_id=course_id))
 
@@ -1680,3 +1805,53 @@ def deploy_rise_course(lesson_id):
         'message': f'Course successfully deployed as {new_course_id}!',
         'redirect_url': url_for('courses.view_course', course_id=new_course.id)
     })
+
+
+@courses_bp.route('/sample_csv/<csv_type>')
+@admin_required
+def download_sample_csv(csv_type):
+    """
+    Centralized Sample CSV Template Generator for Admin Portal.
+    Generates downloadable CSV files with indicative headers and sample data rows.
+    """
+    import io
+    import csv
+    from flask import Response
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    filename = f"{csv_type}_sample_template.csv"
+
+    if csv_type == 'assessment':
+        writer.writerow(['Serial Number', 'Question', 'Option1', 'Option2', 'Option3', 'Option4', 'Correct Option'])
+        writer.writerow(['1', 'What is the primary function of Narayana LMS?', 'Deliver learning content & track progress', 'Manage server hardware', 'Design vector graphics', 'Calculate payroll', 'Option1'])
+        writer.writerow(['2', 'Which file format is supported for interactive presentation viewing?', '.pptx', '.pdf', '.docx', '.xlsx', 'Option1'])
+        writer.writerow(['3', 'What is the passing criteria for Course End Assessment?', '80%', '50%', '10%', '100%', 'Option1'])
+    elif csv_type in ['learners', 'enrollment']:
+        writer.writerow(['Employee ID', 'Name', 'Email', 'Department', 'Role'])
+        writer.writerow(['10001', 'Rajesh Kumar', 'rajesh.kumar@narayana.com', 'L&D Academics', 'Learner'])
+        writer.writerow(['10002', 'Priya Sharma', 'priya.sharma@narayana.com', 'Engineering', 'Learner'])
+        writer.writerow(['10003', 'Anil Verma', 'anil.verma@narayana.com', 'Quality Assurance', 'Learner'])
+    elif csv_type == 'attendance':
+        writer.writerow(['Employee ID', 'Learner Name', 'Status', 'Attendance Date'])
+        writer.writerow(['10001', 'Rajesh Kumar', 'Present', '2026-09-05'])
+        writer.writerow(['10002', 'Priya Sharma', 'Absent', '2026-09-05'])
+        writer.writerow(['10003', 'Anil Verma', 'Present', '2026-09-05'])
+    elif csv_type == 'feedback':
+        writer.writerow(['Serial Number', 'Question Text', 'Question Type'])
+        writer.writerow(['1', 'Rate the overall course structure and content clarity', 'RATING'])
+        writer.writerow(['2', 'Was the presentation and courseware engaging?', 'RATING'])
+        writer.writerow(['3', 'Share any additional comments or suggestions for improvement', 'TEXT'])
+    elif csv_type in ['users', 'user_management']:
+        writer.writerow(['Employee ID', 'Name', 'Email', 'Department', 'Role', 'Manager Employee ID'])
+        writer.writerow(['10001', 'Amit Patel', 'amit.patel@narayana.com', 'Technology', 'Super Admin', ''])
+        writer.writerow(['10002', 'Sunita Rao', 'sunita.rao@narayana.com', 'Technology', 'Learner', '10001'])
+        writer.writerow(['10003', 'Rajesh Kumar', 'rajesh.kumar@narayana.com', 'L&D Academics', 'Learner', '10001'])
+    else:
+        writer.writerow(['Serial Number', 'Data1', 'Data2', 'Data3'])
+        writer.writerow(['1', 'Sample 1', 'Sample 2', 'Sample 3'])
+
+    response = Response(output.getvalue(), mimetype='text/csv')
+    response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+    return response

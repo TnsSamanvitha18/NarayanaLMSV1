@@ -254,36 +254,26 @@ def download_qr(class_id_str):
 @admin_required
 def assign_learners_to_class(class_id):
 
+    is_ajax = (
+        request.is_json
+        or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        or 'application/json' in request.headers.get('Accept', '')
+    )
+
     live_class = LiveClass.query.get_or_404(class_id)
     course = live_class.course
 
     global_ids_text = request.form.get('global_ids', '').strip()
     csv_file = request.files.get('learner_csv')
 
-    parsed_global_ids = []
-
-    if global_ids_text:
-        lines = global_ids_text.split('\n')
-        parsed_global_ids.extend([line.strip() for line in lines if line.strip()])
-
-    if csv_file and csv_file.filename:
-        try:
-            import pandas as pd
-            df = pd.read_csv(csv_file.stream)
-            col_name = df.columns[0]
-            for col in df.columns:
-                if 'global' in str(col).lower() or 'id' in str(col).lower():
-                    col_name = col
-                    break
-            for val in df[col_name].dropna():
-                clean_val = str(val).strip()
-                if clean_val and clean_val not in parsed_global_ids:
-                    parsed_global_ids.append(clean_val)
-        except Exception as e:
-            flash(f"Error parsing Learner CSV: {str(e)}", "danger")
+    from app.routes.learners import parse_global_ids_from_input
+    parsed_global_ids = parse_global_ids_from_input(global_ids_text, csv_file)
 
     if not parsed_global_ids:
-        flash("No valid Global IDs provided.", "warning")
+        msg = "No valid Global IDs provided."
+        if is_ajax:
+            return jsonify({'success': False, 'message': msg}), 400
+        flash(msg, "warning")
         return redirect(url_for('courses.view_course', course_id=course.id))
 
     assigned_count = 0
@@ -317,7 +307,21 @@ def assign_learners_to_class(class_id):
         msg += f" {already_enrolled_count} learner(s) were already enrolled."
     if invalid_ids:
         msg += f" {len(invalid_ids)} invalid/non-existing Global ID(s) could not be assigned: {', '.join(invalid_ids[:5])}{'...' if len(invalid_ids) > 5 else ''}."
-        flash(msg, "warning" if assigned_count == 0 else "info")
+
+    if is_ajax:
+        is_error = (assigned_count == 0 and already_enrolled_count == 0 and len(invalid_ids) > 0)
+        return jsonify({
+            'success': not is_error,
+            'message': msg,
+            'assigned_count': assigned_count,
+            'already_enrolled_count': already_enrolled_count,
+            'invalid_ids': invalid_ids
+        }), (400 if is_error else 200)
+
+    if invalid_ids and assigned_count == 0 and already_enrolled_count == 0:
+        flash(msg, "danger")
+    elif invalid_ids:
+        flash(msg, "warning")
     else:
         flash(msg, "success")
         

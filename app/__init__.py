@@ -129,7 +129,7 @@ def create_app(config_class=Config):
             'user_notifications': user_notifications,
             'unread_notif_count': unread_notif_count,
             'safe_endpoint': request.endpoint or '',
-            'enable_content_authoring': current_app.config.get('ENABLE_CONTENT_AUTHORING', True),
+            'enable_content_authoring': current_app.config.get('ENABLE_CONTENT_AUTHORING', False),
             'learner_theme': learner_theme
         }
 
@@ -143,6 +143,12 @@ def create_app(config_class=Config):
     def internal_server_error(e):
         from flask import render_template
         return render_template('errors/500.html'), 500
+
+    @app.errorhandler(413)
+    def request_entity_too_large(e):
+        from flask import flash, redirect, request
+        flash("The uploaded file is too large. Maximum allowed file size is 1 GB.", "danger")
+        return redirect(request.referrer or '/')
 
     # Auto-initialize database tables and seed files on startup (Render/Waitress support)
     from app.seed import init_db_and_seed

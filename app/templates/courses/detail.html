@@ -25,12 +25,21 @@
             <a href="{{ url_for('courses.edit_course', course_id=course.id) }}" class="btn-action-edit me-2 fs-6 px-3.5 py-1.5" title="Edit Course">
                 <i class="fa-solid fa-pen-to-square me-1"></i> Edit Course
             </a>
-            <form action="{{ url_for('courses.delete_course', course_id=course.id) }}" method="POST" class="d-inline me-2" onsubmit="return confirm('Are you sure you want to delete course {{ course.course_id }}? This will permanently delete all lessons, courseware, and assessments.');">
+            {% if course.is_archived %}
+            <form action="{{ url_for('courses.unarchive_course', course_id=course.id) }}" method="POST" class="d-inline me-2" onsubmit="return confirm('Are you sure you want to restore course {{ course.course_id }}?');">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn-action-delete fs-6 px-3.5 py-1.5" title="Delete Course">
-                    <i class="fa-solid fa-trash-can me-1"></i> Delete Course
+                <button type="submit" class="btn btn-warning text-dark font-monospace fw-bold fs-6 px-3.5 py-1.5 shadow-sm" title="Restore Course">
+                    <i class="fa-solid fa-box-open me-1"></i> Restore Course
                 </button>
             </form>
+            {% else %}
+            <form action="{{ url_for('courses.archive_course', course_id=course.id) }}" method="POST" class="d-inline me-2" onsubmit="return confirm('Are you sure you want to archive course {{ course.course_id }}? It will be safely moved to archived status.');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-warning text-dark font-monospace fw-bold fs-6 px-3.5 py-1.5 shadow-sm" title="Archive Course">
+                    <i class="fa-solid fa-box-archive me-1"></i> Archive Course
+                </button>
+            </form>
+            {% endif %}
             <a href="{{ url_for('courses.list_courses') }}" class="btn btn-outline-secondary btn-sm px-3">Back to Courses</a>
         </div>
     </div>
@@ -101,46 +110,12 @@
                     <span class="fw-bold text-dark">{{ course.created_at.strftime('%d-%b-%Y') }}</span>
                 </div>
 
-                {% if course.mode == 'Self Paced' %}
-                <!-- Course-Level Learner Assignment for Self-Paced Courses -->
+                <!-- Course-Level Learner Assignment -->
                 <div class="pt-2 border-top">
                     <button type="button" class="btn btn-navy bg-navy text-white w-100 fw-bold shadow-sm py-2" data-bs-toggle="modal" data-bs-target="#assignCourseModal">
                         <i class="fa-solid fa-user-plus me-1"></i> Assign Learners to Course
                     </button>
                 </div>
-
-                <!-- Self-Paced Course Learner Assignment Modal -->
-                <div class="modal fade" id="assignCourseModal" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-centered">
-                        <div class="modal-content border-0 shadow-lg text-start">
-                            <div class="modal-header bg-navy text-white">
-                                <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-plus me-2 text-gold"></i> Assign Learners - {{ course.course_id }}</h5>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body p-4">
-                                <form action="{{ url_for('learners.assign_learners') }}" method="POST" enctype="multipart/form-data">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <input type="hidden" name="course_id" value="{{ course.id }}">
-                                    <div class="mb-3">
-                                        <label class="form-label fw-bold text-navy">Option A: Enter Global IDs (One per line)</label>
-                                        <textarea class="form-control font-monospace" name="global_ids" rows="4" placeholder="10001&#10;10002&#10;10003"></textarea>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label fw-bold text-navy">Option B: Upload Learner CSV</label>
-                                        <input type="file" class="form-control" name="learner_csv" accept=".csv">
-                                    </div>
-                                    <div class="text-end mt-4">
-                                        <button type="button" class="btn btn-light border me-1" data-bs-dismiss="modal">Cancel</button>
-                                        <button type="submit" class="btn btn-navy bg-navy text-white fw-bold px-4">
-                                            <i class="fa-solid fa-user-check me-1"></i> Assign Course Learners
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
             </div>
         </div>
     </div>
@@ -235,9 +210,14 @@
                                 <!-- 2. Pre-Assessment CSV -->
                                 <div class="col-md-6">
                                     <div class="p-3 border rounded bg-white h-100">
-                                        <label class="form-label small fw-bold text-primary mb-1">
-                                            <i class="fa-solid fa-file-csv me-1"></i> 1. Lesson Pre-Assessment CSV
-                                        </label>
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <label class="form-label small fw-bold text-primary mb-0">
+                                                <i class="fa-solid fa-file-csv me-1"></i> 1. Lesson Pre-Assessment CSV
+                                            </label>
+                                            <a href="{{ url_for('courses.download_sample_csv', csv_type='assessment') }}" class="btn btn-xs btn-outline-primary fw-bold">
+                                                <i class="fa-solid fa-download me-1"></i> Sample CSV
+                                            </a>
+                                        </div>
                                         <input type="file" name="pre_assessment_csv" class="form-control form-control-sm" accept=".csv,.xlsx,.xls">
                                         <small class="text-muted d-block mt-1">Upload CSV quiz questions taken before reading lesson content.</small>
                                     </div>
@@ -246,9 +226,14 @@
                                 <!-- 3. Post-Assessment CSV -->
                                 <div class="col-md-6">
                                     <div class="p-3 border rounded bg-white h-100">
-                                        <label class="form-label small fw-bold text-success mb-1">
-                                            <i class="fa-solid fa-file-csv me-1"></i> 3. Lesson Post-Assessment CSV
-                                        </label>
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <label class="form-label small fw-bold text-success mb-0">
+                                                <i class="fa-solid fa-file-csv me-1"></i> 3. Lesson Post-Assessment CSV
+                                            </label>
+                                            <a href="{{ url_for('courses.download_sample_csv', csv_type='assessment') }}" class="btn btn-xs btn-outline-success fw-bold">
+                                                <i class="fa-solid fa-download me-1"></i> Sample CSV
+                                            </a>
+                                        </div>
                                         <input type="file" name="post_assessment_csv" class="form-control form-control-sm" accept=".csv,.xlsx,.xls">
                                         <small class="text-muted d-block mt-1">Upload CSV quiz questions taken after reading lesson content.</small>
                                     </div>
@@ -310,11 +295,6 @@
                                         <span class="badge bg-navy text-white me-2">Lesson {{ les.lesson_number }}</span> {{ les.title }}
                                         <span class="badge bg-secondary font-monospace ms-2"><i class="fa-regular fa-clock me-1"></i>{{ les.duration_hours or 1.0 }} hrs</span>
                                     </button>
-                                    {% if enable_content_authoring %}
-                                    <a href="{{ url_for('courses.author_lesson', course_id=course.id, lesson_id=les.id) }}" class="btn btn-sm btn-outline-primary px-2 py-1 ms-2" title="Author Slide Content">
-                                        <i class="fa-solid fa-pen-nib me-1"></i> Author Content
-                                    </a>
-                                    {% endif %}
                                     <form action="{{ url_for('courses.delete_lesson', lesson_id=les.id) }}" method="POST" class="d-inline ms-2" onsubmit="return confirm('Are you sure you want to delete Lesson #{{ les.lesson_number }} completely?');">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="btn btn-sm btn-outline-danger px-2 py-1" title="Delete Lesson">
@@ -328,9 +308,14 @@
                                         <div class="row g-2 mb-3">
                                             <div class="col-md-6">
                                                 <div class="p-2 border rounded bg-light">
-                                                    <small class="fw-bold text-navy d-block mb-1"><i class="fa-solid fa-file-csv text-primary me-1"></i> Upload Lesson Pre-Assessment CSV</small>
+                                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                                        <small class="fw-bold text-navy"><i class="fa-solid fa-file-csv text-primary me-1"></i> Upload Lesson Pre-Assessment CSV</small>
+                                                        <a href="{{ url_for('courses.download_sample_csv', csv_type='assessment') }}" class="btn btn-xs btn-outline-primary py-0 px-1.5 text-xs fw-bold">
+                                                            <i class="fa-solid fa-download me-1"></i> Sample CSV
+                                                        </a>
+                                                    </div>
                                                     <form action="{{ url_for('courses.upload_lesson_assessment', lesson_id=les.id) }}" method="POST" enctype="multipart/form-data" class="d-flex gap-1">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                         <input type="hidden" name="assessment_type" value="LESSON_PRE">
                                                         <input type="file" name="assessment_csv" class="form-control form-control-sm" accept=".csv,.xlsx,.xls" required>
                                                         <button type="submit" class="btn btn-primary btn-sm">Upload</button>
@@ -339,9 +324,14 @@
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="p-2 border rounded bg-light">
-                                                    <small class="fw-bold text-navy d-block mb-1"><i class="fa-solid fa-file-csv text-success me-1"></i> Upload Lesson Post-Assessment CSV</small>
+                                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                                        <small class="fw-bold text-navy"><i class="fa-solid fa-file-csv text-success me-1"></i> Upload Lesson Post-Assessment CSV</small>
+                                                        <a href="{{ url_for('courses.download_sample_csv', csv_type='assessment') }}" class="btn btn-xs btn-outline-success py-0 px-1.5 text-xs fw-bold">
+                                                            <i class="fa-solid fa-download me-1"></i> Sample CSV
+                                                        </a>
+                                                    </div>
                                                     <form action="{{ url_for('courses.upload_lesson_assessment', lesson_id=les.id) }}" method="POST" enctype="multipart/form-data" class="d-flex gap-1">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                         <input type="hidden" name="assessment_type" value="LESSON_POST">
                                                         <input type="file" name="assessment_csv" class="form-control form-control-sm" accept=".csv,.xlsx,.xls" required>
                                                         <button type="submit" class="btn btn-success btn-sm">Upload</button>
@@ -352,7 +342,14 @@
 
                                         <!-- 2. Attach Non-Downloadable Courseware Form -->
                                         <div class="p-2 border rounded bg-white mb-3">
-                                            <small class="fw-bold text-navy d-block mb-1"><i class="fa-solid fa-cloud-arrow-up text-warning me-1"></i> Attach Non-Downloadable Lesson Courseware (Video URL, PDF, PPT, Text)</small>
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <small class="fw-bold text-navy"><i class="fa-solid fa-cloud-arrow-up text-warning me-1"></i> Attach Non-Downloadable Lesson Courseware (Video URL, PDF, PPT, Text)</small>
+                                                {% if enable_content_authoring %}
+                                                <a href="{{ url_for('courses.author_lesson', course_id=course.id, lesson_id=les.id) }}" class="btn btn-xs btn-outline-primary fw-bold px-2 py-0.5" title="Launch Interactive Slide & Block Authoring Studio">
+                                                    <i class="fa-solid fa-pen-nib me-1"></i> Author Interactive Content
+                                                </a>
+                                                {% endif %}
+                                            </div>
                                             <form action="{{ url_for('courses.add_lesson_courseware', lesson_id=les.id) }}" method="POST" enctype="multipart/form-data" class="row g-2">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                 <div class="col-md-3">
@@ -383,11 +380,77 @@
                                         <div class="small">
                                             <strong class="text-muted d-block mb-1">Attached Lesson Courseware:</strong>
                                             {% for cw in les.courseware %}
-                                            <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
-                                                <div>
-                                                    <i class="fa-solid fa-file me-1 text-primary"></i> <strong>{{ cw.title }}</strong> ({{ cw.courseware_type }})
-                                                    <span class="badge bg-warning-subtle text-dark border ms-1"><i class="fa-solid fa-lock me-1"></i> Non-Downloadable</span>
+                                            <div class="p-2 border-bottom">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <i class="fa-solid fa-file me-1 text-primary"></i> <strong>{{ cw.title }}</strong> ({{ cw.courseware_type }})
+                                                        <span class="badge bg-warning-subtle text-dark border ms-1"><i class="fa-solid fa-lock me-1"></i> Non-Downloadable</span>
+                                                    </div>
+                                                    {% if enable_content_authoring and cw.courseware_type == 'Text' %}
+                                                    <a href="{{ url_for('courses.author_lesson', course_id=course.id, lesson_id=les.id) }}" class="btn btn-xs btn-outline-primary fw-bold">
+                                                        <i class="fa-solid fa-pen-nib me-1"></i> Edit Interactive Content
+                                                    </a>
+                                                    {% endif %}
                                                 </div>
+
+                                                {% if cw.courseware_type == 'Video' or cw.courseware_type == 'Video URL' or (cw.filename and cw.filename.split('.')[-1]|lower in ['mp4', 'webm', 'ogg', 'mov']) %}
+                                                <div class="mt-2 p-2 bg-light rounded border">
+                                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                                        <span class="small fw-bold text-navy"><i class="fa-solid fa-language text-info me-1"></i> Multi-Audio Tracks (Dubbing / Audio Languages)</span>
+                                                        <button type="button" class="btn btn-xs btn-outline-info py-0 px-2 fw-bold" data-bs-toggle="collapse" data-bs-target="#audioTrackCollapse{{ cw.id }}">
+                                                            <i class="fa-solid fa-plus me-1"></i> Add Audio Track
+                                                        </button>
+                                                    </div>
+                                                    {% if cw.audio_tracks %}
+                                                    <div class="d-flex flex-wrap gap-1 mt-1 align-items-center">
+                                                        {% set default_exists = cw.audio_tracks | selectattr("is_default") | list | length > 0 %}
+                                                        <form action="{{ url_for('courses.set_default_audio_track', track_id=0) }}" method="POST" class="d-inline">
+                                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                            <input type="hidden" name="courseware_id" value="{{ cw.id }}">
+                                                            <button type="submit" class="btn btn-xs {% if not default_exists %}btn-success fw-bold{% else %}btn-outline-secondary{% endif %}" title="Set Original Video Audio as Default">
+                                                                <i class="fa-solid fa-video me-1"></i> Original Video Audio {% if not default_exists %}(Default ⭐){% endif %}
+                                                            </button>
+                                                        </form>
+
+                                                        {% for trk in cw.audio_tracks %}
+                                                        <div class="btn-group btn-group-sm ms-1" role="group">
+                                                            <form action="{{ url_for('courses.set_default_audio_track', track_id=trk.id) }}" method="POST" class="d-inline">
+                                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                                <button type="submit" class="btn btn-xs {% if trk.is_default %}btn-warning text-dark fw-bold{% else %}btn-outline-info{% endif %}" title="Click to set {{ trk.language_label }} as default playback audio">
+                                                                    <i class="fa-solid fa-volume-high me-1"></i> {{ trk.language_label }} {% if trk.is_default %}(Default ⭐){% endif %}
+                                                                </button>
+                                                            </form>
+                                                            <form action="{{ url_for('courses.delete_audio_track', track_id=trk.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this audio track?');">
+                                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                                <button type="submit" class="btn btn-xs btn-outline-danger" title="Delete Audio Track"><i class="fa-solid fa-trash-can"></i></button>
+                                                            </form>
+                                                        </div>
+                                                        {% endfor %}
+                                                    </div>
+                                                    {% else %}
+                                                    <small class="text-muted d-block text-xs">No auxiliary audio tracks added yet. Default audio from video file will be played.</small>
+                                                    {% endif %}
+
+                                                    <div class="collapse mt-2 pt-2 border-top" id="audioTrackCollapse{{ cw.id }}">
+                                                        <form action="{{ url_for('courses.add_audio_track', courseware_id=cw.id) }}" method="POST" enctype="multipart/form-data" class="row g-2 align-items-center">
+                                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                            <div class="col-md-4">
+                                                                <input type="text" name="language_label" class="form-control form-control-sm" placeholder="Language (e.g. Telugu, Hindi)" required>
+                                                            </div>
+                                                            <div class="col-md-5">
+                                                                <input type="file" name="audio_file" class="form-control form-control-sm" accept=".mp3,.m4a,.aac,.wav,.ogg" required>
+                                                            </div>
+                                                            <div class="col-md-3 d-flex align-items-center gap-1">
+                                                                <div class="form-check me-2">
+                                                                    <input class="form-check-input" type="checkbox" name="make_default" value="1" id="defCheck{{ cw.id }}" checked>
+                                                                    <label class="form-check-label text-xs fw-bold" for="defCheck{{ cw.id }}">Set Default</label>
+                                                                </div>
+                                                                <button type="submit" class="btn btn-info text-white btn-sm px-3 fw-bold">Upload</button>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
                                             </div>
                                             {% else %}
                                             <span class="text-muted">No courseware attached to this lesson yet.</span>
@@ -464,10 +527,15 @@
                         </div>
                         {% else %}
                         <div class="card bg-light border-0 p-3 mb-4">
-                            <h6 class="fw-bold text-navy mb-2"><i class="fa-solid fa-file-csv text-warning me-1"></i> Upload Course End Assessment CSV Questions</h6>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold text-navy mb-0"><i class="fa-solid fa-file-csv text-warning me-1"></i> Upload Course End Assessment CSV Questions</h6>
+                                <a href="{{ url_for('courses.download_sample_csv', csv_type='assessment') }}" class="btn btn-sm btn-outline-warning text-dark fw-bold">
+                                    <i class="fa-solid fa-download me-1"></i> Download Sample CSV
+                                </a>
+                            </div>
                             <p class="text-muted small mb-3">No Course End Assessment CSV has been uploaded yet. Upload a CSV question bank below.</p>
                             <form action="{{ url_for('courses.upload_course_end_assessment', course_id=course.id) }}" method="POST" enctype="multipart/form-data" class="row g-2">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <div class="col-md-8">
                                     <input type="file" name="assessment_csv" class="form-control form-control-sm" accept=".csv,.xlsx,.xls" required>
                                 </div>
@@ -618,7 +686,8 @@
                                 </div>
                                 {% endif %}
                             </div>
-                        </div>
+                    </div>
+
                     </div>
 
                     {% if course.mode != 'Self Paced' %}
@@ -627,7 +696,7 @@
                         <div class="card bg-light border-0 p-3 mb-4 shadow-sm">
                             <h6 class="fw-bold text-navy mb-3"><i class="fa-solid fa-calendar-plus me-1 text-success"></i> Schedule New Live Class Batch</h6>
                             <form action="{{ url_for('courses.create_course_class', course_id=course.id) }}" method="POST" enctype="multipart/form-data" class="row g-3">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <div class="col-md-3">
                                     <label class="form-label small fw-bold text-navy mb-1">Class Mode</label>
                                     {% if 'Hybrid' in course.mode %}
@@ -684,11 +753,17 @@
                                 </div>
                                 
                                 <div class="col-md-6">
-                                    <label class="form-label small fw-bold text-navy mb-1"><i class="fa-solid fa-file-csv me-1 text-primary"></i> Pre-Assessment Quiz CSV (Optional)</label>
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <label class="form-label small fw-bold text-navy mb-0"><i class="fa-solid fa-file-csv me-1 text-primary"></i> Pre-Assessment Quiz CSV (Optional)</label>
+                                        <a href="{{ url_for('courses.download_sample_csv', csv_type='assessment') }}" class="btn btn-xs btn-outline-primary py-0 px-1.5 text-xs fw-bold">Sample CSV</a>
+                                    </div>
                                     <input type="file" name="pre_assessment_file" accept=".csv" class="form-control form-control-sm">
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label small fw-bold text-navy mb-1"><i class="fa-solid fa-file-csv me-1 text-success"></i> Post-Assessment Quiz CSV (Optional)</label>
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <label class="form-label small fw-bold text-navy mb-0"><i class="fa-solid fa-file-csv me-1 text-success"></i> Post-Assessment Quiz CSV (Optional)</label>
+                                        <a href="{{ url_for('courses.download_sample_csv', csv_type='assessment') }}" class="btn btn-xs btn-outline-success py-0 px-1.5 text-xs fw-bold">Sample CSV</a>
+                                    </div>
                                     <input type="file" name="post_assessment_file" accept=".csv" class="form-control form-control-sm">
                                 </div>
 
@@ -736,14 +811,20 @@
                                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                                         </div>
                                         <div class="modal-body p-4">
-                                            <form action="{{ url_for('classes.assign_learners_to_class', class_id=cls.id) }}" method="POST" enctype="multipart/form-data">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <div id="assignClassAlert{{ cls.id }}" class="alert d-none mb-3"></div>
+                                            <form action="{{ url_for('classes.assign_learners_to_class', class_id=cls.id) }}" method="POST" enctype="multipart/form-data" class="assign-class-form" data-alert-id="assignClassAlert{{ cls.id }}" data-modal-id="assignClassModal{{ cls.id }}">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                 <div class="mb-3">
                                                     <label class="form-label fw-bold text-navy">Option A: Enter Global IDs (One per line)</label>
                                                     <textarea class="form-control font-monospace" name="global_ids" rows="4" placeholder="10001&#10;10002&#10;10003"></textarea>
                                                 </div>
                                                 <div class="mb-3">
-                                                    <label class="form-label fw-bold text-navy">Option B: Upload Learner CSV</label>
+                                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                                        <label class="form-label fw-bold text-navy mb-0">Option B: Upload Learner CSV</label>
+                                                        <a href="{{ url_for('courses.download_sample_csv', csv_type='learners') }}" class="btn btn-xs btn-outline-success fw-bold">
+                                                            <i class="fa-solid fa-download me-1"></i> Sample CSV
+                                                        </a>
+                                                    </div>
                                                     <input type="file" class="form-control" name="learner_csv" accept=".csv">
                                                 </div>
                                                 <div class="text-end mt-4">
@@ -792,9 +873,6 @@
                                     <div class="modal-body p-4">
                                         <h6 class="fw-bold text-navy mb-1">{{ cls.class_name }}</h6>
                                         <p class="font-monospace text-gold bg-dark d-inline-block px-3 py-1 rounded small mb-3">{{ cls.class_id }}</p>
-                                        <div class="p-3 bg-white border rounded-3 d-inline-block shadow-sm mb-3">
-                                            <img src="/static/qr_codes/qr_{{ cls.class_id }}.png" alt="QR Code" class="img-fluid" style="max-width: 240px;" onerror="this.src='https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=http://localhost:5000/learner/login?classId={{ cls.class_id }}'">
-                                        </div>
                                         <p class="text-muted small mb-3">Learners scan this QR code in class to authenticate & mark attendance automatically.</p>
                                         <div class="d-flex justify-content-center gap-2">
                                             <a href="{{ url_for('classes.download_qr', class_id_str=cls.class_id) }}" class="btn btn-navy bg-navy text-white btn-sm fw-bold px-3">
@@ -802,6 +880,7 @@
                                             </a>
                                             <a href="http://localhost:5000/learner/login?classId={{ cls.class_id }}" target="_blank" class="btn btn-outline-primary btn-sm fw-bold px-3">
                                                 <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Open Scan URL
+                                            </a>
                                         </div>
                                     </div>
                                 </div>
@@ -818,7 +897,7 @@
                                     </div>
                                     <div class="modal-body p-4">
                                         <form action="{{ url_for('attendance.bulk_upload') }}" method="POST" enctype="multipart/form-data">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <input type="hidden" name="class_id" value="{{ cls.id }}">
                                             
                                             <div class="mb-3">
@@ -828,7 +907,12 @@
                                             </div>
 
                                             <div class="mb-3">
-                                                <label class="form-label fw-bold text-navy mb-1"><i class="fa-solid fa-file-csv me-1 text-success"></i> OR Upload Attendance CSV / Excel File</label>
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <label class="form-label fw-bold text-navy mb-0"><i class="fa-solid fa-file-csv me-1 text-success"></i> OR Upload Attendance CSV / Excel File</label>
+                                                    <a href="{{ url_for('courses.download_sample_csv', csv_type='attendance') }}" class="btn btn-xs btn-outline-success fw-bold">
+                                                        <i class="fa-solid fa-download me-1"></i> Sample CSV
+                                                    </a>
+                                                </div>
                                                 <input type="file" class="form-control" name="attendance_csv" accept=".csv,.xlsx,.xls">
                                                 <small class="text-muted">CSV column: <strong>Global ID</strong> (or first column).</small>
                                             </div>
@@ -857,10 +941,180 @@
                         {% endfor %}
                     </div>
                     {% endif %}
-
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Course Learner Assignment Modal -->
+<div class="modal fade" id="assignCourseModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg text-start">
+            <div class="modal-header bg-navy text-white">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-plus me-2 text-gold"></i> Assign Learners - {{ course.course_id }}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div id="assignCourseAlert" class="alert d-none mb-3"></div>
+                <form id="assignCourseForm" action="{{ url_for('learners.assign_learners') }}" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="course_id" value="{{ course.id }}">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-navy">Option A: Enter Global IDs (One per line)</label>
+                        <textarea class="form-control font-monospace" name="global_ids" rows="4" placeholder="10001&#10;10002&#10;10003"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label fw-bold text-navy mb-0">Option B: Upload Learner CSV</label>
+                            <a href="{{ url_for('courses.download_sample_csv', csv_type='learners') }}" class="btn btn-xs btn-outline-success fw-bold">
+                                <i class="fa-solid fa-download me-1"></i> Sample CSV
+                            </a>
+                        </div>
+                        <input type="file" class="form-control" name="learner_csv" accept=".csv">
+                    </div>
+                    <div class="text-end mt-4">
+                        <button type="button" class="btn btn-light border me-1" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-navy bg-navy text-white fw-bold px-4" id="assignCourseSubmitBtn">
+                            <i class="fa-solid fa-user-check me-1"></i> Assign Course Learners
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    function initAssignmentForms() {
+        function handleModalAssignmentForm(formEl, alertEl, modalEl) {
+            if (!formEl || formEl.dataset.ajaxHandled) return;
+            formEl.dataset.ajaxHandled = 'true';
+
+            formEl.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                const submitBtn = formEl.querySelector('button[type="submit"]');
+                const originalBtnText = submitBtn ? submitBtn.innerHTML : 'Assign';
+
+                const globalIdsInput = formEl.querySelector('[name="global_ids"]');
+                const csvInput = formEl.querySelector('[name="learner_csv"]');
+
+                const hasText = globalIdsInput && globalIdsInput.value.trim().length > 0;
+                const hasCsv = csvInput && csvInput.files && csvInput.files.length > 0;
+
+                if (!hasText && !hasCsv) {
+                    if (alertEl) {
+                        alertEl.className = 'alert alert-warning mb-3';
+                        alertEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation me-1"></i> Please enter Global IDs or select a Learner CSV file.';
+                        alertEl.classList.remove('d-none');
+                    }
+                    return;
+                }
+
+                if (alertEl) alertEl.classList.add('d-none');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Assigning...';
+                }
+
+                const csrfTokenInput = formEl.querySelector('[name="csrf_token"]');
+                const headers = {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                };
+                if (csrfTokenInput && csrfTokenInput.value) {
+                    headers['X-CSRFToken'] = csrfTokenInput.value;
+                }
+
+                const formData = new FormData(formEl);
+                fetch(formEl.action, {
+                    method: 'POST',
+                    headers: headers,
+                    body: formData
+                })
+                .then(response => response.json().then(data => ({ status: response.status, data })))
+                .then(({ status, data }) => {
+                    if (status >= 200 && status < 300 && data.success) {
+                        if (alertEl) {
+                            alertEl.className = 'alert alert-success mb-3';
+                            alertEl.innerHTML = `<i class="fa-solid fa-circle-check me-1"></i> ${data.message}`;
+                            alertEl.classList.remove('d-none');
+                        }
+                        setTimeout(() => {
+                            const dismissBtn = modalEl ? modalEl.querySelector('[data-bs-dismiss="modal"]') : null;
+                            if (dismissBtn) {
+                                dismissBtn.click();
+                            } else if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                                const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+                                if (modalInstance) modalInstance.hide();
+                            }
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        if (alertEl) {
+                            alertEl.className = 'alert alert-danger mb-3';
+                            alertEl.innerHTML = `<i class="fa-solid fa-circle-xmark me-1"></i> ${data.message || 'Assignment failed. Please check inputs.'}`;
+                            alertEl.classList.remove('d-none');
+                        }
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = originalBtnText;
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error("Assignment submission error:", err);
+                    if (alertEl) {
+                        alertEl.className = 'alert alert-danger mb-3';
+                        alertEl.innerHTML = '<i class="fa-solid fa-circle-xmark me-1"></i> An unexpected server error occurred. Please try again.';
+                        alertEl.classList.remove('d-none');
+                    }
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalBtnText;
+                    }
+                });
+            });
+
+            if (modalEl) {
+                modalEl.addEventListener('show.bs.modal', function() {
+                    if (alertEl) {
+                        alertEl.classList.add('d-none');
+                        alertEl.innerHTML = '';
+                    }
+                    formEl.reset();
+                    const submitBtn = formEl.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fa-solid fa-user-check me-1"></i> Assign Course Learners';
+                    }
+                });
+            }
+        }
+
+        const courseForm = document.getElementById('assignCourseForm');
+        const courseAlert = document.getElementById('assignCourseAlert');
+        const courseModal = document.getElementById('assignCourseModal');
+        if (courseForm) {
+            handleModalAssignmentForm(courseForm, courseAlert, courseModal);
+        }
+
+        document.querySelectorAll('.assign-class-form').forEach(form => {
+            const alertId = form.getAttribute('data-alert-id');
+            const modalId = form.getAttribute('data-modal-id');
+            const alertEl = alertId ? document.getElementById(alertId) : null;
+            const modalEl = modalId ? document.getElementById(modalId) : null;
+            handleModalAssignmentForm(form, alertEl, modalEl);
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initAssignmentForms);
+    } else {
+        initAssignmentForms();
+    }
+})();
+</script>
 {% endblock %}
